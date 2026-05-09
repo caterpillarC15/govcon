@@ -2,14 +2,18 @@
   "name": "govcon",
   "private": true,
   "workspaces": [
-    "landing"
+    "landing",
+    "web"
   ],
   "scripts": {
     "dev": "npm -w landing run dev --",
     "build": "npm -w landing run build",
     "start": "npm -w landing run start",
     "lint": "npm -w landing run lint",
-    "typecheck": "npm -w landing run typecheck"
+    "typecheck": "npm -w landing run typecheck",
+    "dev:web": "npm -w web run dev",
+    "build:web": "npm -w web run build",
+    "typecheck:web": "npm -w web run typecheck"
   }
 }
 
