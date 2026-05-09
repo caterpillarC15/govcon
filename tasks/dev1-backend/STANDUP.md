@@ -74,3 +74,35 @@ When a sync checkpoint completes (S1–S5 from `../INTERFERENCE_MAP.md §3`), bo
 - Pre-A9 replayer's 250 ms `initial_delay` matters — pubsub drops messages without listeners, so the SSE subscriber needs time to connect after `POST /agent-runs` returns. Without the delay, the test client misses `run_started`.
 - Migration revision id pinned to `0001` (vs the autogen hash) for stable ordering. Future autogenerates pick up wherever Alembic's chain leaves off; pin manually if order matters.
 - `LLMMetrics.attempts` allows `0` so the unparseable-input short-circuit can return a metrics object without claiming an LLM call happened.
+
+---
+
+## 2026-05-09 (later) — Dev 1 (Track A) — Supabase pivot
+
+**Done since last entry:**
+- [x] PRD bumped to v1.2.3. §7.5 / §7.6 rewritten: Postgres + Storage move to Supabase; Redis stays native on VX1; Auth and Realtime explicitly deferred.
+- [x] `api/db/__init__.py` — engine adds `connect_args={"ssl": "require"}` only for non-localhost hosts. Local PG dev still works; Supabase pg works without code change.
+- [x] `api/config.py` — added `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, `SUPABASE_STORAGE_BUCKET` settings.
+- [x] `api/storage.py` (new) — httpx-based wrapper around Supabase Storage REST API: `upload_bytes`, `upload_file`, `download_bytes`, `download_to_tmp`, `delete`. Service-role keyed; bypasses RLS. `parse_pdf` keeps taking local paths — caller downloads from Storage to `/tmp` first.
+- [x] `.env.example` + `tasks/CONTRACTS.md §4` updated with the four Supabase vars and Direct-Connection-not-pooler note.
+- [x] `infra/bootstrap.sh` shrinks ~40%: dropped `postgresql-16` + `postgresql-client-16` install, role/db setup, `systemctl enable postgresql`, and the `/var/lib/govcapture/{raw,parsed}` working dirs. Bootstrap now installs just Redis + Python + Hermes-via-uv + nginx + certbot.
+- [x] `infra/systemd/govcapture-api.service` — dropped `After=postgresql.service` and `Wants=postgresql.service`; `ReadWritePaths` no longer includes `/var/lib/govcapture`.
+- [x] Deleted `infra/backup.sh`, `infra/systemd/govcapture-backup.service`, `infra/systemd/govcapture-backup.timer` — Supabase handles pg backups.
+- [x] `infra/RUNBOOK.md` rewritten end-to-end: §1 now covers creating the Supabase project + bucket; §5 runs Alembic against Supabase; §9 backups section says "Supabase handles it"; new gotchas table entry for the pgBouncer-vs-direct trap.
+- [x] All 71 tests still green against local PG (`DATABASE_URL=postgresql+asyncpg://govcon@localhost:5432/govcon`). Verified the SSL detection doesn't break loopback.
+
+**Doing next:**
+- A6 — `score_fit` with §11.1 deterministic short-circuit. Same prompt-template + structured-output pattern as A5.
+
+**Blocked on:**
+- Need a Supabase project URL + service-role key in `.env` to run live migrations against Supabase. Not blocking A6/A7 (those are skill code, infra-agnostic).
+
+**Decisions / questions for the other dev:**
+- @Dev2: schema codegen to TypeScript is still gated on `/web/` existing. Once you have a `/web/` dir, `make schemas` will populate `/web/lib/schemas/` automatically. (Or you can keep using `/landing/` and import from `/schemas/*.json` directly — your call.)
+- @Dev2: front-end uses `SUPABASE_ANON_KEY` only (never `SERVICE_ROLE_KEY`). For v1.2.3 there's no direct browser→Supabase wiring required — the FastAPI proxy mediates everything.
+
+**Notes for posterity:**
+- pgBouncer-on-port-6543 vs Direct-Connection-on-port-5432: asyncpg's prepared statements break transaction-mode pooling. The tested path is the direct URL; documented prominently in `.env.example`, CONTRACTS.md §4, the RUNBOOK gotchas table, and the bootstrap next-steps message.
+- `parse_pdf` deliberately stays local-path-only — keeps the skill testable with a synthesized PDF. Storage round-trips are the *caller's* responsibility (eval harness in A12, Hermes bridge in A9). This keeps skill unit tests fast and hermetic.
+- Supabase's free tier gives 7-day rolling backups; PRD §7.6 calls that out instead of the previous on-box pg_dump cron.
+- Auth (§17 Q5) and Supabase Realtime are deliberately not adopted in v1.2.3 — keeps the surface change scoped to "managed PG + Storage."

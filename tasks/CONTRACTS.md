@@ -9,7 +9,7 @@ This document is the single source of truth for everything that both tracks must
 ```
 /api          — FastAPI proxy + Hermes integration + domain skills              [Track A]
 /api/skills   — Hermes skills: parse_pdf, extract_requirements, score_fit, ...  [Track A]
-/infra        — docker-compose, bootstrap.sh, nginx.conf, certbot setup         [Track A]
+/infra        — bootstrap.sh, systemd units, nginx.conf, certbot setup          [Track A]
 /eval         — eval harness runner                                             [Track A owns runner]
               └─ goldens/ — expected.json per fixture                           [Track B owns goldens]
 /web          — Next.js frontend, Tailwind, shadcn/ui                           [Track B]
@@ -19,8 +19,7 @@ This document is the single source of truth for everything that both tracks must
               └─ <slug>/expected.json                                           [B authors]
 /schemas      — JSON Schema source of truth for ALL data structures             [Shared, locked in P0]
 PRD.md        — product spec, frozen at v1.2.1                                  [Joint edit only]
-Makefile      — top-level targets (schemas, eval, dev, deploy)                  [Shared]
-docker-compose.yaml  — local dev stack                                          [Track A]
+Makefile      — top-level targets (schemas, eval, dev, services-up, deploy)     [Shared]
 .env.example  — env var contract                                                [Joint, append-only]
 tasks/        — this folder; build plan + standups                              [Joint]
 ```
@@ -112,9 +111,21 @@ LLM_SYNTH_MODEL=claude-sonnet-4-6
 # External APIs
 SAM_API_KEY=
 
-# Storage
-DATABASE_URL=postgresql://govcon:govcon@localhost:5432/govcon
+# Postgres — Supabase in dev/prod (PRD v1.2.3 §7.5).
+# Use the Direct Connection URL (port 5432), NOT the pgBouncer pooler (6543).
+# asyncpg uses prepared statements, which transaction-mode pooling rejects.
+# Example: postgresql+asyncpg://postgres:<pw>@db.<ref>.supabase.co:5432/postgres
+# Local-dev fallback: postgresql+asyncpg://govcon@localhost:5432/govcon
+DATABASE_URL=
+
+# SSE pub/sub bridge — native Redis on VX1 in prod, Homebrew/apt local in dev.
 REDIS_URL=redis://localhost:6379/0
+
+# Supabase project (PRD v1.2.3 §7.5)
+SUPABASE_URL=https://<your-project-ref>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=   # server-side only; bypasses RLS; NEVER ship to web
+SUPABASE_ANON_KEY=           # safe for the web client (public)
+SUPABASE_STORAGE_BUCKET=govcapture-attachments
 
 # Hermes runtime (configured via `hermes model` CLI; HOME holds skills + memory)
 HERMES_HOME=/var/lib/hermes
@@ -135,6 +146,7 @@ DEMO_USE_SEEDED_ONLY=false   # true forces planner to skip live SAM and Hermes b
 **Rules:**
 - `.env.example` is append-only. New vars get added here AND in this contract section.
 - Never read `os.environ` outside `/api/config.py` or `/web/lib/env.ts`. Centralized so one file owns the truth.
+- `SUPABASE_SERVICE_ROLE_KEY` is server-only. It MUST NOT be inlined into Vercel env or the Next.js client bundle. Frontend uses `SUPABASE_ANON_KEY` (Public/RLS-protected) only; for v1.2.3 Auth is deferred (§17 Q5), so the FastAPI proxy mediates all DB/Storage access via the service role.
 
 ---
 

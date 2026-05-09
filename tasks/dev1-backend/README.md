@@ -63,18 +63,21 @@ Joint docs live at the parent (`../`); your dev-specific files live here. Read i
 
 ## Status (2026-05-09)
 
-**Done:** A1 (skeleton + Hermes v0.13.0 installed) → P0.2 (10 JSON Schemas + `make schemas` codegen wired) → A2 (7 tables, migration `0001_initial`) → A3 (11 endpoints + SSE replay stub from `/schemas/trace-event.example.jsonl`) → A4 (`parse_pdf`, hermetic reportlab tests) → A5 (`extract_requirements`, structured outputs, evidence-binding post-validation).
+**Done:** A1 (skeleton + Hermes v0.13.0 installed) → P0.2 (10 JSON Schemas + `make schemas` codegen wired) → A2 (7 tables, migration `0001_initial`) → A3 (11 endpoints + SSE replay stub from `/schemas/trace-event.example.jsonl`) → A4 (`parse_pdf`, hermetic reportlab tests) → A5 (`extract_requirements`, structured outputs, evidence-binding post-validation) → **PRD v1.2.3 (Supabase pivot)**: Postgres and Storage now hosted on Supabase, infra/* shrinks ~40%, Redis stays local on VX1.
 
 **S2 trigger ready** — Dev 2 can switch `NEXT_PUBLIC_API_BASE` off the mock server.
 
-**Tests:** `uv run pytest api/tests` → 71 passed, 2 skipped (Dev 2's seed-PDF fixtures not authored yet).
+**Tests:** `uv run pytest api/tests` → 71 passed, 2 skipped (Dev 2's seed-PDF fixtures not authored yet). SSL config in `api/db/__init__.py` is hostname-conditional, so local PG dev keeps working.
 
 **Architecture decisions made (don't relitigate):**
 
 - **Skills layout:** `/api/skills/<name>/{__init__.py, skill.py, prompt.txt}` as plain async Python. Hermes toolset wrapper happens in A9. (A4.md / A5.md skeletons used `/api/agent/tools/`; we moved them so the user-facing skill module path is stable across A9.)
 - **Shared LLM client:** `api/llm.py` — `AsyncAnthropic`, structured output via `output_config.format` (no parse-and-retry loop), top-level `cache_control` on the system prompt, per-model cost estimation, surfaces `cache_read_input_tokens`. Skills receive `LLMMetrics`; the trace bridge (A9) wraps into `tool_returned`.
 - **Pre-A9 SSE:** `api/agent/replay.py` rewrites `run_id` in the example JSONL and publishes to Redis pub/sub `agent-run:{id}` with a 250 ms initial delay so the SSE subscriber can connect after `POST /agent-runs` returns. Replaced by Hermes bridge in A9.
-- **Postgres 17** is in use locally (spec said 16; works fine — no migration drift). VX1 will install 16 per A13 spec; same major-version family. `Makefile` pins `postgresql@16` in `services-up`/`services-down`; you may need to adjust if another machine has only 17.
+- **Postgres now Supabase (v1.2.3).** Use the **Direct Connection URL** (port 5432), NOT the pooler at 6543 — asyncpg's prepared statements break transaction-mode pooling. The engine adds `connect_args={"ssl": "require"}` automatically for any non-localhost hostname (`api/db/__init__.py`). Alembic migrations run against Supabase identically; `make migrate` is unchanged. Local PG on `localhost` still works as a dev fallback.
+- **Storage now Supabase (v1.2.3).** Bucket `govcapture-attachments`. `api/storage.py` wraps the REST API via httpx (no extra SDK). `parse_pdf` deliberately stays local-path-only; callers (eval harness, Hermes bridge) download from Storage to `/tmp` before invoking the skill.
+- **Redis stays native on VX1** for the SSE pub/sub bridge (PRD §7.5). Switching to Supabase Realtime is rework, not speed, since the bridge is already built and the on-the-wire SSE shape is what Dev 2's frontend consumes.
+- **Auth (§17 Q5) and Realtime stay deferred.** Service-role key on the FastAPI side mediates all DB/Storage access for v1.2.3. The web client never sees the service role.
 - **Migration revision id:** `0001` (overrode autogen hash for clean ordering — there's no prior history).
 - **Codegen module suffix stripped** post-generation so `from api.schemas.agent_run import AgentRun` matches A3's spec rather than `agent_run_schema.py`.
 - **`LLMMetrics.attempts` allows `0`** for the unparseable-input short-circuit path (no LLM call).

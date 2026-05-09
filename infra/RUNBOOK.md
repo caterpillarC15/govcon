@@ -1,22 +1,39 @@
-# Vultr VX1 Deployment Runbook
+# Vultr VX1 Deployment Runbook (v1.2.3)
 
-Native (no Docker) deploy of the FastAPI backend per PRD §7.6.
+Native (no Docker) deploy of the FastAPI backend per PRD §7.6. Postgres and
+object storage live in Supabase (PRD v1.2.3 §7.5); the VX1 hosts the app,
+agent runtime, SSE pub/sub, and TLS terminator.
 
 | Component | Where it runs |
 |---|---|
 | FastAPI (gunicorn + UvicornWorker × 4) | systemd unit `govcapture-api.service`, listens on `127.0.0.1:8000` |
-| Postgres 16 | system `postgresql.service` |
-| Redis | system `redis-server.service` |
+| Hermes runtime | subprocess of FastAPI (same `govcapture` user) |
+| Redis | system `redis-server.service` — SSE pub/sub bridge (PRD §7.5) |
 | nginx (TLS terminator + reverse proxy) | system `nginx.service` |
-| Daily backups | systemd timer `govcapture-backup.timer` → `pg_dump` + parsed tarball |
+| **Supabase Postgres** (external) | DATABASE_URL → Direct Connection (port 5432) |
+| **Supabase Storage** (external) | bucket `govcapture-attachments` |
 
 ## 0. Prerequisites
 
 - Vultr VX1 provisioned with **Ubuntu 24.04 LTS**
 - Root SSH access (or a sudoer)
 - A domain you control, e.g. `api.govcapture.example`
+- A Supabase project (create at https://supabase.com — Free tier is enough for MVP)
 
-## 1. First-time provisioning
+## 1. Create the Supabase project (one time)
+
+1. https://supabase.com → New project. Region close to VX1.
+2. **Settings → Database → Connection string → Direct connection** (port `5432`).
+   Capture the URL — replace `[YOUR-PASSWORD]` with the password you set.
+3. **Settings → API** — capture `URL`, `anon public` key, and `service_role` key.
+4. **Storage → New bucket** → `govcapture-attachments` (private, no public read).
+5. Optional but recommended: under **Storage → Policies**, add a retention rule
+   on the `raw/` prefix matching PRD §17 Q6 (30-day purge of original PDFs).
+
+> Use the **Direct Connection** URL (port 5432), NOT the pgBouncer pooler at
+> 6543 — asyncpg uses prepared statements which transaction-mode pooling rejects.
+
+## 2. Provision the box
 
 ```bash
 ssh root@<box-ip>
@@ -25,14 +42,9 @@ sudo bash /tmp/govcon/infra/bootstrap.sh
 ```
 
 `bootstrap.sh` is idempotent. It installs apt packages, configures `ufw`,
-creates the `govcapture` user + working dirs, sets up Postgres + Redis,
-installs systemd units, and prints the next-step checklist.
-
-## 2. Set the Postgres password
-
-```bash
-sudo -u postgres psql -c "ALTER USER govcon WITH PASSWORD 'CHOOSE_A_STRONG_ONE';"
-```
+creates the `govcapture` user, sets up Redis, installs the API systemd unit,
+and prints the next-step checklist. **It does not install Postgres anymore**
+(Supabase replaces it).
 
 ## 3. Clone the repo to `/opt/govcapture`
 
@@ -53,10 +65,16 @@ sudo -u govcapture bash -lc 'GIT_SSH_COMMAND="ssh -i ~/.ssh/id_deploy" git clone
 ```bash
 sudo -u govcapture install -m 0600 /dev/null /opt/govcapture/.env
 sudo -u govcapture editor /opt/govcapture/.env
-# paste the contents of .env.production.example, then fill in real values
+# Paste from .env.example, then fill in:
+#   DATABASE_URL                — Supabase Direct Connection URL (port 5432, with SSL)
+#   SUPABASE_URL                — https://<ref>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY   — server-only; bypasses RLS
+#   SUPABASE_ANON_KEY           — safe for the web client
+#   SUPABASE_STORAGE_BUCKET     — govcapture-attachments
+#   ANTHROPIC_API_KEY           — sk-ant-...
 ```
 
-## 5. Install deps + migrate + start
+## 5. Install deps + migrate against Supabase + start
 
 ```bash
 sudo -u govcapture -H bash -lc 'cd /opt/govcapture && ~/.local/bin/uv sync'
@@ -64,6 +82,9 @@ sudo -u govcapture -H bash -lc 'cd /opt/govcapture && ~/.local/bin/uv run alembi
 sudo systemctl enable --now govcapture-api.service
 sudo systemctl status govcapture-api --no-pager
 ```
+
+`alembic upgrade head` runs against Supabase (the engine adds SSL automatically
+for any non-localhost hostname — see `api/db/__init__.py`).
 
 Sanity check directly against gunicorn:
 
@@ -110,39 +131,34 @@ sudo systemctl status govcapture-api --no-pager
 ```
 
 `deploy.sh` does `git reset --hard origin/main` + `uv sync --frozen` +
-`alembic upgrade head`. The systemd restart picks up the new code.
+`alembic upgrade head` (against Supabase). The systemd restart picks up the
+new code.
 
 ## 9. Operations
 
 ### Logs
 ```bash
 sudo journalctl -u govcapture-api -f                # API
-sudo journalctl -u govcapture-backup -n 200         # last backup run
 sudo tail -F /var/log/nginx/access.log              # nginx
-sudo tail -F /var/log/postgresql/postgresql-16-main.log
+# Supabase Postgres logs: dashboard → Project → Logs → Postgres
+# Supabase Storage logs:  dashboard → Project → Logs → Storage
 ```
 
 ### Backups
-- Local: `/var/backups/govcapture/govcon-*.sql.gz` and `parsed-*.tar.gz`
-- Daily at 03:30 UTC via `govcapture-backup.timer`
-- Manual run: `sudo systemctl start govcapture-backup`
-- Off-box: set `OFFSITE_RSYNC_DEST` in `/etc/default/govcapture-backup` and
-  reboot the timer (defaults to local-only)
 
-### Restore from a backup
-```bash
-sudo systemctl stop govcapture-api
-sudo -u postgres psql -c "DROP DATABASE govcon;"
-sudo -u postgres createdb -O govcon govcon
-gunzip -c /var/backups/govcapture/govcon-YYYYMMDD...sql.gz | sudo -u postgres psql govcon
-sudo systemctl start govcapture-api
-```
+**Supabase handles Postgres backups** — Pro tier has point-in-time restore;
+Free tier has 7-day rolling. No on-box pg_dump cron anymore.
+
+**Storage backups** are out of scope for v1.2.3 (the bucket is the system of
+record for raw PDFs; parsed text is regeneratable from the chunks in
+`api/skills/parse_pdf`). If you want belt-and-suspenders, use Supabase's
+Storage replication or an `aws s3 sync` against the S3-compatible endpoint.
 
 ### Resource usage
 ```bash
 htop                                                # quick
-sudo systemctl status govcapture-api postgresql redis-server nginx --no-pager
-df -h /var/lib /var/backups
+sudo systemctl status govcapture-api redis-server nginx --no-pager
+df -h /var/lib /var/log
 ```
 
 ### Tune worker count
@@ -171,7 +187,8 @@ sudo systemctl restart govcapture-api
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | `502 Bad Gateway` from nginx | API unit not running | `sudo systemctl status govcapture-api`; check journalctl |
-| `connection refused` on Postgres | password mismatch | Compare `.env` `DATABASE_URL` vs the role's actual password |
+| asyncpg `prepared statement does not exist` errors | DATABASE_URL pointing at the Supabase pooler (port 6543) | Switch to the Direct Connection URL (port 5432). |
+| `connection refused` from asyncpg | DATABASE_URL malformed or password wrong | Re-copy from Supabase dashboard; verify the literal `[YOUR-PASSWORD]` placeholder was replaced. |
+| asyncpg complains about SSL | Custom DATABASE_URL with a non-localhost hostname; the engine adds `ssl=require` automatically. If your provider uses a self-signed cert, set `ssl=verify-ca` or `ssl=disable` in `api/db/__init__.py` per their docs. |
 | TLS cert renewal failed | port 80 blocked or DNS changed | `sudo certbot renew --dry-run` to surface the real error |
-| Disk filling up | parsed-doc retention not enforced | Run `find /var/lib/govcapture/raw -mtime +30 -delete` (PRD §17 Q6) |
-| Backup timer never fires | timer not enabled | `sudo systemctl enable --now govcapture-backup.timer` |
+| `SUPABASE_SERVICE_ROLE_KEY is not configured` from `api/storage.py` | `.env` missing the var | Add it; the FastAPI service-role mediates Storage access |

@@ -6,11 +6,15 @@ Common commands, debugging patterns, and pitfalls. Open this when something brea
 
 ## Status snapshot (2026-05-09)
 
-A1 → P0.2 → A2 → A3 → A4 → A5 complete. `uv run pytest api/tests` → 71 passed, 2 skipped (Dev 2's seed PDFs). S2 trigger ready; pre-A9 SSE replayer at `api/agent/replay.py` produces real events for Dev 2's timeline. See `tasks/dev1-backend/STANDUP.md` for the day-of detail.
+A1 → P0.2 → A2 → A3 → A4 → A5 complete. **PRD bumped to v1.2.3** (Supabase Postgres + Storage). `uv run pytest api/tests` → 71 passed, 2 skipped (Dev 2's seed PDFs). S2 trigger ready; pre-A9 SSE replayer at `api/agent/replay.py` produces real events for Dev 2's timeline. See `tasks/dev1-backend/STANDUP.md` for the day-of detail.
 
 `.env` is **not yet populated**; tests use inline env vars (`ANTHROPIC_API_KEY=sk-ant-test ...`) and a `FakeLLM` stub so no Anthropic budget is consumed for CI. Live LLM smoke is deferred until you drop a real key into `.env`.
 
-**Postgres version:** Currently running on Postgres 17 locally. The Makefile pins `postgresql@16` in `services-up`/`services-down` per the original spec — adjust those lines if your machine has only 17 (works fine for our schema; same major-version family).
+**Database (v1.2.3):** Supabase Postgres in dev/prod via the **Direct Connection URL** (port 5432) — *not* the pgBouncer pooler at 6543, because asyncpg's prepared statements break transaction-mode pooling. The engine in `api/db/__init__.py` adds `connect_args={"ssl": "require"}` automatically for any non-localhost host. Local Postgres at `localhost:5432` still works as a dev fallback (no SSL, no Supabase needed).
+
+**Storage (v1.2.3):** Supabase bucket `govcapture-attachments`. `api/storage.py` wraps the REST API via httpx. `parse_pdf` keeps taking local paths; callers download from Storage to `/tmp` first.
+
+**Redis** stays native on VX1 + locally (Homebrew/apt). SSE pub/sub bridge unchanged.
 
 ---
 

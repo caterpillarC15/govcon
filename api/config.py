@@ -9,8 +9,22 @@ class Settings(BaseSettings):
 
     anthropic_api_key: str = Field(..., alias="ANTHROPIC_API_KEY")
     sam_api_key: str = Field("", alias="SAM_API_KEY")
+
+    # Postgres connection. PRD v1.2.3 §7.5 — Supabase Direct Connection URL in prod
+    # (port 5432, not the pooler). Local-dev fallback also supported; the engine
+    # adds SSL only for non-localhost hosts (see api/db/__init__.py).
     database_url: str = Field(..., alias="DATABASE_URL")
+
     redis_url: str = Field(..., alias="REDIS_URL")
+
+    # Supabase project (PRD v1.2.3 §7.5).
+    supabase_url: str = Field("", alias="SUPABASE_URL")
+    supabase_service_role_key: str = Field("", alias="SUPABASE_SERVICE_ROLE_KEY")
+    supabase_anon_key: str = Field("", alias="SUPABASE_ANON_KEY")
+    supabase_storage_bucket: str = Field(
+        "govcapture-attachments", alias="SUPABASE_STORAGE_BUCKET"
+    )
+
     hermes_home: str = Field("~/.hermes", alias="HERMES_HOME")
     hermes_model: str = Field("claude-sonnet-4-6", alias="HERMES_MODEL")
 

@@ -1,8 +1,9 @@
 [Unit]
 Description=GovCapture FastAPI (gunicorn + UvicornWorker)
 Documentation=https://github.com/caterpillarC15/govcon
-After=network-online.target postgresql.service redis-server.service
-Wants=network-online.target postgresql.service redis-server.service
+# v1.2.3: Postgres is now Supabase (off-box), so no postgresql.service dependency.
+After=network-online.target redis-server.service
+Wants=network-online.target redis-server.service
 
 [Service]
 Type=simple
@@ -35,7 +36,8 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/var/lib/govcapture /opt/govcapture
+# v1.2.3: no /var/lib/govcapture (PDFs and parsed text live in Supabase Storage).
+ReadWritePaths=/opt/govcapture
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true

@@ -3,10 +3,17 @@
 ## Product Requirements Document
 
 **Product name:** GovCapture Agent
-**Document status:** MVP PRD v1.2.2
+**Document status:** MVP PRD v1.2.3
 **Primary track:** Agents Track
 **Primary objective:** Build an autonomous AI capture agent that turns a small business profile and government contracting goal into a useful federal opportunity analysis package by searching opportunities, parsing solicitation documents, extracting requirements, scoring fit, detecting blockers, and producing actionable next steps with human approval gates.
 
+> **Changelog v1.2.2 → v1.2.3**
+> - **Adopted Supabase for managed Postgres + object storage.** §7.5 promotes Supabase from "recommended" to chosen. Postgres moves off the VX1 box and onto a Supabase project (asyncpg connects over SSL); raw and parsed solicitation files move from `/var/lib/govcapture/{raw,parsed}` into a Supabase Storage bucket. **Redis stays native on VX1** (powers the SSE pub/sub bridge — switching to Supabase Realtime mid-build is rework, not speed).
+> - §7.6 updated: VX1 service-allocation table no longer lists Postgres or pg_dump backups (Supabase handles both). VX1 still hosts FastAPI + Hermes + Redis + nginx natively. Bootstrap script shrinks ~40%.
+> - §17 Q5 (auth) and the Supabase Realtime pivot are explicitly **deferred**. Supabase's Auth and Realtime features are available but not used in v1.2.3 — keeps the surface change scoped.
+> - §17 Q6 (raw retention) supersedes the on-box 30-day purge: retention is now a Supabase Storage bucket policy, not a `find -mtime` cron.
+> - No change to §4.5 agent architecture, §5 features, §8 data model, §9 API endpoints, §10 structured outputs, §11.1 eligibility rule, §13.1 demo script, §19 eval harness. Tests, schemas, codegen, skills (parse_pdf, extract_requirements, A6+) all infra-agnostic.
+>
 > **Changelog v1.2.1 → v1.2.2**
 > - Adopted **hermes-agent** (Nous Research, https://github.com/nousresearch/hermes-agent) as the agent runtime. Hermes provides the planner loop, tool/skill registry, long-term memory, multi-backend execution (local / Docker / SSH / Modal / Vercel Sandbox), and is model-agnostic. We register domain skills (`parse_pdf`, `extract_requirements`, `score_fit`, `detect_risks`, `generate_action_package`, `search_sam`, `load_seeded_opportunities`) inside Hermes; FastAPI becomes a thin proxy with a trace-event bridge that preserves the CONTRACTS.md §3 SSE shape so the frontend never has to know Hermes exists.
 > - §4.5 updated: planner loop, tool registry, and budgeting now reference Hermes' built-ins. Our additions are the domain skills, the §11.1 enforcement (which lives inside `score_fit` and `generate_action_package`), and the trace bridge. The decision-policy and error-recovery semantics are unchanged contractually.
@@ -713,12 +720,14 @@ Frontend responsibilities:
 
 ## 7.2 Backend
 
-Recommended:
+Chosen (v1.2.3):
 
 ```txt
-Python FastAPI
-Docker
-Vultr VPS
+Python FastAPI on Vultr VX1 (native systemd, no Docker)
+Hermes runtime as subprocess of FastAPI
+Redis on VX1 (SSE pub/sub bridge)
+Supabase Postgres (managed; replaces native PG)
+Supabase Storage (managed; replaces /var/lib/govcapture/{raw,parsed})
 ```
 
 Backend responsibilities:
@@ -788,13 +797,23 @@ All structured model outputs must be validated before display.
 
 ## 7.5 Data Storage
 
-Recommended:
+Chosen (v1.2.3):
 
 ```txt
-PostgreSQL for structured data
-Cloudflare R2 or Supabase Storage for PDFs and parsed files
-Redis/RQ optional for background jobs
+Supabase Postgres        — structured data (PRD §8 tables)
+Supabase Storage         — raw and parsed solicitation files
+Redis on VX1             — SSE pub/sub bridge for the agent run trace
 ```
+
+The FastAPI app connects to Supabase Postgres over SSL using the **direct connection URL** (port 5432, not the pgBouncer pooler at 6543) — asyncpg uses prepared statements, which transaction-mode pooling breaks. A few uvicorn workers don't approach Supabase's direct-connection cap.
+
+Storage layout:
+
+| Bucket / prefix | Contents | Retention |
+|---|---|---|
+| `govcapture-attachments/raw/<run_id>/<filename>` | Original PDFs (live SAM fetch + uploads) | Per §17 Q6 (30-day raw policy via bucket-level retention rule) |
+| `govcapture-attachments/parsed/<run_id>/<doc_id>.json` | Output of `parse_pdf` (chunks + metadata) | Indefinite — small, useful for re-scoring |
+| `govcapture-attachments/fixtures/<slug>/...` | Seeded fixture PDFs (committed shape, mirrored to bucket for prod) | Indefinite |
 
 For MVP speed, a seeded JSON dataset is acceptable for opportunity and package data as long as the product still performs a real analysis workflow.
 
@@ -811,32 +830,32 @@ Vultr VX1 — General Purpose
 Ubuntu 24.04 LTS
 ```
 
-This is sized to host the entire stack on one box without external object storage or managed databases for MVP. Allocation:
+VX1 hosts the application stack natively; **Postgres and object storage are externalized to Supabase** (v1.2.3 — see §7.5). Allocation:
 
 | Service | Role | Notes |
 |---------|------|-------|
 | Next.js (built, served by Node or behind nginx) | Frontend | Could also be deployed to Vercel; keep both options open |
-| FastAPI (uvicorn + gunicorn workers) | Backend / agent orchestration | 4–8 workers; scale with vCPU |
-| PostgreSQL 16 | Structured data (§8) | Local volume on NVMe; pg_dump backups to `/var/backups` |
-| Redis | Background jobs, planner state cache | Single instance, persistence on |
-| OpenClaw runtime | Browser-bound agent tools (§7.3) | Headless Chromium via Playwright; `--no-sandbox` only inside its container |
+| FastAPI (uvicorn + gunicorn workers, under systemd) | Backend / agent orchestration | 4–8 workers; scale with vCPU |
+| Redis (apt-installed, native systemd unit) | SSE pub/sub bridge for the agent run trace | Single instance, persistence on |
+| Hermes runtime (subprocess of FastAPI) | Browser-bound agent tools (§7.3) | Hermes built-in browser/HTTP tools replace OpenClaw |
 | nginx | TLS termination + reverse proxy | Let's Encrypt via certbot |
-| Docker + docker compose | Orchestration | Single `compose.yaml` checked into infra repo |
-| Local NVMe filesystem | PDF + parsed-text storage for MVP | `/var/lib/govcapture/{raw,parsed}`; R2/Supabase Storage is post-MVP |
+| systemd | Service supervision | One unit per long-running process (`govcapture-api`, `redis-server`, `nginx`); no Docker, no compose |
+| **Supabase Postgres** (external) | Structured data (§8) | Connected over SSL; managed backups; no on-box pg install |
+| **Supabase Storage** (external) | Raw + parsed solicitation files | Bucket-level retention policy implements §17 Q6 |
 
 ### Sizing notes
 
 * 16 vCPU comfortably handles parallel PDF parsing and concurrent agent runs; planner concurrency budget can run multiple opportunities in parallel rather than strictly sequentially.
-* 64 GB RAM leaves room for Postgres shared buffers, Redis, headless Chromium instances, and FastAPI workers without swap.
-* 960 GB NVMe is large enough to retain raw solicitations, parsed text, and fixture PDFs for the §17 Q6 30-day retention window with significant margin.
+* 64 GB RAM leaves room for Redis, headless Chromium instances, and FastAPI workers without swap. Postgres shared buffers no longer competing for RAM since PG is off-box.
+* 960 GB NVMe is dramatically over-provisioned now that PDFs live in Supabase Storage; the box only needs working space for Hermes' filesystem tools, Redis persistence, and journal logs.
 
 ### Operational hygiene
 
-* Provision via a one-shot bootstrap script (`infra/bootstrap.sh`) so the box is reproducible.
+* Provision via a one-shot bootstrap script (`infra/bootstrap.sh`) so the box is reproducible. Bootstrap installs Redis, Python, Hermes, and nginx via `apt`; the FastAPI app runs under a `govcapture-api.service` systemd unit.
 * Firewall: ufw allow 22/tcp, 80/tcp, 443/tcp; deny everything else.
-* Unattended security upgrades enabled; OpenClaw and Playwright run as a non-root user.
-* Daily Postgres dump + parsed-document tarball to a separate location (Vultr object storage or off-box rsync) — recoverable if the VPS is lost.
-* Health check endpoint (`/healthz`) for the agent run service so the demo is monitorable.
+* Unattended security upgrades enabled; FastAPI and Hermes run as a non-root `govcapture` user.
+* **Supabase handles Postgres backups** (point-in-time restore on Pro tier; 7-day rolling on Free tier — fine for MVP). The on-box pg_dump cron is dropped.
+* Health check endpoint (`/healthz`) for the agent run service so the demo is monitorable. Supabase's own status page covers DB / Storage health.
 
 This deployment target supersedes the generic "Vultr VPS" reference in §7.2.
 
