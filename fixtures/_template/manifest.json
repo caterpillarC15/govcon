@@ -1,0 +1,29 @@
+{
+  "slug": "template-replace-me",
+  "expected_decision_band": "strong_pursue",
+  "expected_critical_blockers": [],
+  "expected_partner_suggestion": false,
+  "opportunity": {
+    "id": "00000000-0000-4000-8000-000000000000",
+    "slug": "template-replace-me",
+    "title": "Template Opportunity Title — Replace Me",
+    "agency": "Department of X",
+    "solicitation_number": "ABC-1234",
+    "source_url": "https://sam.gov/opp/example",
+    "naics": "541512",
+    "set_aside": "SBA",
+    "place_of_performance": "Austin, TX",
+    "due_date": "2026-07-01",
+    "opportunity_status": "open",
+    "resource_links": [],
+    "attachments": [
+      { "filename": "RFP-001.pdf" }
+    ],
+    "raw_payload": {},
+    "created_at": "2026-01-01T00:00:00Z",
+    "updated_at": "2026-01-01T00:00:00Z"
+  },
+  "attachments": [
+    { "filename": "RFP-001.pdf", "kind": "solicitation" }
+  ]
+}

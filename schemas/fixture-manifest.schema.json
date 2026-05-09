@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/fixture-manifest.schema.json",
+  "title": "FixtureManifest",
+  "description": "PRD §5.4 — per-fixture metadata consumed by load_seeded_opportunities and the eval harness.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "slug",
+    "expected_decision_band",
+    "opportunity",
+    "attachments"
+  ],
+  "properties": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Kebab-case identifier; must match the fixture directory name."
+    },
+    "expected_decision_band": {
+      "type": "string",
+      "enum": ["strong_pursue", "pursue", "maybe", "reject"],
+      "description": "Expected FitScore decision the agent should produce for this fixture."
+    },
+    "opportunity": {
+      "$ref": "https://govcapture.dev/schemas/opportunity.schema.json",
+      "description": "Full Opportunity record seeded into the DB for this fixture."
+    },
+    "attachments": {
+      "type": "array",
+      "description": "Attachment files shipped with this fixture under attachments/.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["filename", "kind"],
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "Basename of the file under fixtures/<slug>/attachments/."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["solicitation", "amendment", "attachment_other"],
+            "description": "Document role used by the extraction pipeline."
+          }
+        }
+      }
+    },
+    "expected_critical_blockers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "Blocker labels the eval harness checks for in ExtractedRequirement rows (is_blocker=true)."
+    },
+    "expected_partner_suggestion": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the agent is expected to recommend a teaming partner for this fixture."
+    }
+  }
+}

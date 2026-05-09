@@ -1,4 +1,4 @@
-.PHONY: dev services-up services-down logs schemas migrate test typecheck lint format help
+.PHONY: dev services-up services-down logs schemas migrate test typecheck lint format fixtures-validate help
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?##"}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -79,3 +79,17 @@ lint: ## Run ruff
 
 format: ## Format with ruff
 	uv run ruff format api
+
+fixtures-validate: ## Validate every fixture manifest against the schema (PRD §5.4)
+	@uv run python -c "\
+import json, glob; \
+from referencing import Registry, Resource; \
+from jsonschema import Draft202012Validator; \
+opp_schema = json.load(open('schemas/opportunity.schema.json')); \
+registry = Registry().with_resource('https://govcapture.dev/schemas/opportunity.schema.json', Resource.from_contents(opp_schema)); \
+schema = json.load(open('schemas/fixture-manifest.schema.json')); \
+validator = Draft202012Validator(schema, registry=registry); \
+files = sorted(f for f in glob.glob('fixtures/*/manifest.json') if '/_' not in f); \
+[(validator.validate(json.load(open(f))), print(f'✓ {f}')) for f in files]; \
+print(f'Validated {len(files)} fixture(s)') \
+"
