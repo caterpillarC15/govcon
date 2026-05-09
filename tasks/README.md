@@ -26,7 +26,7 @@ tasks/
 │   ├── STANDUP.md             ← Dev 1's append-only daily log
 │   ├── tasks/                 ← A1–A13 task files with code skeletons
 │   ├── prompts/               ← LLM prompt drafts (planner, extract, score, risks, package)
-│   └── skeletons/             ← bootstrap.sh, Dockerfile snippets, etc.
+│   └── skeletons/             ← bootstrap.sh, systemd units, nginx.conf snippets, etc.
 │
 └── dev2-frontend/             ← Dev 2 (Track B — frontend, fixtures, demo)
     ├── README.md              ← entry point: read this first
@@ -84,3 +84,6 @@ These are settled. Do not relitigate without a joint decision logged in this fil
 - **2026-05-09** — Anthropic Claude chosen as LLM provider per PRD §17 Q1.
 - **2026-05-09** — Adopted `hermes-agent` (Nous Research) as agent runtime. OpenClaw dropped. Track A surface area shrinks. PRD bumped to v1.2.2. See `HERMES.md`.
 - **2026-05-09** — Reorganized `/tasks/`: joint docs at root (one canonical copy), dev-specific work in `dev1-backend/` and `dev2-frontend/`. No file duplication. Per-dev standups inside each dev folder.
+- **2026-05-09** — **No Docker, anywhere.** Both local dev and the VX1 prod box run Postgres, Redis, FastAPI, and Hermes as native services (Homebrew on macOS, apt + systemd on Ubuntu 24.04). No `docker-compose.yaml`, no `Dockerfile`, no `docker-compose.prod.yaml`. Hermes' multi-backend execution feature is configured to use the local subprocess backend on the VX1. Reasons: simpler dev/prod parity (apt + systemd works the same on both ends after a one-time install step), no Docker daemon to maintain, faster boot, fewer moving parts. A1 and A13 rewritten accordingly.
+- **2026-05-09** — **Track A Checkpoint 1 landed (commit `11421b4`).** A1 (FastAPI skeleton + native PG/Redis + Hermes v0.13.0) → P0.2 (10 JSON Schemas in `/schemas/` + `make schemas` codegen via `datamodel-code-generator`) → A2 (Alembic migration `0001_initial`, 7 PRD §8 tables) → A3 (11 endpoints from CONTRACTS.md §6 + SSE replay of `/schemas/trace-event.example.jsonl`). **S2 sync trigger is ready** — Dev 2 can swap `NEXT_PUBLIC_API_BASE` off the mock server.
+- **2026-05-09** — **A4 + A5 landed.** `parse_pdf` (pure pypdf, no OCR per PRD §17 Q2) and `extract_requirements` (Anthropic structured outputs via `output_config.format`, prompt-cached system prompt, post-validation: page-bounds + evidence binding + fuzzy-match downgrade per PRD §11). Skills live at `/api/skills/<name>/` as plain async Python — the Hermes toolset wrapper layers on in A9. Shared LLM client at `api/llm.py`. Tests: 71 passed / 2 fixture-dependent skipped.

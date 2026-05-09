@@ -4,35 +4,100 @@ Common commands, debugging patterns, and pitfalls. Open this when something brea
 
 ---
 
+## Status snapshot (2026-05-09)
+
+A1 → P0.2 → A2 → A3 → A4 → A5 complete. `uv run pytest api/tests` → 71 passed, 2 skipped (Dev 2's seed PDFs). S2 trigger ready; pre-A9 SSE replayer at `api/agent/replay.py` produces real events for Dev 2's timeline. See `tasks/dev1-backend/STANDUP.md` for the day-of detail.
+
+`.env` is **not yet populated**; tests use inline env vars (`ANTHROPIC_API_KEY=sk-ant-test ...`) and a `FakeLLM` stub so no Anthropic budget is consumed for CI. Live LLM smoke is deferred until you drop a real key into `.env`.
+
+**Postgres version:** Currently running on Postgres 17 locally. The Makefile pins `postgresql@16` in `services-up`/`services-down` per the original spec — adjust those lines if your machine has only 17 (works fine for our schema; same major-version family).
+
+---
+
 ## Common commands
 
 ### Local dev
 
 ```bash
-# Bring up the full local stack (api, postgres, redis)
+# Start native Postgres + Redis (idempotent; uses brew on macOS, systemctl on Linux).
+# One-time only after a reboot; they keep running in the background.
+make services-up
+
+# Run the FastAPI app with --reload (foreground; logs go to this terminal)
 make dev
 
-# Migrations
-make migrate            # apply all migrations
-make migrate-down       # roll back one
-alembic revision --autogenerate -m "describe change"
+# Stop services when you're done for the day (optional)
+make services-down
 
-# Run a single test file
-pytest api/tests/test_extract_requirements.py -v
+# Migrations (Alembic config lives in /api/alembic.ini; the Makefile cd's there)
+make migrate              # apply all migrations
+make migrate-down         # roll back one
+make migration MSG="describe change"  # autogenerate a new revision
 
-# Type-check
-mypy api/
+# Run the test suite (full / one file / one test)
+make test                                                # full
+uv run pytest api/tests/test_extract_requirements.py -v  # one file
+uv run pytest api/tests/test_routes.py::test_sse_replays_first_event -v
 
-# Format / lint
-ruff check api/
-ruff format api/
+# Type-check / lint / format
+make typecheck
+make lint
+make format
 
-# Regenerate types from /schemas (run after any schema edit)
+# Regenerate Pydantic models from /schemas/*.json (run after any schema edit).
+# Strips the `_schema` suffix so `from api.schemas.agent_run import AgentRun` works.
+# TS codegen for /web is a no-op until /web exists (Dev 2 wires when ready).
 make schemas
 
-# Run the eval harness
+# Run the eval harness — A12 lands later; targets are stubs until then.
 make eval                              # all 4 fixtures
 make eval-fixture FIXTURE=strong-pursue
+```
+
+### Pre-A9 SSE smoke (verifies A3 end-to-end)
+
+```bash
+# Boot the API, then:
+PROFILE_ID=$(curl -fsS -X POST localhost:8000/company-profiles \
+  -H 'content-type: application/json' \
+  -d '{"name":"Smoke Co","capabilities":["cyber"]}' \
+  | uv run python -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+RUN_ID=$(curl -fsS -X POST localhost:8000/agent-runs \
+  -H 'content-type: application/json' \
+  -d "{\"goal\":\"smoke\",\"profile_id\":\"$PROFILE_ID\"}" \
+  | uv run python -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+# First few events (replayed from /schemas/trace-event.example.jsonl with run_id rewritten):
+curl -N -sS --max-time 3 localhost:8000/agent-runs/$RUN_ID/stream | head -12
+```
+
+### Live LLM smoke (run once `.env` has a real `ANTHROPIC_API_KEY`)
+
+```bash
+# Synthesize a tiny PDF, then call extract_requirements end-to-end with Haiku.
+uv run python -c "
+import asyncio
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import LETTER
+from api.skills.parse_pdf import parse_pdf, ParsePdfInput
+from api.skills.extract_requirements import extract_requirements, ExtractInput
+
+c = canvas.Canvas('/tmp/sm.pdf', pagesize=LETTER)
+c.drawString(72, 720, 'Personnel must hold a Secret clearance prior to award.')
+c.drawString(72, 700, 'Bid bond required: 5% of total bid amount.')
+c.drawString(72, 680, 'Set-aside: Total Small Business.')
+c.showPage(); c.save()
+
+async def go():
+    parsed = parse_pdf(ParsePdfInput(path='/tmp/sm.pdf'))
+    out, m = await extract_requirements(ExtractInput(parsed=parsed, opportunity_metadata={'title':'smoke'}))
+    print(f'reqs={len(out.requirements)} cost=${m.cost_usd:.4f} latency={m.latency_ms}ms cache_read={m.cache_read_tokens}')
+    for r in out.requirements:
+        print(f'  [{r.confidence:7s}] {r.type:14s} {r.title}')
+
+asyncio.run(go())
+"
 ```
 
 ### Hitting endpoints manually
@@ -59,24 +124,25 @@ curl -N localhost:8000/agent-runs/<run-id>/stream
 
 ```bash
 # Connect to local Postgres
-docker compose exec postgres psql -U govcon
+psql -U govcon -d govcon
 
 # Inspect agent run trace
-docker compose exec postgres psql -U govcon -c \
+psql -U govcon -d govcon -c \
   "select id, status, jsonb_array_length(steps) as step_count from agent_runs order by created_at desc limit 5;"
 
 # Watch Redis pub/sub for trace events (debugging A9 / B5 SSE)
-docker compose exec redis redis-cli psubscribe 'agent-run:*'
+redis-cli psubscribe 'agent-run:*'
 ```
 
 ### LLM tracing
 
 ```bash
-# Tail logs for an agent run
-docker compose logs -f api | grep "<run-id>"
+# Tail logs for an agent run — `make dev` is foreground; logs go to its terminal.
+# Capture them to a file by redirecting if you need to grep:
+#   make dev 2>&1 | tee /tmp/govcon-api.log
 
 # Total cost for a run
-docker compose exec postgres psql -U govcon -c \
+psql -U govcon -d govcon -c \
   "select id, sum((step->>'cost_usd')::float) from agent_runs, jsonb_array_elements(steps) step group by id order by 2 desc limit 5;"
 ```
 
@@ -86,14 +152,17 @@ docker compose exec postgres psql -U govcon -c \
 # SSH in
 ssh root@<vx1-ip>
 
-# Tail prod logs
-cd /opt/govcon && docker compose -f infra/docker-compose.prod.yaml logs -f api
+# Tail prod logs (FastAPI runs under govcon-api.service)
+journalctl -u govcon-api -f
 
-# Redeploy
-cd /opt/govcon && git pull && docker compose -f infra/docker-compose.prod.yaml up -d --build
+# Service status
+systemctl status govcon-api postgresql redis-server nginx
+
+# Redeploy (pulls, runs migrations, restarts the service)
+sudo bash /opt/govcon/infra/redeploy.sh
 
 # Backup right now
-/opt/govcon/infra/backup.sh
+sudo /opt/govcon/infra/backup.sh
 ```
 
 ---
@@ -145,7 +214,7 @@ The planner prompt isn't giving it enough state. Make sure each turn includes:
 
 ### Hermes runtime issues during dev
 
-Check that Hermes is installed and the model is configured: `hermes model` shows the active provider/model. The Hermes subprocess from the FastAPI bridge logs to stderr; tail it via `docker compose logs api | grep hermes`.
+Check that Hermes is installed and the model is configured: `hermes model` shows the active provider/model. The Hermes subprocess from the FastAPI bridge logs to stderr — in dev that's the `make dev` terminal; in prod it's `journalctl -u govcon-api -f | grep hermes`.
 
 Common Hermes issues:
 - **Subprocess deadlock** — pipe buffer full. Use unbuffered IO and read stdout in a separate task.

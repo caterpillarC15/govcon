@@ -20,42 +20,44 @@ The current remote `caterpillarC15/govcon` returned 403 to `AayushBaniya2006`. R
 - [ ] Author `.gitignore` covering Python (`__pycache__`, `*.pyc`, `.venv`, `dist/`, `*.egg-info`), Node (`node_modules`, `.next`, `dist`), env (`.env`, `.env.local`), OS (`.DS_Store`). **Keep** `/fixtures/<slug>/attachments/*.pdf` (do NOT gitignore PDFs — they are content).
 - [ ] Commit `.gitignore` and the empty-subdir layout.
 
-## P0.2 — Schema codegen pipeline (~60 min)
+## P0.2 — Schema codegen pipeline (~60 min) — ✅ Done 2026-05-09
 
 Source of truth: `/schemas/*.json`, JSON Schema draft 2020-12.
 
-- [ ] Author `/schemas/company-profile.schema.json` from PRD §8.1.
-- [ ] Author `/schemas/opportunity.schema.json` from PRD §8.2.
-- [ ] Author `/schemas/extracted-requirement.schema.json` from PRD §8.3 + §10.1 (include `RequirementExtractionOutput` wrapper with `requirements`, `missing_fields`, `conflicts`).
-- [ ] Author `/schemas/fit-score.schema.json` from PRD §8.4 + §10.2.
-- [ ] Author `/schemas/risk-flag.schema.json` from PRD §8.5.
-- [ ] Author `/schemas/action-package.schema.json` from PRD §8.6 + §10.3.
-- [ ] Author `/schemas/agent-run.schema.json` from PRD §8.7.
-- [ ] Author `/schemas/trace-event.schema.json` per CONTRACTS.md §3 (discriminated union on `type`).
-- [ ] Add `Makefile` target:
+- [x] Author `/schemas/company-profile.schema.json` from PRD §8.1.
+- [x] **+1** Author `/schemas/company-profile-create.schema.json` (server-set fields omitted; used by `POST /company-profiles`).
+- [x] Author `/schemas/opportunity.schema.json` from PRD §8.2.
+- [x] Author `/schemas/extracted-requirement.schema.json` from PRD §8.3. (The §10.1 `RequirementExtractionOutput` wrapper lives inline in the skill — `api/skills/extract_requirements/skill.py` — since it's the LLM intermediate shape, not the persisted entity.)
+- [x] Author `/schemas/fit-score.schema.json` from PRD §8.4 + §10.2.
+- [x] Author `/schemas/risk-flag.schema.json` from PRD §8.5.
+- [x] Author `/schemas/action-package.schema.json` from PRD §8.6 + §10.3.
+- [x] Author `/schemas/agent-run.schema.json` from PRD §8.7.
+- [x] **+1** Author `/schemas/agent-run-create.schema.json` (accepts `goal` + either `profile_id` or inline `profile`).
+- [x] Author `/schemas/trace-event.schema.json` per CONTRACTS.md §3 (discriminated union on `type`).
+- [x] `Makefile` target wired (Track A owns):
   ```make
   schemas:
-      datamodel-codegen --input schemas --input-file-type jsonschema \
+      uv run datamodel-codegen --input schemas --input-file-type jsonschema \
           --output api/schemas --output-model-type pydantic_v2.BaseModel \
-          --use-double-quotes --target-python-version 3.12
-      json-schema-to-zod -i schemas -o web/lib/schemas
+          --use-standard-collections --use-union-operator \
+          --target-python-version 3.12 --use-schema-description \
+          --field-constraints --use-default --enum-field-as-literal all \
+          --disable-timestamp
+      # `_schema` suffix stripped post-generation so `from api.schemas.agent_run import AgentRun` works.
+      # TS codegen for /web is a no-op until Dev 2 wires it (see CONTRACTS.md §2).
   ```
-- [ ] Both devs run `make schemas` and confirm both target dirs populate.
-- [ ] Decide commit policy for generated files: **commit them**, so devs without codegen tools installed locally can still build. Add a CI check (or pre-commit hook) that `make schemas` produces no diff.
+- [x] Generated `/api/schemas/*.py` populates correctly; round-trip tests in `api/tests/test_schemas.py` cover every entity (40 tests, all green).
+- [x] **TS codegen deferred until `/web/` exists.** Currently Dev 2 is on `/landing/` — `make schemas` prints a one-line warning and skips TS until the directory is present. No drift risk: Dev 2 hand-writes zod from the same JSON sources or imports them directly until then.
 
 **Rule:** any future schema change runs `make schemas` and commits the regenerated outputs in the same PR. See `INTERFERENCE_MAP.md §2`.
 
-## P0.3 — Trace event taxonomy + example replay (~20 min)
+## P0.3 — Trace event taxonomy + example replay (~20 min) — ✅ Done 2026-05-09
 
-B's timeline (B5) is blocked without this. Lock it now even though A9 won't ship for a while.
+B's timeline (B5) is blocked without this. Locked now even though A9 won't ship for a while.
 
-- [ ] Confirm `/schemas/trace-event.schema.json` covers all 8 event types from CONTRACTS.md §3.
-- [ ] Author `/schemas/trace-event.example.jsonl` — one recorded happy-path run with one of each event type. Use realistic timing (500ms–2s gaps between events). Include:
-  - `run_started`
-  - 3 steps each emitting `step_started` → `tool_called` → `tool_returned` → `step_completed`
-  - 3 `opportunity_ranked` events (one strong_pursue, one maybe, one reject)
-  - `run_completed`
-- [ ] Confirm B can read and render this file. (B builds B5 against it before A9 exists.)
+- [x] `/schemas/trace-event.schema.json` covers all 8 event types from CONTRACTS.md §3.
+- [x] `/schemas/trace-event.example.jsonl` authored — happy-path run with all event types and human-readable cadence (gaps reflect realistic agent timing). Includes `run_started`, 6 step lifecycles each with `tool_called` + `tool_returned`, an `opportunity_ranked`, and `run_completed`. Every line passes `TraceEvent.model_validate` (covered by `test_every_example_trace_event_parses`).
+- [x] **A3's pre-A9 SSE bridge already replays this file** at `api/agent/replay.py` — Dev 2 doesn't need to mock anything; `POST /agent-runs` followed by `GET /agent-runs/{id}/stream` emits real, well-shaped events with `run_id` rewritten to the persisted run. Replaced by the Hermes bridge in A9.
 
 ## P0.4 — Fixture template + authoring guidelines (~30 min)
 

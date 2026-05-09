@@ -30,7 +30,6 @@ Joint docs live at the parent (`../`); your dev-specific files live here. Read i
 | `/api/skills/**` | You | Domain skills run inside Hermes |
 | `/infra/**` | You | Bootstrap, nginx, certbot, backups |
 | `/eval/runner/**` | You | The harness; B owns `/eval/goldens/` |
-| `docker-compose.yaml` | You | Top-level local-dev compose |
 | `Makefile` (root) | You | B can request additions via standup |
 | `/schemas/*.json` | Shared | Schema PRs need both devs to ack |
 | `/api/schemas/`, `/web/lib/schemas/` | Generated | Never hand-edit |
@@ -41,11 +40,11 @@ Joint docs live at the parent (`../`); your dev-specific files live here. Read i
 
 | # | Task | Type | File | Done |
 |---|------|------|------|------|
-| A1 | FastAPI skeleton + Postgres+Redis docker-compose + Hermes install in `api` image | Plumbing | `tasks/A1.md` | [ ] |
-| A2 | DB schema + Alembic migrations | Plumbing | `tasks/A2.md` | [ ] |
-| A3 | Real CRUD endpoints + SSE proxy (S2 trigger) | Plumbing | `tasks/A3.md` | [ ] |
-| A4 | `parse_pdf` skill | Skill | `tasks/A4.md` | [ ] |
-| A5 | `extract_requirements` skill | Skill (LLM) | `tasks/A5.md` | [ ] |
+| A1 | FastAPI skeleton + native Postgres/Redis (no Docker) + Hermes install per-host | Plumbing | `tasks/archive/A1.md` | [x] 2026-05-09 |
+| A2 | DB schema + Alembic migrations | Plumbing | `tasks/archive/A2.md` | [x] 2026-05-09 |
+| A3 | Real CRUD endpoints + SSE proxy (S2 trigger) | Plumbing | `tasks/archive/A3.md` | [x] 2026-05-09 |
+| A4 | `parse_pdf` skill | Skill | `tasks/archive/A4.md` | [x] 2026-05-09 |
+| A5 | `extract_requirements` skill | Skill (LLM) | `tasks/archive/A5.md` | [x] 2026-05-09 |
 | A6 | `score_fit` skill (with §11.1 short-circuit) | Skill | `tasks/A6.md` | [ ] |
 | A7 | `detect_risks` skill | Skill (LLM) | `tasks/A7.md` | [ ] |
 | A8 | `generate_action_package` skill | Skill (LLM) | `tasks/A8.md` | [ ] |
@@ -59,6 +58,26 @@ Joint docs live at the parent (`../`); your dev-specific files live here. Read i
 **Parallel-safe** (slot during LLM waits): A11, A13.
 
 > **PRD v1.2.2 changed A9:** the bespoke planner/registry/recovery code is replaced by `hermes-agent`. A9 is now an integration task. Read `HERMES.md` first.
+
+---
+
+## Status (2026-05-09)
+
+**Done:** A1 (skeleton + Hermes v0.13.0 installed) → P0.2 (10 JSON Schemas + `make schemas` codegen wired) → A2 (7 tables, migration `0001_initial`) → A3 (11 endpoints + SSE replay stub from `/schemas/trace-event.example.jsonl`) → A4 (`parse_pdf`, hermetic reportlab tests) → A5 (`extract_requirements`, structured outputs, evidence-binding post-validation).
+
+**S2 trigger ready** — Dev 2 can switch `NEXT_PUBLIC_API_BASE` off the mock server.
+
+**Tests:** `uv run pytest api/tests` → 71 passed, 2 skipped (Dev 2's seed-PDF fixtures not authored yet).
+
+**Architecture decisions made (don't relitigate):**
+
+- **Skills layout:** `/api/skills/<name>/{__init__.py, skill.py, prompt.txt}` as plain async Python. Hermes toolset wrapper happens in A9. (A4.md / A5.md skeletons used `/api/agent/tools/`; we moved them so the user-facing skill module path is stable across A9.)
+- **Shared LLM client:** `api/llm.py` — `AsyncAnthropic`, structured output via `output_config.format` (no parse-and-retry loop), top-level `cache_control` on the system prompt, per-model cost estimation, surfaces `cache_read_input_tokens`. Skills receive `LLMMetrics`; the trace bridge (A9) wraps into `tool_returned`.
+- **Pre-A9 SSE:** `api/agent/replay.py` rewrites `run_id` in the example JSONL and publishes to Redis pub/sub `agent-run:{id}` with a 250 ms initial delay so the SSE subscriber can connect after `POST /agent-runs` returns. Replaced by Hermes bridge in A9.
+- **Postgres 17** is in use locally (spec said 16; works fine — no migration drift). VX1 will install 16 per A13 spec; same major-version family. `Makefile` pins `postgresql@16` in `services-up`/`services-down`; you may need to adjust if another machine has only 17.
+- **Migration revision id:** `0001` (overrode autogen hash for clean ordering — there's no prior history).
+- **Codegen module suffix stripped** post-generation so `from api.schemas.agent_run import AgentRun` matches A3's spec rather than `agent_run_schema.py`.
+- **`LLMMetrics.attempts` allows `0`** for the unparseable-input short-circuit path (no LLM call).
 
 ---
 
