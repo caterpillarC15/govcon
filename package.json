@@ -1,0 +1,15 @@
+{
+  "name": "govcon",
+  "private": true,
+  "workspaces": [
+    "landing"
+  ],
+  "scripts": {
+    "dev": "npm -w landing run dev --",
+    "build": "npm -w landing run build",
+    "start": "npm -w landing run start",
+    "lint": "npm -w landing run lint",
+    "typecheck": "npm -w landing run typecheck"
+  }
+}
+

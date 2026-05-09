@@ -39,5 +39,8 @@ Thumbs.db
 .playwright-mcp/
 *.log
 
+# Supabase CLI — linked-project cache (connection hints; do not commit)
+supabase/.temp/
+
 # NOTE: PDF fixtures live under /fixtures/<slug>/attachments/*.pdf and are CONTENT.
 # Do NOT add a global *.pdf ignore.

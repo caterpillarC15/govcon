@@ -111,12 +111,12 @@ Our project ships its Hermes config in `<repo>/.hermes/`. Symlink so Hermes pick
   ```
   Confirm: `cat ~/.hermes/config.yaml | grep max_spawn_depth` → `max_spawn_depth: 2`.
 
-- [ ] **Project SKILL.md procedures (7 skills under `.hermes/skills/govcapture/`):**
+- [ ] **Project SKILL.md procedures (8 skills under `.hermes/skills/govcapture/`):**
   ```bash
   mkdir -p ~/.hermes/skills
   ln -sf "$(pwd)/.hermes/skills/govcapture" ~/.hermes/skills/govcapture
   ```
-  Confirm: `hermes /skills` lists `discover_opportunities`, `analyze_opportunity_e2e`, `extract_requirements_with_evidence`, `score_fit_with_eligibility_check`, `detect_risks_calibrated`, `generate_full_action_package`, `generate_reject_summary`.
+  Confirm: `hermes /skills` lists `operate_bid_desk`, `discover_opportunities`, `analyze_opportunity_e2e`, `extract_requirements_with_evidence`, `score_fit_with_eligibility_check`, `detect_risks_calibrated`, `generate_full_action_package`, `generate_reject_summary`.
 
 - [ ] **Umbrella persona (SOUL.md):**
   ```bash
@@ -128,7 +128,7 @@ Our project ships its Hermes config in `<repo>/.hermes/`. Symlink so Hermes pick
 
 ### Validate the wiring
 
-- [ ] `hermes /skills` lists all 7 GovCapture skills.
+- [ ] `hermes /skills` lists all 8 GovCapture skills.
 - [ ] `hermes config show delegation` confirms `max_spawn_depth: 2` and `max_concurrent_children: 3`.
 - [ ] In a test prompt, ask Hermes "what skills do you have available for federal contract analysis?" — it should describe at least the discover_opportunities and score_fit_with_eligibility_check skills.
 - [ ] Both devs commit confirmation in `dev1-backend/STANDUP.md` / `dev2-frontend/STANDUP.md`.

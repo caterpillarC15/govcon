@@ -2,13 +2,15 @@
 
 **This file is loaded automatically by the Hermes runtime** as project context for every agent (root and subagent) running in this repository. Walking-from-cwd-to-git-root, Hermes resolves this `HERMES.md` first.
 
-If you are an agent reading this: you are working on **GovCapture Agent**, an autonomous federal-contract capture analyst for small businesses. The PRD is `PRD.md`. The agent architecture is `tasks/AGENT_ARCHITECTURE.md`. Read both.
+If you are an agent reading this: you are working on **GovCon Bid Desk Operator**. Internally, the architecture uses "capture" language because that is the govcon operating discipline. Externally, the product is a hired AI worker that helps a team find contracts worth pursuing, decide bid/no-bid, and keep proposal work moving. The PRD is `PRD.md`. The agent architecture is `tasks/AGENT_ARCHITECTURE.md`. The V1 product filter is `devdocs/V1_PRODUCT_ALIGNMENT.md`. Read all three.
 
 ---
 
 ## What this product does
 
-Receive a small business profile and a contracting goal. Search federal opportunities. Parse solicitation PDFs. Extract structured requirements with source-page evidence. Score fit. Detect risks. Decide pursue / maybe / reject. Produce a verifiable action package. Require human approval before any external action.
+Receive a company profile plus either a contracting goal, opportunity link, solicitation PDF, or target agency. Find or ingest relevant opportunities. Decide pursue / maybe / reject. Explain the decision in plain business language. Produce a verifiable action package with owners, deadlines, missing inputs, questions, and draft next steps. Require human approval before any external action.
+
+The user-visible value is not "compliance automation." Compliance and requirement extraction are internal mechanics. The user-visible job is: fewer bad bids, faster bid/no-bid decisions, clearer proposal next steps, and less deadline chaos.
 
 ---
 
@@ -49,8 +51,8 @@ If you have a specialist subagent for a domain (compliance, risk, proposal), del
 The personality is set per-role via the agent's prompt and the optional SOUL fragments. See `tasks/dev1-backend/prompts/agent_*.md` for each role's voice and disposition.
 
 Brief register sketch:
-- **Capture Lead** — senior capture director, calm, summary-oriented.
-- **Capture Analyst** — mid-level analyst, methodical, hands off to specialists.
+- **Capture Lead / Bid Desk Lead** — senior capture director internally; public-facing summary should say "bid desk lead" or "proposal operator" unless the user is a govcon insider.
+- **Capture Analyst / Opportunity Analyst** — mid-level analyst, methodical, hands off to specialists.
 - **Compliance Officer** — former contracting officer, conservative, direct, says no easily.
 - **Risk Analyst** — former internal auditor, skeptical but constructive, calibrated severity.
 - **Proposal Strategist** — senior proposal lead, pragmatic, pro-human-review.
@@ -99,6 +101,7 @@ The whole system is designed for graceful degradation. Partial results are bette
 
 - `PRD.md` — full product spec (v1.2.2)
 - `tasks/AGENT_ARCHITECTURE.md` — multi-agent design
+- `devdocs/V1_PRODUCT_ALIGNMENT.md` — public/product framing filter
 - `tasks/HERMES.md` — Hermes integration notes (team doc, not runtime config)
 - `tasks/dev1-backend/prompts/agent_*.md` — per-role personality and instructions
 - `tasks/CONTRACTS.md` — schemas, event taxonomy, env contract
@@ -120,6 +123,7 @@ If you're an agent reading this: you don't need to know this section. The runtim
 │   │                                        max_spawn_depth: 2 is REQUIRED.
 │   ├── SOUL.md                            ← umbrella instance persona.
 │   └── skills/govcapture/                 ← project's SKILL.md procedures.
+│       ├── operate_bid_desk/SKILL.md             (Root direct-chat operator)
 │       ├── discover_opportunities/SKILL.md       (Capture Lead)
 │       ├── analyze_opportunity_e2e/SKILL.md      (Capture Analyst)
 │       ├── extract_requirements_with_evidence/SKILL.md  (Compliance Officer)

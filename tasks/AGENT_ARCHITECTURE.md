@@ -1,6 +1,6 @@
 # Agent Architecture
 
-The agent system that runs inside Hermes. PRD §4.5 describes the runtime contract; `HERMES.md` describes the integration; this doc owns the **multi-agent design** — what each agent does, what tools it has, how they coordinate, and why.
+The agent system that runs inside Hermes. PRD §4.5 describes the runtime contract; `HERMES.md` describes the integration; `devdocs/V1_PRODUCT_ALIGNMENT.md` describes the product filter. This doc owns the **multi-agent design** — what each agent does, what tools it has, how they coordinate, and why.
 
 This is the document the Agents Track judges will read. It is the difference between "tool-using agent" and "agent system."
 
@@ -8,7 +8,7 @@ This is the document the Agents Track judges will read. It is the difference bet
 
 ## At a glance
 
-Five agent roles, two-tier delegation, parallelism at the opportunity level. The §11.1 eligibility rule is owned by a dedicated specialist whose decision the rest of the system respects.
+Five internal agent roles, two-tier delegation, parallelism at the opportunity level. Publicly, this must still feel like one hired bid-desk worker. The §11.1 eligibility rule is owned by a dedicated specialist whose decision the rest of the system respects.
 
 ```
                     ┌──────────────────────────┐

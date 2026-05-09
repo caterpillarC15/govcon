@@ -13,7 +13,7 @@ We are using **[hermes-agent](https://github.com/nousresearch/hermes-agent)** fr
 | Skill creation & self-improvement | ✓ | Hermes can author new skills mid-run |
 | Long-term memory + cross-session recall | ✓ | Built-in; we don't need a separate memory layer |
 | Cron / scheduling | ✓ | Useful for nightly opportunity refresh (post-MVP) |
-| Multi-channel gateway (Slack, Discord, Telegram, etc.) | ✓ | Not used for hackathon demo, but free |
+| Multi-channel gateway (Slack, Discord, Telegram, etc.) | ✓ | Optional. Use only when it helps the customer workflow. |
 | Model agnosticism (Claude, OpenRouter, OpenAI, local) | ✓ | Switch via `hermes model` command — no code changes |
 | Multiple execution backends (local, Docker, SSH, Modal, Vercel Sandbox) | ✓ | We default to local on VX1 |
 
@@ -22,7 +22,7 @@ We are using **[hermes-agent](https://github.com/nousresearch/hermes-agent)** fr
 | Layer | Owner | Notes |
 |-------|-------|-------|
 | Domain skills (the 9 from CONTRACTS.md §5) | Track A | Implemented as Hermes skills |
-| FastAPI proxy: `/agent-runs`, `/healthz`, `/agent-runs/:id/stream` | Track A | Frontend can't talk to Hermes CLI directly |
+| FastAPI/custom chat proxy: `/agent-runs`, `/healthz`, `/agent-runs/:id/stream`, or a thin chat bridge | Track A | The customer should see one hired worker, not Hermes internals |
 | Postgres for domain data | Track A | Opportunities, requirements, scores, packages — separate from Hermes memory |
 | Trace-event bridge (Hermes trace → our SSE events per CONTRACTS.md §3) | Track A | The translation layer that keeps the frontend contract stable |
 | Frontend, fixtures, demo | Track B | **Unchanged** |
@@ -55,7 +55,7 @@ We are using **[hermes-agent](https://github.com/nousresearch/hermes-agent)** fr
                 └────────────┘    └────────────┘    └────────────┘
 ```
 
-Hermes is the agent core. FastAPI is the public web-facing surface. Postgres holds domain data (opportunities, profiles, scores, packages). The frontend never talks to Hermes directly.
+Hermes is the agent core: planner, memory, skill registry, and orchestration. FastAPI or a thin chat bridge is the public web-facing surface. Postgres holds domain data (opportunities, profiles, scores, packages). OpenClaw may be used as a channel/tool substrate for browser work, web chat, WhatsApp, Slack, or similar surfaces, but it is not a second peer brain. The customer never talks to Hermes or OpenClaw directly; they talk to one named bid-desk worker.
 
 ---
 
@@ -96,10 +96,10 @@ Skill registration manifest:
 | `generate_action_package` | A8 | LLM call (Sonnet) |
 | `search_sam` | A11 | live API + cache |
 | `load_seeded_opportunities` | A11 | reads `/fixtures/` |
-| `fetch_attachment` | A10 (OpenClaw replacement) | Hermes has built-in HTTP/browser tools — leverage those rather than re-implementing |
-| `verify_source_page` | A10 (OpenClaw replacement) | Use Hermes' browser tool |
+| `fetch_attachment` | A10 / channel-tool layer | Prefer Hermes built-ins when enough; use OpenClaw browser/channel tools when portal state, WhatsApp, or web gateway behavior makes that faster |
+| `verify_source_page` | A10 / channel-tool layer | Prefer Hermes browser tool; allow OpenClaw as a substrate when the deployment already has it |
 
-**OpenClaw is dropped from the stack.** Hermes covers the same surface. PRD §7.3 needs a v1.2.2 update reflecting this.
+**V1 stance:** Hermes is the brain. OpenClaw is optional substrate. Do not build two peer agents. Use OpenClaw for channel/runtime leverage only when it accelerates the bid-desk worker.
 
 ---
 
@@ -183,19 +183,19 @@ The Dev 1 task list shifts. Update `dev1-backend/README.md` with this revised or
 | A8 | `generate_action_package` skill | Same |
 | ~~A9~~ | ~~Bespoke planner loop~~ | **Replaced** | Use Hermes |
 | **A9'** | **Hermes integration: planner instructions, skill registration, trace bridge** | New | Critical path |
-| ~~A10~~ | ~~OpenClaw bridge~~ | **Dropped** | Hermes covers it |
+| A10 | Channel/tool substrate bridge | Narrowed | Use OpenClaw only when browser state, web chat, WhatsApp, or other channel/runtime needs make it the fastest substrate |
 | A11 | `search_sam` + `load_seeded` skills | Same |
 | A12 | Eval harness | Same |
 | A13 | VX1 deploy | Same | Plus Hermes runtime install in bootstrap.sh |
 
-Net change: **A10 is dropped** (saves us a substantial integration), **A9 is reframed** as a Hermes integration task instead of a bespoke planner. Track A surface area shrinks.
+Net change: **A10 is narrowed** to substrate/channel work, **A9 is reframed** as a Hermes integration task instead of a bespoke planner. Track A should not build a second agent brain.
 
 ---
 
 ## What to do right now
 
 1. Both devs read this file before next sync.
-2. Track A: pause A9 / A10 work; revise tasks per above.
+2. Track A: keep A9 focused on Hermes brain/memory/orchestration; use A10 only for channel/runtime substrate work that helps the demo or customer workflow.
 3. Update the PRD with a v1.2.2 changelog entry (next section in this doc covers what to write).
 4. Update `dev1-backend/tasks/A9.md` and remove `A10.md`.
 5. Add `dev1-backend/tasks/A9-hermes.md` for the integration spec.
@@ -208,7 +208,7 @@ Net change: **A10 is dropped** (saves us a substantial integration), **A9 is ref
 ```
 > **Changelog v1.2.1 → v1.2.2**
 > - Adopted hermes-agent (Nous Research) as the agent runtime. Hermes provides planner loop, tool registry, memory, and multi-backend execution. We register domain skills (parse_pdf, extract_requirements, score_fit, detect_risks, generate_action_package, search_sam, load_seeded) within Hermes; FastAPI becomes a thin proxy with a trace-event bridge to preserve CONTRACTS.md §3 SSE shape for the frontend.
-> - §7.3 updated: OpenClaw is dropped. Hermes covers browser-bound tools and skill execution.
+> - §7.3 updated: Hermes is the brain/memory/orchestrator. OpenClaw is optional channel/tool substrate for browser-bound work and customer chat surfaces.
 > - §4.5 updated: planner architecture now references Hermes' built-in loop; our additions are domain skills, the §11.1 enforcement inside score_fit, and the trace bridge.
 > - Models remain configurable; default Claude Sonnet 4.6 (synthesis) + Haiku 4.5 (cheap passes) via Hermes' model-agnostic config (`hermes model`).
 > - See `tasks/HERMES.md` for full integration spec.

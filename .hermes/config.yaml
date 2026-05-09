@@ -46,6 +46,7 @@ providers:
 #   ln -sf "$(pwd)/.hermes/skills/govcapture" ~/.hermes/skills/govcapture
 #
 # Skills loaded:
+#   - operate_bid_desk              (Root direct-chat operator)
 #   - discover_opportunities          (Capture Lead)
 #   - analyze_opportunity_e2e         (Capture Analyst)
 #   - extract_requirements_with_evidence  (Compliance Officer)
@@ -55,10 +56,12 @@ providers:
 #   - generate_reject_summary         (Proposal Strategist; deterministic)
 
 # ─── Memory ─────────────────────────────────────────────────────────────────
-# v1: per-run only. Clear between dev runs to avoid contamination during eval.
-# Post-MVP: enable cross-run learning.
+# V1 product mode: cross-run memory is part of the "clone me into the org"
+# promise. Hermes should remember declared company capabilities, certifications,
+# agency preferences, past performance, recurring teammates, and prior bid/no-bid
+# decisions. For deterministic evals, override this to false in the test env.
 memory:
-  cross_session: false
+  cross_session: true
 
 # ─── Telemetry / observability ──────────────────────────────────────────────
 # Hermes emits trace events. Our /api/agent/hermes_bridge.py subscribes and

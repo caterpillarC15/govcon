@@ -14,10 +14,16 @@
 > - §17 Q6 (raw retention) supersedes the on-box 30-day purge: retention is now a Supabase Storage bucket policy, not a `find -mtime` cron.
 > - No change to §4.5 agent architecture, §5 features, §8 data model, §9 API endpoints, §10 structured outputs, §11.1 eligibility rule, §13.1 demo script, §19 eval harness. Tests, schemas, codegen, skills (parse_pdf, extract_requirements, A6+) all infra-agnostic.
 >
+> **Product-positioning note for V1**
+> - Internal docs may continue to use "capture" because it is precise govcon operating language.
+> - Publicly, the product should be framed as a **GovCon Bid Desk Operator**: a hired AI worker that finds contracts worth bidding, tells the team whether to pursue, and creates the action plan.
+> - Compliance and requirement extraction are internal mechanisms, not the sales headline.
+> - Hermes is the brain/memory/orchestrator. OpenClaw may be used as a channel/tool substrate, but customers experience one agent.
+>
 > **Changelog v1.2.1 → v1.2.2**
 > - Adopted **hermes-agent** (Nous Research, https://github.com/nousresearch/hermes-agent) as the agent runtime. Hermes provides the planner loop, tool/skill registry, long-term memory, multi-backend execution (local / Docker / SSH / Modal / Vercel Sandbox), and is model-agnostic. We register domain skills (`parse_pdf`, `extract_requirements`, `score_fit`, `detect_risks`, `generate_action_package`, `search_sam`, `load_seeded_opportunities`) inside Hermes; FastAPI becomes a thin proxy with a trace-event bridge that preserves the CONTRACTS.md §3 SSE shape so the frontend never has to know Hermes exists.
 > - §4.5 updated: planner loop, tool registry, and budgeting now reference Hermes' built-ins. Our additions are the domain skills, the §11.1 enforcement (which lives inside `score_fit` and `generate_action_package`), and the trace bridge. The decision-policy and error-recovery semantics are unchanged contractually.
-> - §7.3 updated: **OpenClaw is dropped from the stack.** Hermes covers browser-bound tools and skill execution. Anything we relied on OpenClaw for (attachment fetch, source-page verification) is now a Hermes skill or built-in tool.
+> - §7.3 updated: OpenClaw is no longer a peer agent brain. Hermes owns planning, memory, and orchestration. OpenClaw may still serve as a bounded channel/tool substrate for browser-bound work, web chat, WhatsApp, or Slack when that accelerates the V1 bid-desk worker.
 > - Model defaults remain Claude Sonnet 4.6 (synthesis) and Haiku 4.5 (cheap passes), configured via `hermes model`. Hermes' model-agnosticism means we can swap providers later without code changes.
 > - See `tasks/HERMES.md` for the full integration spec, skill manifest, trace-bridge sketch, and open questions.
 >

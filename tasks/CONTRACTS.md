@@ -103,10 +103,20 @@ The agent emits these events via SSE on `GET /agent-runs/:id/stream`. B's timeli
 `/.env.example` (committed; secrets in `/.env` are gitignored):
 
 ```bash
-# LLM
+# Supabase (browser-safe vs server-only)
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# LLM — Anthropic (required for Hermes defaults in P0)
 ANTHROPIC_API_KEY=
 LLM_DEV_MODEL=claude-haiku-4-5-20251001
 LLM_SYNTH_MODEL=claude-sonnet-4-6
+
+# LLM — OpenAI (optional: embeddings, routing, GPT tools)
+OPENAI_API_KEY=
+OPENAI_ROUTER_MODEL=gpt-4.1-mini
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 
 # External APIs
 SAM_API_KEY=
@@ -138,6 +148,7 @@ RUN_BUDGET_SECONDS=360
 
 # Frontend → backend (B)
 NEXT_PUBLIC_API_BASE=http://localhost:8000
+NEXT_PUBLIC_APP_NAME=GovCapture Agent
 
 # Demo mode flags
 DEMO_USE_SEEDED_ONLY=false   # true forces planner to skip live SAM and Hermes browser tools
