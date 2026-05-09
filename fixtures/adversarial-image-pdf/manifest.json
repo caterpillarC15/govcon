@@ -1,0 +1,28 @@
+{
+  "slug": "adversarial-image-pdf",
+  "expected_decision_band": "reject",
+  "expected_critical_blockers": ["Solicitation document unparseable (image-only PDF)"],
+  "expected_partner_suggestion": false,
+  "opportunity": {
+    "id": "a1b2c3d4-0000-4000-8000-000000000004",
+    "slug": "adversarial-image-pdf",
+    "title": "Image-Only Scanned Solicitation",
+    "agency": "Test Agency",
+    "solicitation_number": "TEST-IMG-2026-001",
+    "source_url": "https://sam.gov/opp/example-adversarial",
+    "due_date": "2026-09-15",
+    "naics": "541512",
+    "set_aside": "None",
+    "place_of_performance": "Unknown",
+    "description": "Adversarial fixture: image-only PDF must be marked unparseable.",
+    "opportunity_status": "open",
+    "resource_links": [],
+    "attachments": [
+      { "filename": "RFP-IMAGE.pdf" }
+    ],
+    "raw_payload": {},
+    "created_at": "2026-05-01T00:00:00Z",
+    "updated_at": "2026-05-01T00:00:00Z"
+  },
+  "attachments": [{"filename": "RFP-IMAGE.pdf", "kind": "solicitation"}]
+}

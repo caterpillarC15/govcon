@@ -27,6 +27,7 @@ dev = [
     "datamodel-code-generator>=0.26",
     "jsonschema>=4.23",
     "reportlab>=4.2",
+    "pillow>=10.4",
 ]
 
 [build-system]
