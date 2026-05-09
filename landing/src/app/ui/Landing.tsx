@@ -1,15 +1,15 @@
 import { ChevronRight } from 'lucide-react'
-import Navbar from './components/Navbar'
-import DashboardPreview from './components/DashboardPreview'
+import DashboardPreview from '@/components/DashboardPreview'
+import Navbar from '@/components/Navbar'
 
 const VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260424_064411_9e9d7f84-9277-41f4-ab10-59172d89e6be.mp4'
 const POSTER_URL =
   'https://images.unsplash.com/photo-1557683316-973673baf926?w=1600&q=60'
 
-export default function App() {
+export default function Landing() {
   return (
-    <div
+    <main
       className="min-h-screen w-full p-3 sm:p-4"
       style={{
         backgroundColor: '#ededed',
@@ -102,6 +102,7 @@ export default function App() {
           <DashboardPreview />
         </div>
       </section>
-    </div>
+    </main>
   )
 }
+

@@ -75,10 +75,7 @@ function ClicksCard() {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label
-      className="text-neutral-700"
-      style={{ fontSize: 12 }}
-    >
+    <label className="text-neutral-700" style={{ fontSize: 12 }}>
       {children}
     </label>
   )
@@ -215,3 +212,4 @@ export default function DashboardPreview() {
     </div>
   )
 }
+

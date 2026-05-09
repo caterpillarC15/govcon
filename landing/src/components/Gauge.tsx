@@ -46,11 +46,7 @@ export default function Gauge({
 
   return (
     <div className="w-full flex flex-col items-center">
-      <svg
-        viewBox="0 0 200 120"
-        className="w-full"
-        style={{ maxWidth: 260 }}
-      >
+      <svg viewBox="0 0 200 120" className="w-full" style={{ maxWidth: 260 }}>
         {ticks}
         <text
           x={100}
@@ -75,3 +71,4 @@ export default function Gauge({
     </div>
   )
 }
+

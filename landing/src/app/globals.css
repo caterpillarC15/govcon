@@ -1,9 +1,8 @@
-@import './styles/fonts.css';
+@import '../styles/fonts.css';
 @import 'tailwindcss';
 
 html,
-body,
-main {
+body {
   height: 100%;
 }
 
@@ -15,3 +14,4 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
+

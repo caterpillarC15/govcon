@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Menu, ShoppingCart, X } from 'lucide-react'
 
@@ -64,11 +66,7 @@ function NavLink({ item }: { item: (typeof NAV_ITEMS)[number] }) {
     )
   }
   return (
-    <a
-      href="#"
-      className="text-neutral-900"
-      style={{ fontSize: 14 }}
-    >
+    <a href="#" className="text-neutral-900" style={{ fontSize: 14 }}>
       {item.label}
     </a>
   )
@@ -156,3 +154,4 @@ export default function Navbar() {
     </div>
   )
 }
+
