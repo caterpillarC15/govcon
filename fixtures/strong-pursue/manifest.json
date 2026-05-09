@@ -1,0 +1,30 @@
+{
+  "slug": "strong-pursue",
+  "expected_decision_band": "strong_pursue",
+  "expected_critical_blockers": [],
+  "expected_partner_suggestion": false,
+  "opportunity": {
+    "id": "a1b2c3d4-0000-4000-8000-000000000001",
+    "slug": "doi-cms-2026-001",
+    "title": "Cloud Migration Support Services for the Office of the Chief Information Officer",
+    "agency": "Department of the Interior",
+    "solicitation_number": "DOI-CMS-2026-001",
+    "source_url": "https://sam.gov/opp/example-strong-pursue",
+    "due_date": "2026-06-15",
+    "naics": "541512",
+    "set_aside": "Total Small Business Set-Aside",
+    "place_of_performance": "Washington, DC (remote acceptable)",
+    "description": "Cloud migration support including assessment, planning, and execution of AWS GovCloud migrations for legacy DOI systems. Period of performance: 12 months base + 2 option years.",
+    "opportunity_status": "open",
+    "resource_links": [],
+    "attachments": [
+      { "filename": "RFP-001.pdf" }
+    ],
+    "raw_payload": {},
+    "created_at": "2026-04-01T00:00:00Z",
+    "updated_at": "2026-04-01T00:00:00Z"
+  },
+  "attachments": [
+    { "filename": "RFP-001.pdf", "kind": "solicitation" }
+  ]
+}
