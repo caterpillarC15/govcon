@@ -37,6 +37,7 @@ def build() -> None:
         rightMargin=1 * inch,
         topMargin=1 * inch,
         bottomMargin=1 * inch,
+        invariant=1,
     )
 
     styles = getSampleStyleSheet()

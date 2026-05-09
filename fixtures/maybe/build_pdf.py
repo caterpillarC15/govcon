@@ -96,8 +96,7 @@ def build() -> None:
         sp(0.2),
         p(
             "All interested offerors must be registered in the System for Award Management "
-            "(SAM.gov) at the time of proposal submission and remain registered through award. "
-            "The 8(a) Business Development Program does NOT apply to this acquisition.",
+            "(SAM.gov) at the time of proposal submission and remain registered through award.",
             normal,
         ),
         PageBreak(),
