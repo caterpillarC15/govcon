@@ -52,7 +52,6 @@ def _req(**overrides) -> dict:
     return base
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.2", strict=True)
 async def test_clearance_required_company_has_none_short_circuits(uncleared_company):
     """§11.1 — TS clearance required + company has none → score 0, decision reject, NO LLM."""
     requirements = [
@@ -77,7 +76,6 @@ async def test_clearance_required_company_has_none_short_circuits(uncleared_comp
     assert fake_llm.call_count == 0
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.2", strict=True)
 async def test_set_aside_mismatch_short_circuits(cleared_company):
     """§11.1 — 8(a) set-aside + company not 8(a)-certified → reject, NO LLM."""
     requirements = [
@@ -101,7 +99,6 @@ async def test_set_aside_mismatch_short_circuits(cleared_company):
     assert fake_llm.call_count == 0
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.2", strict=True)
 async def test_eligibility_uncertain_treated_as_blocker(cleared_company):
     """§11.1: 'If eligibility is uncertain, score 0 and emit critical blocker.'
 
@@ -127,7 +124,6 @@ async def test_eligibility_uncertain_treated_as_blocker(cleared_company):
     assert fake_llm.call_count == 0
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.2", strict=True)
 async def test_no_eligibility_blockers_calls_llm(cleared_company):
     """Clean fit — no blockers → LLM is called once, returns full score."""
     requirements = [
@@ -179,7 +175,6 @@ async def test_no_eligibility_blockers_calls_llm(cleared_company):
     assert fake_llm.call_count == 1
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.2", strict=True)
 async def test_decision_band_normalized_to_total(cleared_company):
     """Even if LLM returns inconsistent decision/score, the band rule from total_score wins.
 
