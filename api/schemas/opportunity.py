@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import AnyUrl, AwareDatetime, BaseModel, ConfigDict, Field
@@ -30,9 +30,18 @@ class Opportunity(BaseModel):
         extra='forbid',
     )
     id: UUID
+    slug: str = Field(..., min_length=1, max_length=160)
+    source_notice_id: str | None = Field(None, max_length=128)
     title: str = Field(..., min_length=1)
     agency: str
     solicitation_number: str
+    notice_type: str | None = None
+    posted_date: date | None = None
+    office_name: str | None = None
+    psc_code: str | None = None
+    resource_links: list[str] = Field(default_factory=list)
+    opportunity_status: Literal['open', 'active', 'closed'] = 'open'
+    record_kind: Literal['rfp', 'contract'] | None = None
     source_url: AnyUrl | None = None
     due_date: date | None = None
     naics: str | None = None

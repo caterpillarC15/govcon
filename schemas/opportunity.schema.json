@@ -7,18 +7,62 @@
   "additionalProperties": false,
   "required": [
     "id",
+    "slug",
     "title",
     "agency",
     "solicitation_number",
     "attachments",
+    "resource_links",
+    "opportunity_status",
     "created_at",
     "updated_at"
   ],
   "properties": {
     "id": { "type": "string", "format": "uuid" },
+    "slug": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "description": "Stable URL segment; SAM-linked rows often derive from notice id / solicitation."
+    },
+    "source_notice_id": {
+      "type": ["string", "null"],
+      "maxLength": 128,
+      "description": "SAM.gov notice id when ingested — canonical external key alongside raw_payload."
+    },
     "title": { "type": "string", "minLength": 1 },
     "agency": { "type": "string" },
     "solicitation_number": { "type": "string" },
+    "notice_type": {
+      "type": ["string", "null"],
+      "description": "SAM notice type / combined synopsis label when available."
+    },
+    "posted_date": { "type": ["string", "null"], "format": "date" },
+    "office_name": {
+      "type": ["string", "null"],
+      "description": "Sub-tier office label (denormalized for list cards)."
+    },
+    "psc_code": {
+      "type": ["string", "null"],
+      "description": "PSC text from source (denormalized); optional FK resolution in DB."
+    },
+    "resource_links": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Attachment / resource URLs from SAM resources API."
+    },
+    "opportunity_status": {
+      "type": "string",
+      "enum": ["open", "active", "closed"],
+      "description": "Lifecycle for UI filtering (govbase-style Open/Active/Closed, lowercased)."
+    },
+    "record_kind": {
+      "description": "RFP vs already-awarded contract record when distinguishable.",
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "enum": ["rfp", "contract"] }
+      ]
+    },
     "source_url": { "type": ["string", "null"], "format": "uri" },
     "due_date": { "type": ["string", "null"], "format": "date" },
     "naics": { "type": ["string", "null"] },

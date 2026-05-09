@@ -76,11 +76,21 @@ def test_company_profile_create_minimal() -> None:
 
 
 def test_opportunity_round_trip() -> None:
+    schema = _load_schema("opportunity.schema.json")
     payload = {
         "id": "00000000-0000-4000-8000-000000000200",
+        "slug": "opp-navy-cyber-001",
+        "source_notice_id": "4a9d3090f78a463d8d38de29f6d5a6db",
         "title": "Cyber Operations Support",
         "agency": "Department of the Navy",
         "solicitation_number": "N0017826RFP0001",
+        "notice_type": "Solicitation",
+        "posted_date": "2026-04-01",
+        "office_name": "NAVSEA",
+        "psc_code": "R410",
+        "resource_links": ["https://sam.gov/api/example/resource"],
+        "opportunity_status": "open",
+        "record_kind": "rfp",
         "source_url": "https://sam.gov/opp/abc",
         "due_date": "2026-07-01",
         "naics": "541512",
@@ -92,6 +102,7 @@ def test_opportunity_round_trip() -> None:
         "created_at": "2026-05-09T14:00:00Z",
         "updated_at": "2026-05-09T14:00:00Z",
     }
+    Draft202012Validator(schema).validate(payload)
     Opportunity.model_validate(payload)
 
 
