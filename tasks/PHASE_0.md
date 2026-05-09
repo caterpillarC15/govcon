@@ -74,17 +74,50 @@ Joint authoring so B's content matches A's parser.
 - [ ] Author `/api/config.py` and `/web/lib/env.ts` as the only places that read env. Each fails loudly on missing required vars at startup.
 - [ ] Confirm `.env` is in `.gitignore` and not committed.
 
-## P0.6 — Hermes Agent install
+## P0.6 — Hermes Agent install + wire project config
 
 Per PRD v1.2.2. Both devs install on their machines (Track A drives the integration but Track B may want it for local end-to-end tests).
+
+### Install
 
 - [ ] Run installer:
   ```bash
   curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
   ```
-- [ ] Configure model: `hermes model` → set to `claude-sonnet-4-6` (synthesis) and confirm Anthropic API key is wired.
-- [ ] Smoke-test: `hermes` opens REPL; basic `who are you` interaction works.
-- [ ] Commit `hermes` config notes to `tasks/HERMES.md` if anything is non-default.
+- [ ] Configure model: `hermes model` → set to `claude-sonnet-4-6` (synthesis) and confirm `ANTHROPIC_API_KEY` is wired.
+- [ ] Smoke-test: `hermes` opens REPL; basic interaction works.
+
+### Wire project config (so Hermes uses our delegation depth, skills, and persona)
+
+Our project ships its Hermes config in `<repo>/.hermes/`. Symlink so Hermes picks it up:
+
+- [ ] **Config (delegation depth = 2 — required for our 5-agent design):**
+  ```bash
+  ln -sf "$(pwd)/.hermes/config.yaml" ~/.hermes/config.yaml
+  ```
+  Confirm: `cat ~/.hermes/config.yaml | grep max_spawn_depth` → `max_spawn_depth: 2`.
+
+- [ ] **Project SKILL.md procedures (7 skills under `.hermes/skills/govcapture/`):**
+  ```bash
+  mkdir -p ~/.hermes/skills
+  ln -sf "$(pwd)/.hermes/skills/govcapture" ~/.hermes/skills/govcapture
+  ```
+  Confirm: `hermes /skills` lists `discover_opportunities`, `analyze_opportunity_e2e`, `extract_requirements_with_evidence`, `score_fit_with_eligibility_check`, `detect_risks_calibrated`, `generate_full_action_package`, `generate_reject_summary`.
+
+- [ ] **Umbrella persona (SOUL.md):**
+  ```bash
+  ln -sf "$(pwd)/.hermes/SOUL.md" ~/.hermes/SOUL.md
+  ```
+  Confirm: `hermes` startup banner mentions GovCapture context.
+
+- [ ] **Project context (HERMES.md at repo root) is auto-detected.** Hermes walks from cwd to git root and loads the first `.hermes.md` / `HERMES.md` it finds. No symlink needed; just run `hermes` from inside the repo.
+
+### Validate the wiring
+
+- [ ] `hermes /skills` lists all 7 GovCapture skills.
+- [ ] `hermes config show delegation` confirms `max_spawn_depth: 2` and `max_concurrent_children: 3`.
+- [ ] In a test prompt, ask Hermes "what skills do you have available for federal contract analysis?" — it should describe at least the discover_opportunities and score_fit_with_eligibility_check skills.
+- [ ] Both devs commit confirmation in `dev1-backend/STANDUP.md` / `dev2-frontend/STANDUP.md`.
 
 ## P0.7 — Mock API server (was P0.6 in v1.2.1; renumbered after Hermes addition) (~45 min)
 

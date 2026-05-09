@@ -1,0 +1,68 @@
+# Hermes Agent runtime configuration for GovCapture project.
+#
+# This file is the project's recommended Hermes config. During P0 setup
+# (PHASE_0.md §P0.6), copy or symlink to ~/.hermes/config.yaml so Hermes
+# picks it up:
+#
+#   ln -sf "$(pwd)/.hermes/config.yaml" ~/.hermes/config.yaml
+#
+# OR for project-isolated runs, set HERMES_HOME to the repo's .hermes/:
+#
+#   export HERMES_HOME="$(pwd)/.hermes"
+
+# ─── Delegation ─────────────────────────────────────────────────────────────
+# Our 5-agent architecture (tasks/AGENT_ARCHITECTURE.md) requires depth-2
+# delegation: Capture Lead (orchestrator, depth 0) → Capture Analyst
+# (orchestrator, depth 1) → Specialists (leaves, depth 2). Without
+# max_spawn_depth: 2, Capture Analysts cannot spawn specialists.
+delegation:
+  max_concurrent_children: 3            # 3 Capture Analysts in parallel (one per top-ranked opportunity)
+  max_spawn_depth: 2                    # REQUIRED — Lead → Analyst → Specialist chain
+  orchestrator_enabled: true            # Global kill-switch; must be true for our design
+  max_iterations: 50                    # Per-child turn cap (Hermes default)
+
+  # Optional: per-delegation model override.
+  # We keep delegation model inheritance from parent by default (commented),
+  # then override per delegate_task call in /api/agents/<role>.py for cost
+  # optimization (e.g., Risk Analyst on Haiku, Compliance Officer on Sonnet).
+  # model: "claude-sonnet-4-6"
+  # provider: "anthropic"
+
+# ─── Models ─────────────────────────────────────────────────────────────────
+# Configured via `hermes model` CLI on first run. Defaults below are the
+# recommended split. Per-role overrides happen in delegate_task calls.
+models:
+  default_synthesis: "claude-sonnet-4-6"
+  default_cheap: "claude-haiku-4-5-20251001"
+
+providers:
+  anthropic:
+    api_key_env: ANTHROPIC_API_KEY
+
+# ─── Skills ─────────────────────────────────────────────────────────────────
+# Hermes auto-discovers skills in ~/.hermes/skills/. Project-local skills
+# live in <repo>/.hermes/skills/govcapture/ — symlink during setup:
+#
+#   ln -sf "$(pwd)/.hermes/skills/govcapture" ~/.hermes/skills/govcapture
+#
+# Skills loaded:
+#   - discover_opportunities          (Capture Lead)
+#   - analyze_opportunity_e2e         (Capture Analyst)
+#   - extract_requirements_with_evidence  (Compliance Officer)
+#   - score_fit_with_eligibility_check    (Compliance Officer; §11.1 enforcement)
+#   - detect_risks_calibrated         (Risk Analyst)
+#   - generate_full_action_package    (Proposal Strategist)
+#   - generate_reject_summary         (Proposal Strategist; deterministic)
+
+# ─── Memory ─────────────────────────────────────────────────────────────────
+# v1: per-run only. Clear between dev runs to avoid contamination during eval.
+# Post-MVP: enable cross-run learning.
+memory:
+  cross_session: false
+
+# ─── Telemetry / observability ──────────────────────────────────────────────
+# Hermes emits trace events. Our /api/agent/hermes_bridge.py subscribes and
+# translates into CONTRACTS.md §3 SSE events for the frontend (B5).
+telemetry:
+  emit_subagent_events: true
+  log_tool_io: true
