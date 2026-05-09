@@ -16,6 +16,7 @@ build/
 node_modules/
 .next/
 .parcel-cache/
+*.tsbuildinfo
 
 # Env
 .env
