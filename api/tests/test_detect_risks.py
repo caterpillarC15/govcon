@@ -1,6 +1,5 @@
 """detect_risks — §5.8 risk taxonomy + severity calibration + human-review enforcement."""
 from __future__ import annotations
-import pytest
 from api.skills.detect_risks import detect_risks
 from api.tests.fakes import FakeLLM
 
@@ -17,7 +16,6 @@ def _req(**overrides) -> dict:
     return base
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.4", strict=True)
 async def test_deadline_too_close_calibrated_as_major():
     fake_llm = FakeLLM(payload={
         "risks": [{
@@ -43,7 +41,6 @@ async def test_deadline_too_close_calibrated_as_major():
     assert out["risks"][0]["severity"] == "major_risk"
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.4", strict=True)
 async def test_invalid_category_filtered_out():
     """Risks with categories not in the allowed taxonomy must be silently dropped."""
     fake_llm = FakeLLM(payload={
@@ -71,7 +68,6 @@ async def test_invalid_category_filtered_out():
     assert out["risks"][0]["category"] == "scope_mismatch"
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.4", strict=True)
 async def test_critical_severity_forces_human_review():
     """Any critical_blocker MUST set requires_human_review=True even if LLM forgot."""
     fake_llm = FakeLLM(payload={
@@ -92,7 +88,6 @@ async def test_critical_severity_forces_human_review():
     assert out["risks"][0]["requires_human_review"] is True
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.4", strict=True)
 async def test_legal_compliance_category_forces_human_review():
     """legal_compliance_review category ALWAYS forces requires_human_review=True."""
     fake_llm = FakeLLM(payload={
