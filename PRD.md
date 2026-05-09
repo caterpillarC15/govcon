@@ -3,10 +3,17 @@
 ## Product Requirements Document
 
 **Product name:** GovCapture Agent
-**Document status:** MVP PRD v1.2
+**Document status:** MVP PRD v1.2.2
 **Primary track:** Agents Track
 **Primary objective:** Build an autonomous AI capture agent that turns a small business profile and government contracting goal into a useful federal opportunity analysis package by searching opportunities, parsing solicitation documents, extracting requirements, scoring fit, detecting blockers, and producing actionable next steps with human approval gates.
 
+> **Changelog v1.2.1 → v1.2.2**
+> - Adopted **hermes-agent** (Nous Research, https://github.com/nousresearch/hermes-agent) as the agent runtime. Hermes provides the planner loop, tool/skill registry, long-term memory, multi-backend execution (local / Docker / SSH / Modal / Vercel Sandbox), and is model-agnostic. We register domain skills (`parse_pdf`, `extract_requirements`, `score_fit`, `detect_risks`, `generate_action_package`, `search_sam`, `load_seeded_opportunities`) inside Hermes; FastAPI becomes a thin proxy with a trace-event bridge that preserves the CONTRACTS.md §3 SSE shape so the frontend never has to know Hermes exists.
+> - §4.5 updated: planner loop, tool registry, and budgeting now reference Hermes' built-ins. Our additions are the domain skills, the §11.1 enforcement (which lives inside `score_fit` and `generate_action_package`), and the trace bridge. The decision-policy and error-recovery semantics are unchanged contractually.
+> - §7.3 updated: **OpenClaw is dropped from the stack.** Hermes covers browser-bound tools and skill execution. Anything we relied on OpenClaw for (attachment fetch, source-page verification) is now a Hermes skill or built-in tool.
+> - Model defaults remain Claude Sonnet 4.6 (synthesis) and Haiku 4.5 (cheap passes), configured via `hermes model`. Hermes' model-agnosticism means we can swap providers later without code changes.
+> - See `tasks/HERMES.md` for the full integration spec, skill manifest, trace-bridge sketch, and open questions.
+>
 > **Changelog v1.2 → v1.2.1**
 > - Added §7.6 Deployment Target — locks in Vultr VX1 (16 vCPU / 64 GB RAM / 960 GB NVMe / Ubuntu 24.04 LTS) as the single-box MVP host with a concrete service allocation table, sizing notes, and operational hygiene checklist.
 >
