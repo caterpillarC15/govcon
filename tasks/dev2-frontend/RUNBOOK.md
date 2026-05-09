@@ -26,10 +26,9 @@ cd .. && make schemas       # populates /web/lib/schemas/
 
 ```bash
 # Track A's mock server runs from /api with stub responses; A keeps it alive until S2.
-cd ../api && uvicorn api.main:app --reload --port 8000
-
-# Or use docker compose from repo root:
-docker compose up api postgres redis -d
+# Native Postgres + Redis must be running first (see dev1-backend/RUNBOOK.md).
+cd ../ && make services-up        # brew/apt-managed Postgres + Redis
+cd api && uv run uvicorn api.main:app --reload --port 8000
 ```
 
 Set `NEXT_PUBLIC_API_BASE=http://localhost:8000` in `web/.env.local`.

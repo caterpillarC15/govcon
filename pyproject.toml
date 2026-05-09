@@ -26,6 +26,7 @@ dev = [
     "ruff>=0.8",
     "datamodel-code-generator>=0.26",
     "jsonschema>=4.23",
+    "reportlab>=4.2",
 ]
 
 [build-system]
