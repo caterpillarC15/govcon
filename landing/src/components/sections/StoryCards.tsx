@@ -2,129 +2,78 @@ import { Badge, GlassCard, InnerTile } from '../ui/Primitives'
 import { STORY_CARDS } from '../../data/copy'
 import FitScoreGauge from '../FitScoreGauge'
 
-/* ------- Per-card supporting UI previews ------- */
+/* ------- Per-card supporting UI previews -------
+ * One strong proof element per card. The glass surface is the hero;
+ * the preview is a quiet anchor that earns the claim above it.
+ */
 
 function DiscoverPreview() {
-  const opps = [
-    { agency: 'DLA', title: 'Cyber Vuln Assessment', tags: ['SB', '541512'], score: 88, tone: 'strong_pursue' as const },
-    { agency: 'VA', title: 'Cloud Migration Support', tags: ['SDVOSB', '541519'], score: 64, tone: 'maybe' as const },
-    { agency: 'DCSA', title: 'SCIF Network Ops', tags: ['8(a)', '541512'], score: 32, tone: 'reject' as const },
-  ]
   return (
-    <InnerTile className="p-2.5">
-      <div className="px-2 pb-2 flex items-center justify-between border-b border-[var(--color-paper-line)]">
-        <span className="font-mono text-[10px] text-[var(--color-ink-subtle)] tracking-tight">
-          goal: cybersec · 60d
+    <div className="flex flex-col gap-2.5">
+      <InnerTile className="px-3.5 py-3 flex items-center gap-3">
+        <span className="font-mono text-[10px] tracking-[0.12em] text-[var(--color-ink-subtle)] shrink-0">
+          DLA
         </span>
-        <span className="font-mono text-[10px] text-[var(--color-ink-subtle)]">
-          14 hits
+        <span className="text-[12.5px] text-[var(--color-ink)] truncate flex-1 min-w-0">
+          Cyber Vuln Assessment
         </span>
-      </div>
-      <ul className="flex flex-col">
-        {opps.map((o) => (
-          <li
-            key={o.agency}
-            className="flex items-center gap-2 px-2 py-2 border-b border-[var(--color-paper-line)] last:border-b-0"
-          >
-            <span className="font-mono text-[9.5px] text-[var(--color-ink-subtle)] w-9 shrink-0">
-              {o.agency}
-            </span>
-            <span className="text-[11.5px] text-[var(--color-ink)] truncate flex-1 min-w-0">
-              {o.title}
-            </span>
-            <span className="hidden sm:flex items-center gap-1 shrink-0">
-              {o.tags.map((t) => (
-                <span
-                  key={t}
-                  className="font-mono text-[9.5px] text-[var(--color-ink-muted)] bg-white/60 border border-[var(--color-paper-line)] rounded px-1.5 py-0.5"
-                >
-                  {t}
-                </span>
-              ))}
-            </span>
-            <Badge tone={o.tone} mono>
-              {o.score}
-            </Badge>
-          </li>
-        ))}
-      </ul>
-    </InnerTile>
+        <Badge tone="strong_pursue" mono>
+          88
+        </Badge>
+      </InnerTile>
+      <p className="font-mono text-[10.5px] text-[var(--color-ink-subtle)] tracking-tight pl-1">
+        + 13 ranked below · cached fallback when SAM is rate-limited
+      </p>
+    </div>
   )
 }
 
 function ExtractPreview() {
-  const reqs = [
-    {
-      type: 'eligibility',
-      page: 3,
-      snippet: '“…set aside 100% for small business concerns under NAICS 541512…”',
-    },
-    {
-      type: 'deadline',
-      page: 4,
-      snippet: '“Offers due Fri 19 Sep 2026 at 16:00 ET, per Block 8 of SF 33.”',
-    },
-  ]
   return (
-    <div className="flex flex-col gap-2">
-      {reqs.map((r) => (
-        <InnerTile key={r.type} className="p-3">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="font-mono text-[10px] text-[var(--color-ink-muted)] uppercase tracking-[0.1em]">
-              {r.type}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden />
-              <span className="font-mono text-[10px] text-[var(--color-ink-subtle)]">
-                high · p.{r.page}
-              </span>
-            </span>
-          </div>
-          <p className="text-[11.5px] leading-snug text-[var(--color-ink)] font-mono">
-            {r.snippet}
-          </p>
-        </InnerTile>
-      ))}
-    </div>
+    <InnerTile className="p-4">
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--color-ink)]">
+          Eligibility
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"
+            aria-hidden
+          />
+          <span className="font-mono text-[10px] text-[var(--color-ink-subtle)]">
+            high · p.3
+          </span>
+        </span>
+      </div>
+      <p
+        className="text-[13px] leading-[1.55] text-[var(--color-ink)]"
+        style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic' }}
+      >
+        “…set aside 100% for small business concerns under NAICS 541512…”
+      </p>
+    </InnerTile>
   )
 }
 
 function DecidePreview() {
   return (
-    <InnerTile className="p-3">
-      <div className="flex items-center gap-3">
-        <div className="-my-1 shrink-0">
-          <FitScoreGauge score={88} decision="strong_pursue" size={120} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <Badge tone="strong_pursue">Strong pursue</Badge>
-          <div className="mt-2">
-            <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-[var(--color-ink-subtle)]">
-              Compliance
-            </span>
-            <div className="mt-1 flex flex-wrap items-center gap-1">
-              <Badge tone="met" mono>
-                MET
-              </Badge>
-              <Badge tone="met" mono>
-                MET
-              </Badge>
-              <Badge tone="unclear" mono>
-                UNCLEAR
-              </Badge>
-              <Badge tone="missing" mono>
-                MISSING
-              </Badge>
-            </div>
-          </div>
-        </div>
+    /* Layout adapts to per-card width:
+     *   < 360  (very narrow phones)        — stack vertical
+     *   360–767 (typical phone single-col) — horizontal, fits comfortably
+     *   md 768–1023 (tight 3-col grid)     — stack vertical
+     *   lg+ 1024+   (wide 3-col grid)      — horizontal
+     */
+    <InnerTile className="p-4 flex flex-col gap-3 min-[360px]:flex-row min-[360px]:items-center min-[360px]:gap-4 md:flex-col md:items-stretch md:gap-3 lg:flex-row lg:items-center lg:gap-4">
+      <div className="-my-1 shrink-0">
+        <FitScoreGauge score={88} decision="strong_pursue" size={104} />
       </div>
-      <div className="mt-3 pt-3 border-t border-[var(--color-paper-line)]">
-        <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-[var(--color-decision-reject)]">
-          Blocker · 1
-        </span>
-        <p className="mt-1 text-[11px] leading-snug text-[var(--color-ink-muted)]">
-          Past-performance write-up needs federal references reformatted.
+      <div className="flex-1 min-w-0">
+        <Badge tone="strong_pursue">Strong pursue</Badge>
+        <p className="mt-2.5 text-[11.5px] leading-[1.5] text-[var(--color-ink-muted)]">
+          <span className="font-mono text-[var(--color-decision-reject)] tracking-[0.06em]">
+            1 blocker
+          </span>{' '}
+          · past-performance refs need federal format.
         </p>
       </div>
     </InnerTile>
@@ -151,7 +100,10 @@ export default function StoryCards() {
               <GlassCard
                 key={card.n}
                 variant="glass-strong"
-                className="p-6 sm:p-7 flex flex-col gap-5 glass-interactive"
+                className="card-rise p-7 sm:p-8 flex flex-col gap-6 glass-interactive h-full"
+                /* Stagger entrance — pure CSS keyframe defined in
+                   globals.css. SSR-safe; respects reduced motion. */
+                style={{ animationDelay: `${i * 90}ms` }}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-[12px] tracking-[0.08em] text-[var(--color-ink-subtle)]">
@@ -165,9 +117,9 @@ export default function StoryCards() {
                 <h3
                   className="text-[var(--color-ink)]"
                   style={{
-                    fontSize: 'clamp(20px, 2.4vw, 26px)',
+                    fontSize: 'clamp(22px, 2.5vw, 28px)',
                     lineHeight: 1.1,
-                    letterSpacing: '-0.02em',
+                    letterSpacing: '-0.022em',
                     fontWeight: 600,
                   }}
                 >
@@ -178,7 +130,7 @@ export default function StoryCards() {
                   {card.body}
                 </p>
 
-                <div className="mt-auto pt-4">
+                <div className="mt-auto pt-2">
                   <Preview />
                 </div>
               </GlassCard>

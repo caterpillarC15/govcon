@@ -11,10 +11,18 @@ export default function Hero() {
         <h1
           className="mt-7 sm:mt-8 text-[var(--color-ink)] mx-auto"
           style={{
-            fontSize: 'clamp(44px, 13vw, 156px)',
+            /* Defensive sizing: vw scales with viewport, but the third
+             * `min` term caps the title at the available content width
+             * (viewport minus horizontal padding) so the single-word
+             * "GovCapture" can never overflow. Calibrated against
+             * Geist Sans at weight 600 / letter-spacing −0.04em — width
+             * is ~4.5x font-size, so we divide by 4.6 for headroom. */
+            fontSize:
+              'min(clamp(34px, 12vw, 152px), calc((100vw - 56px) / 4.6))',
             lineHeight: 0.92,
-            letterSpacing: '-0.045em',
+            letterSpacing: '-0.04em',
             fontWeight: 600,
+            maxWidth: '100%',
           }}
         >
           {HERO.title}
@@ -45,9 +53,9 @@ export default function Hero() {
         </p>
 
         <p className="mt-3 mx-auto max-w-xl text-[14.5px] leading-[1.55] text-[var(--color-ink-muted)]">
-          Reads solicitations, extracts requirements with page-cited evidence,
-          scores fit against your profile, and produces a reviewable action package.
-          Human approval gates before anything external.
+          Extracts requirements with page-level citations, scores fit against
+          your profile, and produces a reviewable action package. Human
+          approval before anything external.
         </p>
 
         <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">

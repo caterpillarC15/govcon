@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, Menu, X } from 'lucide-react'
+import { ArrowRight, ChevronRight, Menu, X } from 'lucide-react'
 import { NAV } from '../data/copy'
+import { cn } from '../lib/cn'
 
 function Mark() {
   return (
@@ -31,6 +32,18 @@ export default function Navbar() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Lock body scroll while the mobile menu is open so the page doesn't
+  // ghost behind the panel — important now that we've committed harder
+  // to the matte body (no scrolled content peeking through).
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
+
   return (
     <header className="sticky top-0 z-30 w-full">
       <div className="flex justify-center pt-4 sm:pt-6 px-3 sm:px-4">
@@ -47,7 +60,10 @@ export default function Navbar() {
               </span>
             </a>
 
-            <nav className="hidden md:flex items-center gap-5 pl-2" aria-label="Primary">
+            <nav
+              className="hidden md:flex items-center gap-5 pl-2"
+              aria-label="Primary"
+            >
               {NAV.map((n) => (
                 <a
                   key={n.href}
@@ -66,7 +82,7 @@ export default function Navbar() {
               >
                 Request access
                 <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/15">
-                  <ArrowRight size={12} strokeWidth={2.25} />
+                  <ArrowRight size={12} strokeWidth={2.25} aria-hidden />
                 </span>
               </a>
 
@@ -76,7 +92,7 @@ export default function Navbar() {
                 aria-expanded={open}
                 aria-controls="mobile-menu"
                 onClick={() => setOpen((v) => !v)}
-                className="md:hidden w-8 h-8 inline-flex items-center justify-center rounded-full text-[var(--color-ink)] hover:bg-white/40 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                className="md:hidden w-8 h-8 inline-flex items-center justify-center rounded-full text-[var(--color-ink)] hover:bg-white/40 active:bg-white/60 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
               >
                 {open ? <X size={16} /> : <Menu size={16} />}
               </button>
@@ -86,26 +102,51 @@ export default function Navbar() {
           {open && (
             <div
               id="mobile-menu"
-              className="md:hidden glass-strong absolute left-0 right-0 top-full mt-2 rounded-[var(--radius-card)] p-2"
+              /* Inline `position: absolute` to defeat the
+               * `.glass-strong { position: relative }` base rule —
+               * which otherwise forces this menu into the navbar's
+               * normal flow and inflates the pill to ~247px tall. */
+              style={{ position: 'absolute' }}
+              className="md:hidden glass-strong left-0 right-0 top-full mt-3 rounded-[var(--radius-card)] p-2"
             >
-              <nav className="flex flex-col" aria-label="Mobile">
+              <nav className="flex flex-col gap-0.5" aria-label="Mobile">
                 {NAV.map((n) => (
                   <a
                     key={n.href}
                     href={n.href}
                     onClick={() => setOpen(false)}
-                    className="px-3 py-3 text-[15px] text-[var(--color-ink)] border-b border-[var(--color-paper-line)] last:border-b-0"
+                    className={cn(
+                      'group flex items-center justify-between h-12 px-4 rounded-xl',
+                      'text-[15px] font-medium text-[var(--color-ink)]',
+                      'hover:bg-white/50 active:bg-white/65 transition-colors',
+                      'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]',
+                    )}
                   >
-                    {n.label}
+                    <span>{n.label}</span>
+                    <ChevronRight
+                      size={16}
+                      strokeWidth={1.75}
+                      className="text-[var(--color-ink-subtle)] group-hover:text-[var(--color-ink)] transition-colors"
+                      aria-hidden
+                    />
                   </a>
                 ))}
+                <div className="glass-rule mx-2 my-2" aria-hidden />
                 <a
                   href="#waitlist"
                   onClick={() => setOpen(false)}
-                  className="mt-2 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-[var(--color-ink)] text-white text-[14px] font-medium"
+                  className={cn(
+                    'flex items-center justify-center gap-2 h-12 rounded-full',
+                    'bg-[var(--color-ink)] text-white text-[14.5px] font-medium',
+                    'hover:bg-[#1e293b] active:bg-[#020617] transition-colors',
+                    'shadow-[0_1px_2px_rgba(15,23,42,0.18),0_8px_24px_-12px_rgba(15,23,42,0.45)]',
+                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]',
+                  )}
                 >
                   Request access
-                  <ArrowRight size={14} strokeWidth={2} />
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/15">
+                    <ArrowRight size={12} strokeWidth={2.25} aria-hidden />
+                  </span>
                 </a>
               </nav>
             </div>

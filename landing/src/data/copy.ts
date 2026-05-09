@@ -44,12 +44,6 @@ export const STORY_CARDS = [
   },
 ] as const
 
-export const METRICS = [
-  { value: '40', caption: 'Steps per run' },
-  { value: '6 min', caption: 'Wall-clock ceiling' },
-  { value: '$0.50', caption: 'LLM-cost ceiling' },
-] as const
-
 export const TRUST_PILLS = [
   { label: 'Source-cited', sub: 'evidence + page #' },
   { label: 'Human-approved', sub: 'gate before external' },

@@ -27,13 +27,18 @@ export default function FitScoreGauge({ score, decision, size = 200 }: Props) {
   const rInner = rOuter - 10
   const color = decisionColor[decision]
 
+  // Round to 2 decimals so SSR and CSR string formats match exactly
+  // (Node's V8 Number.toString can diverge from browser V8 on the
+  // 14th/15th digit, which triggers React hydration mismatches).
+  const round = (n: number) => Math.round(n * 100) / 100
+
   const ticks = Array.from({ length: totalTicks }, (_, i) => {
     const t = i / (totalTicks - 1)
     const angle = Math.PI + t * Math.PI
-    const x1 = cx + rInner * Math.cos(angle)
-    const y1 = cy + rInner * Math.sin(angle)
-    const x2 = cx + rOuter * Math.cos(angle)
-    const y2 = cy + rOuter * Math.sin(angle)
+    const x1 = round(cx + rInner * Math.cos(angle))
+    const y1 = round(cy + rInner * Math.sin(angle))
+    const x2 = round(cx + rOuter * Math.cos(angle))
+    const y2 = round(cy + rOuter * Math.sin(angle))
     const isActive = i < activeTicks
     return (
       <line
