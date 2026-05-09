@@ -1,13 +1,10 @@
 """generate_action_package — A8: full mode (LLM) + reject_summary mode (deterministic)."""
 from __future__ import annotations
 
-import pytest
-
 from api.skills.generate_action_package import generate_action_package
 from api.tests.fakes import FakeLLM
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.6", strict=True)
 async def test_reject_summary_mode_does_not_call_llm():
     """Reject mode must be deterministic — no LLM call, slim package, no checklist/timeline/outreach."""
     fake_llm = FakeLLM(should_not_be_called=True)
@@ -40,7 +37,6 @@ async def test_reject_summary_mode_does_not_call_llm():
     assert fake_llm.call_count == 0
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.6", strict=True)
 async def test_full_mode_calls_llm_and_includes_all_sections():
     """Full mode calls LLM once, returns full §5.11 package with all sections populated."""
     fake_llm = FakeLLM(
@@ -120,7 +116,6 @@ async def test_full_mode_calls_llm_and_includes_all_sections():
     assert fake_llm.call_count == 1
 
 
-@pytest.mark.xfail(reason="implementation pending in T2.6", strict=True)
 async def test_human_approval_block_always_present_even_when_llm_omits():
     """§5.13 — human_approval_required MUST always be non-empty; if LLM returns empty,
     a default approval line MUST be injected."""
