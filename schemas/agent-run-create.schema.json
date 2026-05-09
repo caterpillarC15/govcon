@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/agent-run-create.schema.json",
+  "title": "AgentRunCreate",
+  "description": "Input shape for POST /agent-runs. Accepts either profile_id (preferred) or inline profile (PRD §9 escape hatch).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["goal"],
+  "properties": {
+    "goal": { "type": "string", "minLength": 1 },
+    "profile_id": { "type": ["string", "null"], "format": "uuid" },
+    "profile": {
+      "description": "Inline CompanyProfileCreate — used when caller hasn't persisted a profile yet.",
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "website": { "type": ["string", "null"], "maxLength": 512 },
+        "description": { "type": ["string", "null"] },
+        "capabilities": { "type": "array", "items": { "type": "string" } },
+        "industry_keywords": { "type": "array", "items": { "type": "string" } },
+        "location": { "type": ["string", "null"], "maxLength": 255 },
+        "service_area": { "type": "array", "items": { "type": "string" } },
+        "naics_codes": { "type": "array", "items": { "type": "string" } },
+        "certifications": { "type": "array", "items": { "type": "string" } },
+        "small_business_status": { "type": "boolean" },
+        "sam_status": { "type": ["string", "null"], "maxLength": 64 },
+        "clearance_status": { "type": ["string", "null"], "maxLength": 64 },
+        "past_performance": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        },
+        "insurance_bonding_status": { "type": ["string", "null"], "maxLength": 255 },
+        "preferred_contract_size": { "type": ["string", "null"], "maxLength": 64 },
+        "preferred_role": {
+          "type": "string",
+          "enum": ["prime", "sub", "either"]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/trace-event.schema.json",
+  "title": "TraceEvent",
+  "description": "CONTRACTS.md §3 — discriminated union of SSE events emitted on GET /agent-runs/:id/stream.",
+  "oneOf": [
+    { "$ref": "#/$defs/RunStarted" },
+    { "$ref": "#/$defs/RunCompleted" },
+    { "$ref": "#/$defs/StepStarted" },
+    { "$ref": "#/$defs/StepCompleted" },
+    { "$ref": "#/$defs/ToolCalled" },
+    { "$ref": "#/$defs/ToolReturned" },
+    { "$ref": "#/$defs/OpportunityRanked" },
+    { "$ref": "#/$defs/NeedsHuman" }
+  ],
+  "$defs": {
+    "RunStarted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "goal", "ts"],
+      "properties": {
+        "type": { "const": "run_started" },
+        "run_id": { "type": "string", "format": "uuid" },
+        "goal": { "type": "string" },
+        "profile_id": { "type": ["string", "null"], "format": "uuid" },
+        "ts": { "type": "string", "format": "date-time" }
+      }
+    },
+    "RunCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "status", "ts"],
+      "properties": {
+        "type": { "const": "run_completed" },
+        "run_id": { "type": "string", "format": "uuid" },
+        "status": {
+          "type": "string",
+          "enum": ["complete", "partial", "failed"]
+        },
+        "summary": { "type": ["string", "null"] },
+        "ts": { "type": "string", "format": "date-time" }
+      }
+    },
+    "StepStarted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "step_id", "label", "ts"],
+      "properties": {
+        "type": { "const": "step_started" },
+        "run_id": { "type": "string", "format": "uuid" },
+        "step_id": { "type": "string", "format": "uuid" },
+        "label": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" }
+      }
+    },
+    "StepCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "step_id", "status", "ts"],
+      "properties": {
+        "type": { "const": "step_completed" },
+        "run_id": { "type": "string", "format": "uuid" },
+        "step_id": { "type": "string", "format": "uuid" },
+        "status": {
+          "type": "string",
+          "enum": ["complete", "degraded", "failed", "needs_review"]
+        },
+        "ts": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ToolCalled": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "step_id", "tool", "input", "ts"],
+      "properties": {
+        "type": { "const": "tool_called" },
+        "run_id": { "type": "string", "format": "uuid" },
+        "step_id": { "type": "string", "format": "uuid" },
+        "tool": {
+          "type": "string",
+          "enum": [
+            "search_sam_opportunities",
+            "load_seeded_opportunities",
+            "fetch_attachment",
+            "verify_source_page",
+            "parse_pdf",
+            "extract_requirements",
+            "score_fit",
+            "detect_risks",
+            "generate_action_package",
+            "request_human_review"
+          ]
+        },
+        "input": { "type": "object", "additionalProperties": true },
+        "rationale": { "type": ["string", "null"] },
+        "ts": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ToolReturned": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "step_id", "tool", "latency_ms", "cost_usd", "ts"],
+      "properties": {
+        "type": { "const": "tool_returned" },
+        "run_id": { "type": "string", "format": "uuid" },
+        "step_id": { "type": "string", "format": "uuid" },
+        "tool": { "type": "string" },
+        "output": {
+          "anyOf": [
+            { "type": "object", "additionalProperties": true },
+            { "type": "null" }
+          ]
+        },
+        "error": { "type": ["string", "null"] },
+        "latency_ms": { "type": "integer", "minimum": 0 },
+        "cost_usd": { "type": "number", "minimum": 0 },
+        "ts": { "type": "string", "format": "date-time" }
+      }
+    },
+    "OpportunityRanked": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "opportunity_id", "score", "decision", "ts"],
+      "properties": {
+        "type": { "const": "opportunity_ranked" },
+        "run_id": { "type": "string", "format": "uuid" },
+        "opportunity_id": { "type": "string", "format": "uuid" },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "decision": {
+          "type": "string",
+          "enum": ["strong_pursue", "pursue", "maybe", "reject"]
+        },
+        "ts": { "type": "string", "format": "date-time" }
+      }
+    },
+    "NeedsHuman": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "question", "ts"],
+      "properties": {
+        "type": { "const": "needs_human" },
+        "run_id": { "type": "string", "format": "uuid" },
+        "question": { "type": "string" },
+        "context": { "type": ["object", "null"], "additionalProperties": true },
+        "ts": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

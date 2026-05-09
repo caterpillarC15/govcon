@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/company-profile.schema.json",
+  "title": "CompanyProfile",
+  "description": "PRD §8.1 — small business profile feeding the capture agent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "capabilities",
+    "industry_keywords",
+    "naics_codes",
+    "certifications",
+    "small_business_status",
+    "past_performance",
+    "service_area",
+    "preferred_role",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "website": { "type": ["string", "null"], "maxLength": 512 },
+    "description": { "type": ["string", "null"] },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "industry_keywords": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "location": { "type": ["string", "null"], "maxLength": 255 },
+    "service_area": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "naics_codes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "certifications": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "small_business_status": { "type": "boolean" },
+    "sam_status": { "type": ["string", "null"], "maxLength": 64 },
+    "clearance_status": { "type": ["string", "null"], "maxLength": 64 },
+    "past_performance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "title": { "type": "string" },
+          "agency": { "type": "string" },
+          "value_usd": { "type": ["number", "null"] },
+          "year": { "type": ["integer", "null"] },
+          "summary": { "type": ["string", "null"] }
+        },
+        "required": ["title"]
+      }
+    },
+    "insurance_bonding_status": { "type": ["string", "null"], "maxLength": 255 },
+    "preferred_contract_size": { "type": ["string", "null"], "maxLength": 64 },
+    "preferred_role": {
+      "type": "string",
+      "enum": ["prime", "sub", "either"]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

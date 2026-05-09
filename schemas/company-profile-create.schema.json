@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/company-profile-create.schema.json",
+  "title": "CompanyProfileCreate",
+  "description": "Input shape for POST /company-profiles. Server-set fields (id, created_at, updated_at) are omitted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "website": { "type": ["string", "null"], "maxLength": 512 },
+    "description": { "type": ["string", "null"] },
+    "capabilities": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "industry_keywords": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "location": { "type": ["string", "null"], "maxLength": 255 },
+    "service_area": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "naics_codes": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "certifications": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "small_business_status": { "type": "boolean", "default": false },
+    "sam_status": { "type": ["string", "null"], "maxLength": 64 },
+    "clearance_status": { "type": ["string", "null"], "maxLength": 64 },
+    "past_performance": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "title": { "type": "string" },
+          "agency": { "type": "string" },
+          "value_usd": { "type": ["number", "null"] },
+          "year": { "type": ["integer", "null"] },
+          "summary": { "type": ["string", "null"] }
+        },
+        "required": ["title"]
+      }
+    },
+    "insurance_bonding_status": { "type": ["string", "null"], "maxLength": 255 },
+    "preferred_contract_size": { "type": ["string", "null"], "maxLength": 64 },
+    "preferred_role": {
+      "type": "string",
+      "enum": ["prime", "sub", "either"],
+      "default": "either"
+    }
+  }
+}

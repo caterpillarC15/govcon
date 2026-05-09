@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/agent-run.schema.json",
+  "title": "AgentRun",
+  "description": "PRD §8.7 — one capture run by the agent. `steps` is the trace, `opportunities` the resolved id list.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "goal",
+    "status",
+    "steps",
+    "opportunities",
+    "created_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "goal": { "type": "string", "minLength": 1 },
+    "company_profile_id": { "type": ["string", "null"], "format": "uuid" },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "running", "complete", "partial", "failed"]
+    },
+    "steps": {
+      "type": "array",
+      "description": "Append-only step log; each entry is a TraceEvent or skill-call summary used for replay/audit.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "opportunities": {
+      "type": "array",
+      "items": { "type": "string", "format": "uuid" }
+    },
+    "selected_opportunity_id": { "type": ["string", "null"], "format": "uuid" },
+    "action_package_id": { "type": ["string", "null"], "format": "uuid" },
+    "completed_at": { "type": ["string", "null"], "format": "date-time" },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

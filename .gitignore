@@ -1,6 +1,40 @@
-node_modules
-.DS_Store
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.eggs/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+.parcel-cache/
+
+# Env
 .env
 .env.*
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Local artifacts
+.playwright-mcp/
 *.log
 
+# NOTE: PDF fixtures live under /fixtures/<slug>/attachments/*.pdf and are CONTENT.
+# Do NOT add a global *.pdf ignore.

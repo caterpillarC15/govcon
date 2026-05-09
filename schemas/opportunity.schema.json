@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/opportunity.schema.json",
+  "title": "Opportunity",
+  "description": "PRD §8.2 — federal opportunity record (live SAM.gov, cached, or seeded fixture).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "agency",
+    "solicitation_number",
+    "attachments",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "title": { "type": "string", "minLength": 1 },
+    "agency": { "type": "string" },
+    "solicitation_number": { "type": "string" },
+    "source_url": { "type": ["string", "null"], "format": "uri" },
+    "due_date": { "type": ["string", "null"], "format": "date" },
+    "naics": { "type": ["string", "null"] },
+    "set_aside": { "type": ["string", "null"] },
+    "place_of_performance": { "type": ["string", "null"] },
+    "description": { "type": ["string", "null"] },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["filename"],
+        "properties": {
+          "filename": { "type": "string" },
+          "url": { "type": ["string", "null"] },
+          "local_path": { "type": ["string", "null"] },
+          "content_type": { "type": ["string", "null"] },
+          "bytes": { "type": ["integer", "null"] }
+        }
+      }
+    },
+    "raw_payload": {
+      "description": "Verbatim source record (e.g. SAM.gov API row) for audit/debug.",
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

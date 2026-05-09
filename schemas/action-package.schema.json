@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/action-package.schema.json",
+  "title": "ActionPackage",
+  "description": "PRD §8.6 + §10.3 — generate_action_package skill output.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "opportunity_id",
+    "company_profile_id",
+    "executive_summary",
+    "decision",
+    "fit_score",
+    "fit_rationale",
+    "compliance_matrix",
+    "risk_register",
+    "proposal_checklist",
+    "timeline",
+    "approval_required",
+    "created_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "opportunity_id": { "type": "string", "format": "uuid" },
+    "company_profile_id": { "type": "string", "format": "uuid" },
+    "executive_summary": { "type": "string" },
+    "decision": { "type": "string" },
+    "fit_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "fit_rationale": { "type": "string" },
+    "compliance_matrix": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requirement", "status"],
+        "properties": {
+          "requirement": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["met", "missing", "unclear", "not_applicable"]
+          },
+          "evidence": { "type": ["string", "null"] },
+          "next_action": { "type": ["string", "null"] },
+          "owner": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "risk_register": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["risk", "severity"],
+        "properties": {
+          "risk": { "type": "string" },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "major", "moderate", "minor"]
+          },
+          "explanation": { "type": ["string", "null"] },
+          "mitigation": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "proposal_checklist": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "timeline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["task"],
+        "properties": {
+          "date": { "type": ["string", "null"] },
+          "task": { "type": "string" },
+          "owner": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "partner_suggestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["partner_type", "gap_solved"],
+        "properties": {
+          "partner_type": { "type": "string" },
+          "gap_solved": { "type": "string" },
+          "why_needed": { "type": ["string", "null"] },
+          "outreach_angle": { "type": ["string", "null"] },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          }
+        }
+      }
+    },
+    "outreach_draft": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["subject", "body"],
+      "properties": {
+        "subject": { "type": "string" },
+        "body": { "type": "string" }
+      }
+    },
+    "approval_required": {
+      "type": "array",
+      "description": "Mirrors §10.3 human_approval_required — items requiring human gate before execution.",
+      "items": { "type": "string" }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}
