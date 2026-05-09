@@ -216,15 +216,102 @@ Net change: **A10 is dropped** (saves us a substantial integration), **A9 is ref
 
 ---
 
+## Research findings — confirmed via Context7 + Hermes docs (2026-05-09)
+
+Authoritative answers to several of the original open questions, from Context7's `/nousresearch/hermes-agent` index (15,217 snippets) and `hermes-agent.nousresearch.com/docs/`.
+
+### Skills are SKILL.md (markdown procedures), not Python modules
+
+Hermes "skills" are markdown documents with YAML frontmatter (name, description, version, tags, optional toolsets/platform gating). They contain `When to Use`, `Procedure`, `Pitfalls`, `Verification` sections that the agent reads on-demand via progressive disclosure. They follow the [agentskills.io](https://agentskills.io) open standard.
+
+**Our domain logic (parse_pdf, extract_requirements, score_fit, etc.) is Hermes "toolsets"** — Python tools with declared input/output, registered as callable from the agent's tool-calling loop. We MAY layer SKILL.md procedures on top — e.g., an `analyze_opportunity` SKILL.md telling the agent "fetch_attachment → parse_pdf → delegate to Compliance Officer; pitfalls: §11.1." Toolsets are primitives; skills are procedural memory.
+
+This corrects the earlier sketch in this doc. The build plan adjusts: A4–A8 + A11 produce **toolsets**, not "skills" in Hermes' sense.
+
+### `delegate_task` API (confirmed signatures)
+
+```python
+# Single subagent
+delegate_task(
+    goal="...",
+    role="leaf"|"orchestrator",  # default leaf; orchestrator allows nested delegation
+    toolsets=[...],              # restricted toolset for the child
+    context="...",               # rich context payload
+)
+
+# Parallel — fan-out primitive
+delegate_task(tasks=[
+    {"goal": "...", "toolsets": [...], "role": "...", "context": "..."},
+    {...},
+])
+```
+
+`~/.hermes/config.yaml`:
+
+```yaml
+delegation:
+  max_concurrent_children: 3       # default
+  max_spawn_depth: 2               # REQUIRED for our depth-2 chain
+  orchestrator_enabled: true       # global kill switch (must be true)
+  max_iterations: 50
+  # model / provider override available at delegation level
+```
+
+**`max_spawn_depth: 2` is mandatory** for our 5-agent design (Capture Lead → Capture Analyst → Specialist).
+
+### Personality: SOUL.md + HERMES.md/AGENTS.md + /personality
+
+Project-context priority (Hermes walks cwd → git root, first match wins):
+
+```
+.hermes.md  >  HERMES.md  >  AGENTS.md  >  CLAUDE.md  >  .cursorrules
+```
+
+`SOUL.md` (in `HERMES_HOME`) is the persona file, layered on top of project context. `/personality [name]` swaps presets per session.
+
+We've placed `HERMES.md` at the **repo root** as the project-wide context loaded by every agent — it carries the §11.1 rule, evidence-binding requirement, approval-gate requirement, no-fabrication rule, and the toolset map. The team-doc `tasks/HERMES.md` (this file) sits one level deep, so Hermes' git-root walk does NOT pick it up — no conflict between team doc and runtime config.
+
+Per-agent personality is encoded in:
+1. `dev1-backend/prompts/agent_*.md` — per-role role/voice, becomes the `goal` + `context` strings in `delegate_task`.
+2. The repo-root `HERMES.md` for shared rules.
+3. (Optional, post-MVP) `SOUL.md` fragments swapped via `/personality` for per-personality demos.
+
+### Memory
+
+`MEMORY.md`, `USER.md` files in `HERMES_HOME`. Commands: `/compress`, `/usage`, `/insights [--days N]`, `hermes memory clear`. v1: per-run only; clear between dev runs.
+
+### Subagent role gating (confirmed)
+
+- `role="leaf"` (default) — child cannot call `delegate_task`. Pure worker.
+- `role="orchestrator"` — child retains `delegate_task`; can spawn its own children. Bounded by `max_spawn_depth` and `delegation.orchestrator_enabled`.
+
+Our design: Capture Lead (orchestrator, depth 0) → Capture Analyst (orchestrator, depth 1) → 3 specialists (leaves, depth 2).
+
+---
+
+## Sources
+
+- [Hermes Agent — official docs](https://hermes-agent.nousresearch.com/docs/)
+- [Hermes Agent — GitHub](https://github.com/NousResearch/hermes-agent)
+- [Delegation feature docs](https://github.com/nousresearch/hermes-agent/blob/main/website/docs/user-guide/features/delegation.md)
+- [Skills feature docs](https://github.com/nousresearch/hermes-agent/blob/main/website/docs/user-guide/features/skills.md)
+- [Configuration docs](https://github.com/nousresearch/hermes-agent/blob/main/website/docs/user-guide/configuration.md)
+- [Prompt assembly source (project-context priority)](https://github.com/nousresearch/hermes-agent/blob/main/website/docs/developer-guide/prompt-assembly.md)
+- [Skills Hub](https://hermes-agent.nousresearch.com/docs/skills/)
+- Context7: `/nousresearch/hermes-agent`
+
+---
+
 ## Open questions
 
-These need resolution during P0 update or first Hermes-integration spike:
+Still unresolved; need a 30-minute Hermes-CLI / SDK exploration during the A9 spike:
 
-1. **Hermes API surface for programmatic invocation.** Is there a stable Python SDK or RPC, or do we shell out to the `hermes` CLI? This affects the FastAPI bridge implementation.
-2. **Hermes trace format.** What event types does Hermes emit during a run? We need to map every kind we care about.
-3. **Hermes skill schemas.** Does Hermes enforce skill input/output schemas, or does each skill do its own Pydantic validation? Affects A4–A8 implementation.
-4. **Hermes execution backend on VX1.** Local subprocess is simplest. Docker backend is cleanest. Pick one for A13.
-5. **Hermes memory + our Postgres.** Hermes has its own memory layer. Our Postgres holds domain data. Confirm there's no double-storage of, e.g., extracted requirements.
-6. **Cost tracking.** Hermes is model-agnostic — does it surface per-call token counts so our budget tracker works? If not, we wrap LLM calls inside skills and track ourselves.
+1. **Programmatic invocation.** Stable Python SDK, gRPC, or shell-out to `hermes` CLI? Affects the FastAPI → Hermes bridge.
+2. **Trace event format.** Does Hermes emit per-subagent lifecycle events natively to stdout/JSON, or do we instrument the delegate_task wrapper?
+3. **Toolset registration mechanism.** Where does our Python toolset code live and how does Hermes load it? Is there a plugin system, or do we vendor toolsets into Hermes' `~/.hermes/skills/` per their convention?
+4. **Hermes execution backend on VX1.** Local subprocess simplest; Docker cleanest; Modal possible. Decide for A13.
+5. **Hermes memory + our Postgres.** Confirm no double-storage of domain data (Hermes memory is for agent recall; Postgres is for domain entities).
+6. **Cost tracking.** Does Hermes surface per-call token counts? If not, our toolsets compute cost_usd from the LLM client's usage data and Hermes' bridge sums it.
+7. **Per-subagent model override.** Compliance Officer with Sonnet, Risk Analyst with Haiku — confirmed possible via `delegation.model` per CONFIG, but is it per-call or per-config-block? Affects fine-grained cost optimization.
 
-These are P0 follow-ups, logged in `STANDUP.md` after the update. Don't block other work on them.
+These are A9 spike items, logged in `dev1-backend/STANDUP.md`. Don't block other work on them.
