@@ -12,9 +12,10 @@ How to keep two devs from stepping on each other. File ownership, shared-file pr
 |------|-------|
 | `/api/**` (except `/api/schemas/` generated files) | Track A |
 | `/api/skills/**` | Track A |
+| `/api/storage.py` (Supabase Storage wrapper, PRD v1.2.3) | Track A |
 | `/infra/**` | Track A |
 | `/eval/runner/**`, `/eval/Makefile.eval` | Track A |
-| `docker-compose.yaml`, `Makefile` (top-level) | Track A |
+| `Makefile` (top-level) | Track A |
 | `/web/**` (except `/web/lib/schemas/` generated files) | Track B |
 | `/fixtures/<slug>/opportunity.json` | Track B |
 | `/fixtures/<slug>/attachments/*.pdf` | Track B |
@@ -118,7 +119,7 @@ Concrete things that have killed past parallel hackathon teams. Each has a mitig
 | Schemas drift mid-build | P0.2 codegen pipeline; no hand-edits |
 | B builds against assumed event shape | P0.3 freezes shape; example JSONL committed |
 | Fixture written to a not-yet-existent schema | Schema PRs merge before fixture PRs depending on them |
-| Both devs editing `docker-compose.yaml` | Single owner (A) |
+| Both devs editing `/infra/**` (bootstrap, systemd, nginx) | Single owner (A) |
 | LLM cost runaway during dev | `LLM_DEV_MODEL=claude-haiku-4-5-20251001` default; Sonnet only on tagged tests |
 | Hermes runtime issues block demo | Demo defaults to seeded path (`DEMO_USE_SEEDED_ONLY=true`); pre-cached run in `/web/public/demo/` is the ultimate fallback |
 | Fixture PDFs mis-author so parser fails | A and B jointly draft fixture-PDF guidelines in P0.4; A reviews each fixture PR |

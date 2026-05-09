@@ -15,7 +15,7 @@ We are using **[hermes-agent](https://github.com/nousresearch/hermes-agent)** fr
 | Cron / scheduling | ✓ | Useful for nightly opportunity refresh (post-MVP) |
 | Multi-channel gateway (Slack, Discord, Telegram, etc.) | ✓ | Optional. Use only when it helps the customer workflow. |
 | Model agnosticism (Claude, OpenRouter, OpenAI, local) | ✓ | Switch via `hermes model` command — no code changes |
-| Multiple execution backends (local, Docker, SSH, Modal, Vercel Sandbox) | ✓ | We default to local on VX1 |
+| Multiple execution backends (local, Docker, SSH, Modal, Vercel Sandbox) | ✓ | We use **local subprocess only** on VX1 — no Docker anywhere in the stack (2026-05-09 decision) |
 
 ## What we still build
 
@@ -68,9 +68,11 @@ curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scri
 hermes model    # configure model — set to claude-sonnet-4-6 by default
 ```
 
-Hermes requires Python 3.11+ and `uv`. Both are available on Ubuntu 24.04 LTS.
+Hermes requires Python 3.11+ and `uv`. Both are available on Ubuntu 24.04 LTS and via Homebrew on macOS.
 
-For Docker-compose dev, run Hermes inside the `api` container or as a sidecar. Either way, Hermes is invoked from FastAPI as a subprocess or via Hermes' RPC interface (depending on what's stable in the version we ship).
+Hermes runs natively on the same host as FastAPI (no Docker). On macOS dev boxes it's installed via the Hermes installer script into `~/.local/bin`; on the VX1 it's installed by `infra/bootstrap.sh` into `/home/govcapture/.local/bin`. FastAPI invokes Hermes as a subprocess (or via Hermes' Python SDK if stable in the version we ship); both processes share the same OS user (`govcapture` in prod) so `HERMES_HOME` (Hermes' state, memory, skills) works without container volume gymnastics.
+
+Per PRD v1.2.3, the original `/var/lib/govcapture/{raw,parsed}` filesystem layout is gone — solicitation PDFs and parsed text live in Supabase Storage now (`api/storage.py`). The `fetch_attachment` and `parse_pdf` toolsets that Hermes calls download to `/tmp` first, parse, then upload the parsed JSON back to the bucket. Hermes itself only needs `HERMES_HOME` on local disk for its own state.
 
 ---
 
@@ -173,7 +175,7 @@ The Dev 1 task list shifts. Update `dev1-backend/README.md` with this revised or
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| A1 | FastAPI skeleton + docker-compose + Hermes install | Same | Add Hermes to the `api` container or sidecar |
+| A1 | FastAPI skeleton + native Postgres/Redis + Hermes install | Same | Brew/apt for services; Hermes installed per-host |
 | A2 | DB schema + migrations | Same | Domain tables only; Hermes manages its own memory |
 | A3 | CRUD endpoints + SSE proxy | Same | SSE proxies the Hermes trace bridge |
 | A4 | `parse_pdf` skill | Slight rename: skill not tool |
@@ -309,7 +311,7 @@ Still unresolved; need a 30-minute Hermes-CLI / SDK exploration during the A9 sp
 1. **Programmatic invocation.** Stable Python SDK, gRPC, or shell-out to `hermes` CLI? Affects the FastAPI → Hermes bridge.
 2. **Trace event format.** Does Hermes emit per-subagent lifecycle events natively to stdout/JSON, or do we instrument the delegate_task wrapper?
 3. **Toolset registration mechanism.** Where does our Python toolset code live and how does Hermes load it? Is there a plugin system, or do we vendor toolsets into Hermes' `~/.hermes/skills/` per their convention?
-4. **Hermes execution backend on VX1.** Local subprocess simplest; Docker cleanest; Modal possible. Decide for A13.
+4. ~~Hermes execution backend on VX1.~~ **Resolved 2026-05-09:** local subprocess. The VX1 has no Docker daemon; Hermes runs as a child process of `govcon-api.service`. Modal/SSH backends remain available in Hermes config but are unused in v1.
 5. **Hermes memory + our Postgres.** Confirm no double-storage of domain data (Hermes memory is for agent recall; Postgres is for domain entities).
 6. **Cost tracking.** Does Hermes surface per-call token counts? If not, our toolsets compute cost_usd from the LLM client's usage data and Hermes' bridge sums it.
 7. **Per-subagent model override.** Compliance Officer with Sonnet, Risk Analyst with Haiku — confirmed possible via `delegation.model` per CONFIG, but is it per-call or per-config-block? Affects fine-grained cost optimization.

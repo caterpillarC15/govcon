@@ -6,23 +6,25 @@ help:
 dev: ## Run the FastAPI app with --reload (assumes services up)
 	uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
-services-up: ## Start native Postgres + Redis (idempotent; brew on macOS, systemctl on Linux)
+services-up: ## Start Redis (PRD v1.2.3 — Postgres is Supabase). Pass PG=1 to also start a local Postgres dev fallback.
 	@if command -v brew >/dev/null 2>&1; then \
-	  brew services start postgresql@16; \
 	  brew services start redis; \
+	  [ "$(PG)" = "1" ] && brew services start postgresql@16 || true; \
 	else \
-	  sudo systemctl start postgresql redis-server; \
+	  sudo systemctl start redis-server; \
+	  [ "$(PG)" = "1" ] && sudo systemctl start postgresql || true; \
 	fi
 
-services-down: ## Stop native Postgres + Redis
+services-down: ## Stop Redis (and local Postgres dev fallback if started with PG=1).
 	@if command -v brew >/dev/null 2>&1; then \
-	  brew services stop postgresql@16; \
 	  brew services stop redis; \
+	  brew services stop postgresql@16 2>/dev/null || true; \
 	else \
-	  sudo systemctl stop postgresql redis-server; \
+	  sudo systemctl stop redis-server; \
+	  sudo systemctl stop postgresql 2>/dev/null || true; \
 	fi
 
-logs: ## Tail Postgres logs (Redis is usually quiet)
+logs: ## Tail local Postgres logs (only useful when running PG=1 fallback; Supabase logs live in the dashboard).
 	@if command -v brew >/dev/null 2>&1; then \
 	  tail -F "$$(brew --prefix)/var/log/postgresql@16.log"; \
 	else \
