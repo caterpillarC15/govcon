@@ -75,3 +75,16 @@ class OpportunityRepository:
         await self.session.commit()
         await self.session.refresh(row)
         return row
+
+    async def get_by_slug(self, slug: str) -> Opportunity | None:
+        result = await self.session.execute(
+            select(Opportunity).where(Opportunity.slug == slug).limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    async def create(self, data: dict[str, Any]) -> Opportunity:
+        opp = Opportunity(**data)
+        self.session.add(opp)
+        await self.session.commit()
+        await self.session.refresh(opp)
+        return opp
