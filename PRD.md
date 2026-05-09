@@ -3,10 +3,22 @@
 ## Product Requirements Document
 
 **Product name:** GovCapture Agent
-**Document status:** MVP PRD v1.1
+**Document status:** MVP PRD v1.2
 **Primary track:** Agents Track
 **Primary objective:** Build an autonomous AI capture agent that turns a small business profile and government contracting goal into a useful federal opportunity analysis package by searching opportunities, parsing solicitation documents, extracting requirements, scoring fit, detecting blockers, and producing actionable next steps with human approval gates.
 
+> **Changelog v1.2 → v1.2.1**
+> - Added §7.6 Deployment Target — locks in Vultr VX1 (16 vCPU / 64 GB RAM / 960 GB NVMe / Ubuntu 24.04 LTS) as the single-box MVP host with a concrete service allocation table, sizing notes, and operational hygiene checklist.
+>
+> **Changelog v1.1 → v1.2**
+> - Added §4.5 Agent Architecture (planner, tool registry, decision policy, error recovery, observability) — makes the agent loop explicit instead of an implicit pipeline. This is what the Agents Track judges look for.
+> - Tightened §5.4 with named demo fixtures (strong-pursue / maybe / reject) so the rubric is visibly exercised in demos.
+> - Sharpened §7.3 to make explicit which tools OpenClaw owns (browser-bound) vs. which FastAPI owns (deterministic local).
+> - Added §11.1 Eligibility conservatism rule — eligibility mismatch is always a critical blocker, never a soft penalty.
+> - Added §13.1 Demo Script — 3-minute live narrative for hackathon judging.
+> - Added §17 Q9 — hackathon track selection: Agents Track primary, optional Texas Open Data layer (TX place-of-performance + Austin/SA/Houston/Dallas open data adapter).
+> - Added §19 Evaluation Harness — fixture-based assertions to prevent prompt/tool regressions and serve as a pre-demo smoke test.
+>
 > **Changelog v1.0 → v1.1**
 > - Fixed corrupted text in §2 ("compliance requihe valuable" → "compliance requirements").
 > - Fixed typos: "caanalysis", "complet", "le" (risk Title field).
@@ -102,6 +114,71 @@ The MVP supports one complete capture run.
 10. Agent ranks opportunities.
 11. Agent generates an action package for relevant opportunity.
 12. Agent shows human approval gates for sensitive actions.
+
+---
+
+## 4.5 Agent Architecture
+
+GovCapture Agent is an *agent*, not a hardcoded pipeline. The §4 user flow is what the agent typically does on a clean run; the architecture below is how it actually decides, recovers, and stays bounded. This section is what makes the project an Agents Track submission rather than a workflow with LLM calls in it.
+
+### Planner loop
+
+A planner LLM receives, on every step:
+
+* The company profile
+* The contracting goal
+* The tool registry (with input/output schemas, cost hint, latency hint)
+* The current run state (steps completed, outputs so far, errors encountered, remaining budget)
+
+The planner emits one of: a tool call, `done`, or `needs_human`. After each tool call returns, the planner re-evaluates state and chooses the next action. The loop is bounded by:
+
+* Max steps per run (default 40)
+* Max wall-clock per run (default 6 minutes)
+* Max LLM cost per run (default $0.50, see §17 Q1)
+
+The planner's one-sentence rationale for each decision is logged to the agent run trace.
+
+### Tool registry
+
+Each tool has a JSON-schema input and output, validated before invocation and after return. Invalid I/O triggers the recovery path below.
+
+| Tool | Owner | Purpose |
+|------|-------|---------|
+| `search_sam_opportunities` | FastAPI | Query SAM.gov v2 search API by keywords/NAICS/set-aside/place-of-performance |
+| `load_seeded_opportunities` | FastAPI | Load hand-curated fixture set (demo-stable fallback, see §5.4) |
+| `fetch_attachment` | OpenClaw | Download a solicitation attachment (handles portals that require session/cookies) |
+| `verify_source_page` | OpenClaw | Visit a SAM.gov opportunity page to confirm metadata that the API returned partial |
+| `parse_pdf` | FastAPI | Extract page-level text + metadata from a PDF (returns chunks with page numbers) |
+| `extract_requirements` | AI layer | Run requirement-extraction prompt over parsed chunks; returns structured requirements with evidence |
+| `score_fit` | AI layer + FastAPI | Apply §5.7 rubric against company profile; returns score + breakdown + blockers |
+| `detect_risks` | AI layer | Apply §5.8 categories; returns risk flags with severity |
+| `generate_action_package` | AI layer | Synthesize §5.11 package from extracted requirements + score + risks |
+| `request_human_review` | FastAPI | Halt and surface a question to the user when confidence is below threshold |
+
+OpenClaw owns browser-bound tools because portal interaction, cookie handling, and source-page verification benefit from its skills/automation runtime. FastAPI owns deterministic local tools (PDF parsing, scoring math, schema validation) because they need to be fast and testable. The AI layer owns LLM-backed tools and runs all structured outputs through schema validation before returning to the planner.
+
+### Decision policy
+
+* **Tool selection.** Planner picks the cheapest tool that advances the goal. For opportunity loading, prefer cached → seeded → live (§5.4 fallback hierarchy is a planner preference, not a hardcoded order).
+* **Confidence gating.** If `extract_requirements` returns more than 30% `low`/`unknown` confidence on a document, the planner re-runs with smaller chunks before continuing to scoring.
+* **Eligibility short-circuit.** If any extracted requirement flags a hard eligibility mismatch (set-aside, clearance, citizenship), the planner skips deep scoring and emits `reject` with the blocker as the reason. See §11.1.
+* **Budget awareness.** Planner tracks remaining step/time/cost budget and degrades gracefully — e.g., score the top-3 ranked opportunities deeply, summarize the remainder.
+* **Human-in-the-loop.** When confidence is low across the board or a sensitive action is required, the planner emits `needs_human` and pauses the run rather than guessing.
+
+### Error recovery
+
+| Failure | Recovery |
+|---------|----------|
+| SAM.gov 429 / 5xx | Fall back to cached → seeded; mark step `degraded` in timeline |
+| PDF unparseable (image-only, encrypted) | Mark document `unparseable`; surface to user; continue with available text |
+| Attachment fetch fails | Retry once with backoff via OpenClaw; then mark missing and continue |
+| LLM returns invalid JSON | Retry with stricter prompt + schema reminder; on second failure, mark step `failed` and continue with degraded output |
+| Extraction confidence collapse (all `low`/`unknown`) | Re-chunk smaller; if still bad, escalate to `request_human_review` |
+| Planner exceeds step / time / cost budget | Summarize progress, emit partial action package, flag incompleteness in the timeline |
+
+### Observability
+
+Every tool call is logged to the agent run with: tool name, input, output (or error), latency, token cost, and the planner's one-sentence rationale. The §5.3 timeline UI is a projection of this trace. Users can expand any timeline step to see the underlying tool I/O — this is required for trust and is part of what makes the agent's behavior verifiable rather than magical.
 
 ---
 
@@ -209,6 +286,18 @@ The MVP uses a fallback hierarchy for reliability during demos:
 4. **User-uploaded solicitation documents** (founder-led onboarding override)
 
 > Note: SAM.gov's `opportunities/v2/search` API requires a registered API key and enforces per-key rate limits. Seeded fixtures are mandatory for demo reliability and offline development.
+
+### Seeded fixture set (MVP demo)
+
+Three hand-curated fixtures cover the decision spectrum so demos visibly exercise the §5.7 rubric and §5.8 risk detection:
+
+1. **Strong-pursue fixture.** Small-business set-aside, NAICS aligned with the demo company, deadline 30+ days out, clear technical scope, no clearance required. Should land in the 85–100 band.
+2. **Maybe / needs-partner fixture.** Relevant scope, but past-performance threshold or specialized capability the demo company can't meet alone — should surface a partner suggestion via §5.12. Should land in the 55–69 band.
+3. **Reject fixture.** Hard blocker (e.g., requires Secret clearance, or 8(a) set-aside the demo company doesn't qualify for) — should short-circuit per §11.1 with a critical blocker before deep scoring. Should land in the 0–54 band with `reject`.
+
+A fourth **adversarial fixture** (image-only PDF) exercises the recovery path in §4.5 and is used by the §19 eval harness.
+
+Each fixture is a real or realistic SAM.gov-style record with at least one attached PDF solicitation. Fixtures are checked into the repo and versioned alongside the prompts that consume them.
 
 Each opportunity should include:
 
@@ -647,15 +736,23 @@ OpenClaw
 Playwright
 ```
 
+OpenClaw (openclaw.ai) is an open-source local AI assistant with a skills/tools runtime, browser control, and bounded shell/file access. We use it as the execution layer for browser-bound agent tools; FastAPI handles deterministic local tools (PDF parsing, scoring, schema validation, persistence).
+
 OpenClaw responsibilities:
 
-* Controlled browser/tool execution
-* Opportunity page inspection if needed
-* Attachment retrieval if needed
-* Source page verification
-* Tool action logging
+* Controlled browser/tool execution for the tools registered in §4.5
+* Opportunity page inspection when SAM.gov API metadata is incomplete
+* Attachment retrieval, including from portals that need session/cookies
+* Source page verification (confirm a deadline or set-aside on the live page)
+* Tool action logging back to the agent run trace
 
-The backend owns state. OpenClaw performs bounded tool actions.
+FastAPI responsibilities (delegated from §7.2 for clarity):
+
+* Agent run state, tool registry, planner orchestration
+* Deterministic tools: `parse_pdf`, `score_fit` math, schema validators
+* Persistence and API surface
+
+The backend owns state. OpenClaw performs bounded tool actions and reports results back into the agent trace.
 
 ---
 
@@ -693,6 +790,48 @@ Redis/RQ optional for background jobs
 ```
 
 For MVP speed, a seeded JSON dataset is acceptable for opportunity and package data as long as the product still performs a real analysis workflow.
+
+---
+
+## 7.6 Deployment Target
+
+The MVP runs on a single Vultr **VX1** general-purpose VPS:
+
+```txt
+Vultr VX1 — General Purpose
+16 vCPU / 64 GB RAM
+960 GB NVMe
+Ubuntu 24.04 LTS
+```
+
+This is sized to host the entire stack on one box without external object storage or managed databases for MVP. Allocation:
+
+| Service | Role | Notes |
+|---------|------|-------|
+| Next.js (built, served by Node or behind nginx) | Frontend | Could also be deployed to Vercel; keep both options open |
+| FastAPI (uvicorn + gunicorn workers) | Backend / agent orchestration | 4–8 workers; scale with vCPU |
+| PostgreSQL 16 | Structured data (§8) | Local volume on NVMe; pg_dump backups to `/var/backups` |
+| Redis | Background jobs, planner state cache | Single instance, persistence on |
+| OpenClaw runtime | Browser-bound agent tools (§7.3) | Headless Chromium via Playwright; `--no-sandbox` only inside its container |
+| nginx | TLS termination + reverse proxy | Let's Encrypt via certbot |
+| Docker + docker compose | Orchestration | Single `compose.yaml` checked into infra repo |
+| Local NVMe filesystem | PDF + parsed-text storage for MVP | `/var/lib/govcapture/{raw,parsed}`; R2/Supabase Storage is post-MVP |
+
+### Sizing notes
+
+* 16 vCPU comfortably handles parallel PDF parsing and concurrent agent runs; planner concurrency budget can run multiple opportunities in parallel rather than strictly sequentially.
+* 64 GB RAM leaves room for Postgres shared buffers, Redis, headless Chromium instances, and FastAPI workers without swap.
+* 960 GB NVMe is large enough to retain raw solicitations, parsed text, and fixture PDFs for the §17 Q6 30-day retention window with significant margin.
+
+### Operational hygiene
+
+* Provision via a one-shot bootstrap script (`infra/bootstrap.sh`) so the box is reproducible.
+* Firewall: ufw allow 22/tcp, 80/tcp, 443/tcp; deny everything else.
+* Unattended security upgrades enabled; OpenClaw and Playwright run as a non-root user.
+* Daily Postgres dump + parsed-document tarball to a separate location (Vultr object storage or off-box rsync) — recoverable if the VPS is lost.
+* Health check endpoint (`/healthz`) for the agent run service so the demo is monitorable.
+
+This deployment target supersedes the generic "Vultr VPS" reference in §7.2.
 
 ---
 
@@ -1007,6 +1146,28 @@ The model must:
 
 ---
 
+## 11.1 Eligibility Conservatism Rule
+
+Eligibility hallucination is the highest user-harm failure mode (telling a non-eligible company to pursue a set-aside they cannot win). The fit-scoring prompt and the planner's eligibility short-circuit (§4.5) MUST follow these rules:
+
+* If eligibility is uncertain, score the eligibility dimension **0** (not partial credit) and emit a critical blocker.
+* Set-aside mismatches (8(a), HUBZone, WOSB, EDWOSB, SDVOSB, VOSB, etc.) where the company has not declared the matching certification → **always** critical blocker, never soft penalty.
+* Clearance requirements not held by the company → **always** critical blocker.
+* Foreign-ownership or citizenship requirements → critical blocker if unclear.
+* Any critical eligibility blocker forces `decision = reject`, regardless of capability/NAICS strengths. The planner MUST NOT weigh strengths against hard eligibility blockers.
+
+Example (correct):
+
+> Solicitation requires 8(a) certification. Company profile lists no 8(a). → eligibility score 0, critical blocker, decision = reject.
+
+Example (forbidden, MUST NOT produce):
+
+> Solicitation requires 8(a). Capability match strong → score 72, decision = pursue with note about 8(a).
+
+This rule is enforced by the §19 eval harness against the reject fixture.
+
+---
+
 # 12. Build Plan
 
 ## Phase 1: Foundation
@@ -1141,6 +1302,34 @@ The MVP is not acceptable if:
 
 ---
 
+## 13.1 Demo Script
+
+A 3-minute live demo for hackathon judging. The demo runs against the §5.4 seeded fixtures so SAM.gov rate limits or network issues cannot break the pitch.
+
+**0:00 – 0:30 — Problem framing.** "Small businesses leave billions in federal contracts on the table because qualifying an opportunity takes hours of PDF reading, eligibility-checking, and compliance-matrix building. We built an autonomous capture analyst that does the first-pass work in minutes."
+
+**0:30 – 1:00 — Setup.** Show a real small-business profile (e.g., a Texas-based cybersecurity firm, 12 employees, no 8(a), CMMC Level 2, SAM-registered). Enter the goal: *"Find cybersecurity opportunities we can pursue in the next 60 days."*
+
+**1:00 – 2:00 — Live agent run.** The §5.3 timeline updates in real time, projected from the §4.5 agent trace. Highlight on stage:
+
+* Tool calls visible as they happen (`search_sam_opportunities` → `fetch_attachment` → `parse_pdf` → `extract_requirements` → `score_fit` → `detect_risks` → `generate_action_package`).
+* Evidence snippets linked to specific PDF pages — click one, the source PDF opens at the cited page.
+* Three opportunities returned:
+  * **Strong-pursue** (fixture 1) — 88/100 with rationale and concrete next actions.
+  * **Maybe — needs partner** (fixture 2) — 64/100 with a partner-type suggestion (§5.12) explaining the gap.
+  * **Reject** (fixture 3) — short-circuited at eligibility (§11.1) with the blocker evidence-cited from page X of the solicitation.
+
+**2:00 – 2:30 — Output.** Open the action package (§5.11) on the strong-pursue opportunity. Show executive brief, compliance matrix, risk register, proposal checklist with deadlines, draft outreach message, and the human-approval block.
+
+**2:30 – 3:00 — Close.** "Every claim has source evidence. Every sensitive action requires human approval. The agent picks tools, recovers from failures, stays within a $0.50 cost budget per run, and produces output a small business owner can verify and act on. This is the first-pass capture analyst small businesses can't afford to hire."
+
+### Backup demo paths
+
+* If a tool call fails live, the timeline shows the §4.5 recovery (degraded → seeded fallback). This is a feature, not an embarrassment — call it out.
+* If wall-clock budget runs short, switch directly to a pre-cached completed run on the same fixtures and walk the action package.
+
+---
+
 # 14. Product Success Metrics
 
 ## Early user validation metrics
@@ -1227,6 +1416,7 @@ These are unresolved decisions to track during build. None block Phase 1, but ea
 | 6 | How long is parsed document text retained? | Phase 3 | 30 days, then purge raw text; keep extracted requirements. |
 | 7 | What happens when fit score is borderline (e.g., 54 vs. 55)? | Phase 4 | Display score with confidence band; do not treat boundary as binary. |
 | 8 | Do we need amendment-detection (solicitation modifications)? | Phase 3 | Out of scope for MVP; document as known limitation. |
+| 9 | Hackathon track selection — Agents Track only, or also layer Texas Open Data? | Phase 6 | **Agents Track is primary.** Optional stretch: ship a TX place-of-performance filter and an adapter for `data.austintexas.gov` / `data.sanantonio.gov` / `data.houstontx.gov` / `dallasopendata.com` to surface state and local procurement alongside federal SAM opportunities. Adds a Texas relevance signal for AITX judges without diluting the Agents Track submission. |
 
 ## Top product risks
 
@@ -1250,3 +1440,42 @@ MVP commitments:
 * No PII beyond user email and company-volunteered profile data is collected.
 
 Out of scope for MVP: SOC 2, FedRAMP, ITAR handling, encrypted-at-rest guarantees beyond cloud provider defaults.
+
+---
+
+# 19. Evaluation Harness
+
+A minimal eval suite ensures changes to prompts, tool implementations, or model versions do not regress demo quality. It is also the pre-demo smoke test.
+
+## Fixtures
+
+The three §5.4 demo fixtures (strong-pursue / maybe / reject) plus the adversarial image-only-PDF fixture form the eval set. Fixtures live in the repo and are versioned. Each fixture includes:
+
+* The opportunity record (SAM.gov-style JSON)
+* The attached solicitation PDF(s)
+* Expected requirement extractions (golden output for ≥80% of titles, exact match on `due_date`, `naics`, `set_aside`)
+* Expected fit-score decision band
+* Expected critical blockers
+* Expected partner-suggestion presence (for the maybe fixture)
+
+## Assertions per fixture
+
+* Requirement extraction recovers expected `due_date`, `naics`, `set_aside` exactly, and ≥80% of expected requirement titles.
+* Every requirement with confidence ≥ `medium` has a non-empty `evidence_snippet` and a valid `page_number`.
+* Fit-score decision lands in the expected band (strong_pursue / maybe / reject).
+* Critical blockers expected by the fixture are present in the risk register; **§11.1 reject-fixture short-circuit is asserted explicitly** (eligibility score = 0, decision = reject, regardless of capability strengths).
+* Action package contains every §5.11 section (no missing sections, no empty required fields).
+* Total run cost ≤ §17 Q1 ceiling; total wall-clock ≤ §4.5 budget.
+
+## Run
+
+* `make eval` runs the suite locally against the seeded fixtures with no live SAM.gov calls.
+* Output: pass/fail summary plus a JSON diff of any drift from golden.
+* Run before any prompt or tool change ships. Run as a pre-demo smoke test.
+
+## Adversarial cases (stretch)
+
+* Solicitation with **conflicting set-aside language** across attachments → conflict surfaced in the §10.1 `conflicts` array, `requires_human_review = true`.
+* Solicitation with **deadline already passed** → decision = reject, blocker = "deadline passed."
+* Profile **missing SAM registration** → critical blocker on every opportunity until registration is recorded.
+* **Image-only PDF** (the adversarial fixture) → document marked `unparseable`, run continues with available metadata, planner emits `needs_human` if no other documents are usable.
