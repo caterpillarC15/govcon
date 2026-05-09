@@ -79,7 +79,7 @@ async def create_fit_score(
     opp = await repo.get(opportunity_id)
     if opp is None:
         raise HTTPException(404, "Opportunity not found")
-    row = await repo.create_fit_score(opportunity_id, payload.model_dump())
+    row = await repo.create_fit_score(opportunity_id, payload.model_dump(exclude_none=True))
     return FitScore.model_validate(row, from_attributes=True)
 
 

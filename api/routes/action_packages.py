@@ -27,7 +27,7 @@ async def create_action_package(
     profile = await profile_repo.get(payload.company_profile_id)
     if profile is None:
         raise HTTPException(404, "Company profile not found")
-    row = await repo.create(payload.model_dump())
+    row = await repo.create(payload.model_dump(exclude_none=True))
     return ActionPackage.model_validate(row, from_attributes=True)
 
 

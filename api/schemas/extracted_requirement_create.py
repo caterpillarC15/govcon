@@ -36,4 +36,4 @@ class ExtractedRequirementCreate(BaseModel):
     evidence_snippet: str | None = None
     source_document: str | None = None
     page_number: int | None = Field(None, ge=1)
-    is_blocker: bool | None = False
+    is_blocker: bool = False

@@ -35,4 +35,4 @@ class RiskFlagCreate(BaseModel):
     description: str
     evidence: str | None = None
     mitigation: str | None = None
-    requires_human_review: bool | None = False
+    requires_human_review: bool = False
