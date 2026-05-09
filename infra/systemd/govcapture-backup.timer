@@ -1,0 +1,12 @@
+[Unit]
+Description=Run GovCapture backup daily at 03:30 local
+Documentation=PRD §7.6
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=300
+Unit=govcapture-backup.service
+
+[Install]
+WantedBy=timers.target

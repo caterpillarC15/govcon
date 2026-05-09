@@ -1,0 +1,53 @@
+[Unit]
+Description=GovCapture FastAPI (gunicorn + UvicornWorker)
+Documentation=https://github.com/caterpillarC15/govcon
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=govcapture
+Group=govcapture
+WorkingDirectory=/opt/govcapture
+EnvironmentFile=/opt/govcapture/.env
+# uv is installed under ~govcapture/.local/bin (see bootstrap.sh).
+Environment=PATH=/home/govcapture/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# 4–8 workers per PRD §7.6 ("scale with vCPU"). Start at 4 on the VX1; bump if needed.
+ExecStart=/home/govcapture/.local/bin/uv run gunicorn api.main:app \
+  --worker-class uvicorn.workers.UvicornWorker \
+  --workers 4 \
+  --bind 127.0.0.1:8000 \
+  --timeout 120 \
+  --graceful-timeout 30 \
+  --max-requests 1000 \
+  --max-requests-jitter 100 \
+  --access-logfile - \
+  --error-logfile -
+
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Hardening — non-root, restricted filesystem, no privilege escalation.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/govcapture /opt/govcapture
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+RestrictRealtime=true
+
+# stdout/stderr → journal
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=govcapture-api
+
+[Install]
+WantedBy=multi-user.target
