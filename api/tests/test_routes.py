@@ -578,6 +578,46 @@ async def test_post_action_package_201(client, db_session) -> None:
         await db_session.commit()
 
 
+async def test_post_action_package_omit_optional_fields(client, db_session) -> None:
+    """POST /action-packages succeeds even when partner_suggestions + outreach_draft are omitted."""
+    profile_row = CompanyProfileModel(id=uuid.uuid4(), name="APMin Co", preferred_role="either")
+    opp_row = OpportunityModel(
+        id=uuid.uuid4(),
+        title="AP MIN RFP",
+        agency="Agency E",
+        solicitation_number="AP-MIN-001",
+        attachments=[],
+    )
+    db_session.add_all([profile_row, opp_row])
+    await db_session.commit()
+
+    # No partner_suggestions or outreach_draft in payload
+    payload = {
+        "opportunity_id": str(opp_row.id),
+        "company_profile_id": str(profile_row.id),
+        "executive_summary": "Minimal payload.",
+        "decision": "maybe",
+        "fit_score": 55,
+        "fit_rationale": "Partial match.",
+        "compliance_matrix": [],
+        "risk_register": [],
+        "proposal_checklist": [],
+        "timeline": [],
+        "approval_required": [],
+    }
+    try:
+        r = await client.post("/action-packages", json=payload)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["fit_score"] == 55
+        assert body["partner_suggestions"] == []
+        assert body["outreach_draft"] is None
+    finally:
+        await db_session.delete(opp_row)
+        await db_session.delete(profile_row)
+        await db_session.commit()
+
+
 async def test_post_action_package_404_missing_opportunity(client, db_session) -> None:
     """POST /action-packages returns 404 when opportunity_id doesn't exist."""
     profile_row = CompanyProfileModel(id=uuid.uuid4(), name="AP404 Co", preferred_role="either")

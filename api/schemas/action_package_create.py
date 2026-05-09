@@ -33,7 +33,7 @@ class ActionPackageCreate(BaseModel):
     risk_register: list[RiskRegisterItem]
     proposal_checklist: list[str]
     timeline: list[TimelineItem]
-    partner_suggestions: list[PartnerSuggestion] | None = None
+    partner_suggestions: list[PartnerSuggestion] = Field(default_factory=list)
     outreach_draft: OutreachDraft | None = None
     approval_required: list[str] = Field(
         ...,
