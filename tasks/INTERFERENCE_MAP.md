@@ -30,7 +30,7 @@ How to keep two devs from stepping on each other. File ownership, shared-file pr
 | `/api/schemas/**` (generated) | Never hand-edit. Regenerate via `make schemas`. Commit with the source schema change. |
 | `/web/lib/schemas/**` (generated) | Same as above. |
 | `/.env.example` | Append-only. New var added here AND in `CONTRACTS.md §4` in the same PR. |
-| `/PRD.md` | Frozen at v1.2.1. Any edit is a joint decision logged in `README.md` decision log + a PRD changelog entry. |
+| `/PRD.md` | Frozen at v1.2.2. Any edit is a joint decision logged in `README.md` decision log + a PRD changelog entry. |
 | `/tasks/README.md` decision log | Append-only. Both devs add entries; never edit prior. |
 | `/tasks/STANDUP.md` | Append-only. |
 | `/Makefile` (top level) | Track A owns; B can request additions via standup. |

@@ -18,7 +18,7 @@ This document is the single source of truth for everything that both tracks must
               └─ <slug>/attachments/*.pdf                                       [B authors]
               └─ <slug>/expected.json                                           [B authors]
 /schemas      — JSON Schema source of truth for ALL data structures             [Shared, locked in P0]
-PRD.md        — product spec, frozen at v1.2.1                                  [Joint edit only]
+PRD.md        — product spec, frozen at v1.2.2                                  [Joint edit only]
 Makefile      — top-level targets (schemas, eval, dev, deploy)                  [Shared]
 docker-compose.yaml  — local dev stack                                          [Track A]
 .env.example  — env var contract                                                [Joint, append-only]
@@ -96,6 +96,43 @@ The agent emits these events via SSE on `GET /agent-runs/:id/stream`. B's timeli
 **Examples for B's local dev:** `/schemas/trace-event.example.jsonl` — committed in P0.3, contains a recorded successful run with one of each event type at human-readable cadence (~500ms–2s gaps). B can replay this in dev when A's agent isn't running.
 
 **SSE framing:** each event is one SSE message: `event: <type>\ndata: <json-line>\n\n`. The mock server (P0.6) and the real server emit the same framing.
+
+---
+
+## 3.1 Bridge translation table (Hermes → §3 events)
+
+Pinned by the Milestone 0 spike (`tasks/HERMES_SPIKE.md`, 2026-05-09). The bridge implements **two modes**: in-process callbacks for the eval harness, snapshot-tail for the production FastAPI runner. Both produce the same §3 events; the frontend never sees which path was used.
+
+### In-process mode (eval harness)
+
+| Hermes surface | Args | Bridge action |
+|----------------|------|---------------|
+| `tool_start_callback` | `(tool_call_id, name, args)` | Emit `tool_called` with `step_id = tool_call_id`, `tool = name`, `input = args`, `rationale = ""` (Hermes does not surface a per-call rationale; the planner's reasoning lives in the conversation messages — fill from the most recent `assistant.content` text on a best-effort basis). Record `t_start = monotonic()`. |
+| `tool_complete_callback` | `(tool_call_id, name, args, result)` | Emit `tool_returned` with `step_id = tool_call_id`, `output = result["data"]` if `result["success"]` else `null`, `error = result["error"]` if not success else `null`, `latency_ms = (monotonic() - t_start) * 1000`, `cost_usd = result["meta"]["cost_usd"]` if present else `0.0`. The `meta` field is added by our toolset wrappers (Q6 in the spike doc). |
+| `step_callback` | `(step_index, label)` (best-effort signature; confirmed at A9 wiring time) | Emit `step_started` (or `step_completed` on the second call per index — bridge tracks state). |
+| `delegate_task` invocation (wrapped) | `goal`, `role`, `toolsets`, `context` | Emit `subagent_spawned` with a fresh `subagent_id`, `parent_id` from the current parent context, `role` set to the role-id we passed in `context` (e.g. `capture_analyst`). |
+| `delegate_task` return (wrapped) | task results | Emit `subagent_completed` with `status` derived from the result envelope. |
+
+### Subprocess mode (production FastAPI)
+
+The runner spawns `hermes -z <prompt>` and tails the resulting session snapshot at `~/.hermes/sessions/session_<ts>_<id>.json`. The snapshot is OpenAI-format messages with `tool_call_id` linkage.
+
+| Snapshot field | Bridge action |
+|----------------|---------------|
+| `messages[i]` with `role: "assistant"` and `tool_calls: [...]` | For each entry in `tool_calls`: emit `tool_called` with `step_id = tool_calls[k].id`, `tool = tool_calls[k].function.name`, `input = json.loads(tool_calls[k].function.arguments)`. |
+| `messages[i]` with `role: "tool"` | Emit `tool_returned` paired by `tool_call_id`. Output / error / cost extracted from the `content` JSON envelope produced by our toolset wrappers (same shape as in-process mode). `latency_ms` is `messages[i].timestamp - matching_tool_call.timestamp` (Hermes records timestamps on each message). |
+| `messages[0]` with `role: "user"` | Emit `run_started`. |
+| Final `messages[-1]` with `role: "assistant"` and no `tool_calls` | Emit `run_completed`. `status = "complete"` if cost ≤ budget AND no upstream failures; `"partial"` if budget exceeded mid-run; `"failed"` if the subprocess exited non-zero. |
+| Bridge-internal | `subagent_spawned` / `subagent_completed`, `opportunity_ranked`, `needs_human` are emitted by *our toolsets* via a `bridge.emit(event)` helper, not derived from the Hermes snapshot. |
+
+### Constants the bridge owns
+
+- **Cost budget enforcement.** Bridge accumulates `cost_usd` from every `tool_returned`; when sum > `RUN_BUDGET_USD`, abort the Hermes run (kill subprocess; in-process: set the agent's `_interrupt_requested` flag) and emit `run_completed` with `status: "partial"`, `summary: "Aborted at $X.XX (budget $0.50)."`.
+- **Step budget enforcement.** Counted as `tool_called` events; aborted at `RUN_BUDGET_STEPS` the same way.
+- **Wall-clock budget.** Bridge timer; aborts at `RUN_BUDGET_SECONDS` the same way.
+- **Rationale fill.** When Hermes does not emit a per-tool rationale, the bridge reads the most recent `assistant.content` text segment and uses its first sentence (≤120 chars). This is best-effort UX, not load-bearing data.
+
+If a future Hermes release exposes a structured trace stream natively, the bridge can switch over without changing the §3 event contract.
 
 ---
 

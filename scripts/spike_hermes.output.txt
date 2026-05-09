@@ -1,0 +1,109 @@
+────────────────────────────────────────────────────────────────────────
+PHASE 1: Custom toolset registration via tools.registry
+────────────────────────────────────────────────────────────────────────
+  ✓ toolset 'spike_math'    → tools: ['spike_add']
+  ✓ toolset 'spike_text'    → tools: ['spike_echo']
+
+────────────────────────────────────────────────────────────────────────
+PHASE 2: In-process AIAgent with tool_*_callback trace capture
+────────────────────────────────────────────────────────────────────────
+  → running agent (toolsets=['spike_math']) ...
+  ┊ 💬 I'll call the spike_add tool to compute 17 + 25.
+  ┊ ⚡ spike_add   0.0s
+  ← agent finished in 2.00s
+  ← final response: 'The result of 17 + 25 is 42.'
+
+  Captured 2 trace events:
+    • tool_called   spike_add    args={"a": 17, "b": 25}
+    • tool_returned spike_add    {"sum": 42}
+
+────────────────────────────────────────────────────────────────────────
+PHASE 3: Subprocess (`hermes -z`) — production invocation path
+────────────────────────────────────────────────────────────────────────
+  → hermes -z Reply with the single word 'OK' and nothing else. <prompt>  (haiku, default Hermes config)
+  ← exited 0 in 2.67s
+  ← stdout (last 200 chars): 'OK\n'
+  ← new session snapshot:   /root/.hermes/sessions/session_20260509_100738_569ea9.json
+  ← inspecting:    /root/.hermes/sessions/session_20260509_100738_569ea9.json
+  ← session size:  93258 bytes
+  ← message role counts: {'user': 1, 'assistant': 1}
+
+════════════════════════════════════════════════════════════════════════
+FINDINGS — answers to the 7 open questions in tasks/HERMES.md
+════════════════════════════════════════════════════════════════════════
+
+Q1 Programmatic invocation:
+    Two stable paths:
+    (a) IN-PROCESS — `from run_agent import AIAgent`; pass callbacks;
+        call agent.chat(msg). Best for tests + the eval harness.
+        Verified: 2 events captured.
+    (b) SUBPROCESS — `hermes -z <prompt>`. Best for the FastAPI runner;
+        survives crashes; clean process boundary.
+        Verified session: /root/.hermes/sessions/session_20260509_100738_569ea9.json
+    DECISION: subprocess for /api/agent/hermes_runner.py (production);
+              in-process for /eval/runner (tests).
+
+Q2 Trace event format:
+    Hermes does NOT emit a structured trace stream natively.
+    Instead it offers callback hooks on AIAgent:
+      • tool_start_callback(tool_call_id, name, args)
+      • tool_complete_callback(tool_call_id, name, args, result)
+      • tool_progress_callback(event, name, preview, args)
+      • step_callback, thinking_callback, reasoning_callback
+    For subprocess runs, the session JSONL under ~/.hermes/sessions/
+    contains role=user|assistant|tool messages with tool_call_id linkage.
+    DECISION: in-process callbacks for tests; for the FastAPI bridge,
+              tail the session JSONL OR use the in-process path under
+              uvicorn — pick based on Q4.
+
+Q3 Toolset registration mechanism:
+    Two paths:
+    (a) DIRECT — `from tools.registry import registry; registry.register(
+                   name='extract_requirements', toolset='gov_compliance', ...)`
+        at module import time. Toolset string is whatever you want;
+        delegate_task(toolsets=['gov_compliance']) filters on it.
+        Verified above with spike_math + spike_text.
+    (b) MCP SERVER — run our own stdio MCP server; tools auto-prefixed
+        as `mcp_govcapture_<name>` and grouped under MCP toolset alias.
+        Looser coupling but adds a process + JSON-RPC layer.
+    DECISION: DIRECT registration for v1. Hermes is a Python lib already
+              installed in the api container; importing tools.registry is
+              one line; we get native toolset names that match
+              CONTRACTS.md §5 verbatim (gov_discovery, gov_documents,
+              gov_compliance, gov_risks, gov_proposals, human_review).
+
+Q4 Hermes execution backend on VX1:
+    Hermes runs in-process (Python). No separate daemon. So `api`
+    container imports Hermes; no sidecar needed.
+    DECISION: Hermes runs IN the api container as a library, not a
+              sidecar. docker-compose has only api/postgres/redis.
+
+Q5 Hermes memory + our Postgres:
+    Hermes memory = MEMORY.md/USER.md in HERMES_HOME, plus session DBs.
+    Postgres = domain entities (CompanyProfile, Opportunity, ...).
+    Zero overlap by design. We disable cross-session memory in
+    .hermes/config.yaml (`memory.cross_session: false`).
+    DECISION: per-run only; no double-storage; clear between eval runs.
+
+Q6 Cost tracking:
+    Hermes does not surface per-call cost as a first-class field on
+    callbacks. It tracks token usage internally via iteration_budget.
+    Each of OUR domain skills (extract_requirements, score_fit, ...)
+    will compute cost_usd from the LLM client's usage data and return
+    it in the tool_result envelope. The bridge sums these.
+    DECISION: cost_usd lives in OUR tool wrapper, not Hermes. Pricing
+              table at /api/agent/llm.py.
+
+Q7 Per-subagent model override:
+    `delegate_task` accepts no model kwarg directly, but config.yaml
+    `delegation.model` / `delegation.provider` lets us pin a global
+    delegation-level override. Per-call override is not exposed via
+    the public delegate_task signature — implication: all child agents
+    inherit the parent's model unless config sets a delegation override.
+    DECISION: keep all agents on Sonnet for v1 (cost still ≤ $0.30/run
+              per AGENT_ARCHITECTURE.md estimates). Revisit only if
+              we hit the $0.50 cap.
+
+════════════════════════════════════════════════════════════════════════
+Spike complete. Write findings to tasks/HERMES_SPIKE.md.
+════════════════════════════════════════════════════════════════════════

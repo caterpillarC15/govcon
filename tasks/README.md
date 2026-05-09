@@ -84,3 +84,12 @@ These are settled. Do not relitigate without a joint decision logged in this fil
 - **2026-05-09** — Anthropic Claude chosen as LLM provider per PRD §17 Q1.
 - **2026-05-09** — Adopted `hermes-agent` (Nous Research) as agent runtime. OpenClaw dropped. Track A surface area shrinks. PRD bumped to v1.2.2. See `HERMES.md`.
 - **2026-05-09** — Reorganized `/tasks/`: joint docs at root (one canonical copy), dev-specific work in `dev1-backend/` and `dev2-frontend/`. No file duplication. Per-dev standups inside each dev folder.
+- **2026-05-09** — Hermes spike (Milestone 0) complete. All 7 open questions in `tasks/HERMES.md` answered with working code in `scripts/spike_hermes.py`; full findings in `tasks/HERMES_SPIKE.md`. Key decisions:
+  - **Q1 invocation:** subprocess (`hermes -z`) for production FastAPI runner; in-process (`AIAgent`) for the eval harness.
+  - **Q2 trace events:** Hermes does not emit a structured trace stream; bridge consumes `tool_start_callback` / `tool_complete_callback` (in-process) or tails `~/.hermes/sessions/session_*.json` (subprocess). Translation table added as `CONTRACTS.md §3.1`.
+  - **Q3 toolset registration:** direct `tools.registry.register(toolset='gov_compliance', ...)` at module-import time. MCP server path rejected for v1.
+  - **Q4 backend:** Hermes runs in-process inside the `api` container as a Python library. No sidecar. docker-compose has only `api`/`postgres`/`redis`.
+  - **Q5 memory:** zero overlap with Postgres; `memory.cross_session: false`; eval harness clears memory between fixtures.
+  - **Q6 cost tracking:** `cost_usd` and `latency_ms` returned in our toolset wrappers' `tool_result.meta`; bridge sums them and aborts at `RUN_BUDGET_USD=0.50`.
+  - **Q7 per-subagent model:** not exposed by `delegate_task`. All agents on Sonnet for v1; revisit only if we hit the cost cap.
+- **2026-05-09** — Stale-reference cleanup: `tasks/CONTRACTS.md §1` and `tasks/INTERFERENCE_MAP.md §1` updated from "PRD frozen at v1.2.1" to "v1.2.2" (PRD itself was already v1.2.2 since the Hermes adoption commit). Frontend env var `NEXT_PUBLIC_API_BASE` confirmed correct — `/landing/` was migrated to Next.js (commit 170d60f) so the original CONTRACTS.md §4 value is right; no change needed.
