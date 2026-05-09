@@ -28,6 +28,7 @@ dev = [
     "jsonschema>=4.23",
     "reportlab>=4.2",
     "pillow>=10.4",
+    "respx>=0.21",
 ]
 
 [build-system]
