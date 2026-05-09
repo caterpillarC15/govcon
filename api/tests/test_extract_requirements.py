@@ -9,57 +9,15 @@ The LLM is replaced with a fake that returns canned JSON. Tests verify:
 from __future__ import annotations
 
 import asyncio
-from typing import Any
 
-from pydantic import BaseModel
-
-from api.llm import LLM, LLMError, LLMMetrics
+from api.llm import LLMError
 from api.skills.extract_requirements import (
     ExtractInput,
     RequirementExtractionOutput,
     extract_requirements,
 )
 from api.skills.parse_pdf import ParsedChunk, ParsePdfOutput
-
-
-class FakeLLM(LLM):
-    """Stand-in for `api.llm.LLM` — returns whatever JSON the test sets up."""
-
-    def __init__(
-        self,
-        *,
-        payload: dict[str, Any] | None = None,
-        raise_exc: Exception | None = None,
-    ) -> None:
-        # Skip parent __init__ — we don't want a real Anthropic client.
-        self._client = None  # type: ignore[assignment]
-        self._payload = payload
-        self._raise = raise_exc
-        self.calls: list[dict[str, Any]] = []
-
-    async def complete_structured(  # type: ignore[override]
-        self,
-        *,
-        system: str,
-        user: str,
-        output_model: type[BaseModel],
-        model: str | None = None,
-        max_tokens: int = 4096,
-        cache_system: bool = True,
-    ):
-        self.calls.append({"system": system, "user": user, "model": model})
-        if self._raise is not None:
-            raise self._raise
-        assert self._payload is not None, "FakeLLM needs payload or raise_exc"
-        parsed = output_model.model_validate(self._payload)
-        metrics = LLMMetrics(
-            model=model or "claude-haiku-4-5-20251001",
-            latency_ms=42,
-            cost_usd=0.0001,
-            input_tokens=1500,
-            output_tokens=200,
-        )
-        return parsed, metrics
+from api.tests.fakes import FakeLLM
 
 
 def _make_parsed(chunks: list[tuple[int, str]]) -> ParsePdfOutput:
