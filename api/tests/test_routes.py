@@ -338,6 +338,273 @@ async def test_action_package_404(client) -> None:
     assert r.status_code == 404
 
 
+# ─── POST /opportunities/:id/requirements ──────────────────────────────────
+
+
+async def test_post_requirement_201(client, db_session) -> None:
+    """POST /opportunities/{id}/requirements creates and returns the requirement."""
+    opp_row = OpportunityModel(
+        id=uuid.uuid4(),
+        title="Req POST RFP",
+        agency="Agency A",
+        solicitation_number="REQ-POST-001",
+        attachments=[],
+    )
+    db_session.add(opp_row)
+    await db_session.commit()
+
+    payload = {
+        "type": "security",
+        "title": "TS/SCI Clearance Required",
+        "confidence": "high",
+        "is_blocker": True,
+        "description": "Personnel must hold TS/SCI.",
+        "value": None,
+        "evidence_snippet": None,
+        "source_document": None,
+        "page_number": None,
+    }
+    try:
+        r = await client.post(f"/opportunities/{opp_row.id}/requirements", json=payload)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["title"] == "TS/SCI Clearance Required"
+        assert body["type"] == "security"
+        assert body["is_blocker"] is True
+        assert body["opportunity_id"] == str(opp_row.id)
+        assert "id" in body
+        assert "created_at" in body
+    finally:
+        await db_session.delete(opp_row)
+        await db_session.commit()
+
+
+async def test_post_requirement_404(client) -> None:
+    """POST /opportunities/{id}/requirements returns 404 for unknown opportunity."""
+    payload = {
+        "type": "eligibility",
+        "title": "Must be 8(a)",
+        "confidence": "high",
+        "is_blocker": False,
+    }
+    r = await client.post(f"/opportunities/{uuid.uuid4()}/requirements", json=payload)
+    assert r.status_code == 404
+
+
+# ─── POST /opportunities/:id/fit-score ─────────────────────────────────────
+
+
+async def test_post_fit_score_201(client, db_session) -> None:
+    """POST /opportunities/{id}/fit-score creates and returns the fit score."""
+    profile_row = CompanyProfileModel(id=uuid.uuid4(), name="FitPost Co", preferred_role="either")
+    opp_row = OpportunityModel(
+        id=uuid.uuid4(),
+        title="FitScore POST RFP",
+        agency="Agency B",
+        solicitation_number="FIT-POST-001",
+        attachments=[],
+    )
+    db_session.add_all([profile_row, opp_row])
+    await db_session.commit()
+
+    payload = {
+        "company_profile_id": str(profile_row.id),
+        "total_score": 75,
+        "decision": "pursue",
+        "confidence": "medium",
+        "breakdown": {
+            "capability": 15,
+            "eligibility": 12,
+            "naics": 8,
+            "past_performance": 10,
+            "certification": 7,
+            "insurance_bonding": 7,
+            "deadline": 8,
+            "complexity": 4,
+            "geography": 4,
+        },
+        "strengths": ["NAICS match"],
+        "weaknesses": ["No past performance"],
+        "blockers": [],
+        "missing_info": ["Bonding capacity"],
+        "recommended_next_action": "Start proposal",
+    }
+    try:
+        r = await client.post(f"/opportunities/{opp_row.id}/fit-score", json=payload)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["total_score"] == 75
+        assert body["decision"] == "pursue"
+        assert body["opportunity_id"] == str(opp_row.id)
+        assert body["company_profile_id"] == str(profile_row.id)
+        assert "id" in body
+    finally:
+        await db_session.delete(opp_row)
+        await db_session.delete(profile_row)
+        await db_session.commit()
+
+
+async def test_post_fit_score_404(client) -> None:
+    """POST /opportunities/{id}/fit-score returns 404 for unknown opportunity."""
+    payload = {
+        "company_profile_id": str(uuid.uuid4()),
+        "total_score": 50,
+        "decision": "maybe",
+        "confidence": "low",
+        "breakdown": {
+            "capability": 10,
+            "eligibility": 8,
+            "naics": 5,
+            "past_performance": 6,
+            "certification": 5,
+            "insurance_bonding": 5,
+            "deadline": 5,
+            "complexity": 3,
+            "geography": 3,
+        },
+        "strengths": [],
+        "weaknesses": [],
+        "blockers": [],
+        "missing_info": [],
+    }
+    r = await client.post(f"/opportunities/{uuid.uuid4()}/fit-score", json=payload)
+    assert r.status_code == 404
+
+
+# ─── POST /opportunities/:id/risks ─────────────────────────────────────────
+
+
+async def test_post_risk_201(client, db_session) -> None:
+    """POST /opportunities/{id}/risks creates and returns the risk flag."""
+    profile_row = CompanyProfileModel(id=uuid.uuid4(), name="RiskPost Co", preferred_role="either")
+    opp_row = OpportunityModel(
+        id=uuid.uuid4(),
+        title="Risk POST RFP",
+        agency="Agency C",
+        solicitation_number="RISK-POST-001",
+        attachments=[],
+    )
+    db_session.add_all([profile_row, opp_row])
+    await db_session.commit()
+
+    payload = {
+        "company_profile_id": str(profile_row.id),
+        "category": "deadline_too_close",
+        "severity": "major",
+        "title": "Proposal due in 10 days",
+        "description": "Insufficient time to prepare a compliant proposal.",
+        "evidence": "Solicitation release date vs due date.",
+        "mitigation": "Start immediately, assign full team.",
+        "requires_human_review": True,
+    }
+    try:
+        r = await client.post(f"/opportunities/{opp_row.id}/risks", json=payload)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["title"] == "Proposal due in 10 days"
+        assert body["severity"] == "major"
+        assert body["opportunity_id"] == str(opp_row.id)
+        assert body["company_profile_id"] == str(profile_row.id)
+        assert "id" in body
+    finally:
+        await db_session.delete(opp_row)
+        await db_session.delete(profile_row)
+        await db_session.commit()
+
+
+async def test_post_risk_404(client) -> None:
+    """POST /opportunities/{id}/risks returns 404 for unknown opportunity."""
+    payload = {
+        "company_profile_id": str(uuid.uuid4()),
+        "category": "scope_mismatch",
+        "severity": "moderate",
+        "title": "Scope out of range",
+        "description": "Company capabilities do not match scope.",
+        "requires_human_review": False,
+    }
+    r = await client.post(f"/opportunities/{uuid.uuid4()}/risks", json=payload)
+    assert r.status_code == 404
+
+
+# ─── POST /action-packages ──────────────────────────────────────────────────
+
+
+async def test_post_action_package_201(client, db_session) -> None:
+    """POST /action-packages creates and returns the action package."""
+    profile_row = CompanyProfileModel(id=uuid.uuid4(), name="APPost Co", preferred_role="either")
+    opp_row = OpportunityModel(
+        id=uuid.uuid4(),
+        title="AP POST RFP",
+        agency="Agency D",
+        solicitation_number="AP-POST-001",
+        attachments=[],
+    )
+    db_session.add_all([profile_row, opp_row])
+    await db_session.commit()
+
+    payload = {
+        "opportunity_id": str(opp_row.id),
+        "company_profile_id": str(profile_row.id),
+        "executive_summary": "Strong candidate — pursue.",
+        "decision": "pursue",
+        "fit_score": 78,
+        "fit_rationale": "Capabilities align with scope.",
+        "compliance_matrix": [
+            {"requirement": "ISO 27001", "status": "met", "evidence": "Current cert", "next_action": None, "owner": None}
+        ],
+        "risk_register": [
+            {"risk": "Deadline tight", "severity": "moderate", "explanation": "14 days only", "mitigation": "Mobilize team"}
+        ],
+        "proposal_checklist": ["Draft executive summary", "Gather past performance docs"],
+        "timeline": [
+            {"date": "2026-05-15", "task": "Submit proposal", "owner": "BD Lead"}
+        ],
+        "partner_suggestions": [],
+        "outreach_draft": None,
+        "approval_required": ["VP signature required"],
+    }
+    try:
+        r = await client.post("/action-packages", json=payload)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["executive_summary"] == "Strong candidate — pursue."
+        assert body["fit_score"] == 78
+        assert body["opportunity_id"] == str(opp_row.id)
+        assert body["company_profile_id"] == str(profile_row.id)
+        assert "id" in body
+    finally:
+        await db_session.delete(opp_row)
+        await db_session.delete(profile_row)
+        await db_session.commit()
+
+
+async def test_post_action_package_404_missing_opportunity(client, db_session) -> None:
+    """POST /action-packages returns 404 when opportunity_id doesn't exist."""
+    profile_row = CompanyProfileModel(id=uuid.uuid4(), name="AP404 Co", preferred_role="either")
+    db_session.add(profile_row)
+    await db_session.commit()
+
+    payload = {
+        "opportunity_id": str(uuid.uuid4()),
+        "company_profile_id": str(profile_row.id),
+        "executive_summary": "Won't be stored.",
+        "decision": "reject",
+        "fit_score": 20,
+        "fit_rationale": "Does not qualify.",
+        "compliance_matrix": [],
+        "risk_register": [],
+        "proposal_checklist": [],
+        "timeline": [],
+        "approval_required": [],
+    }
+    try:
+        r = await client.post("/action-packages", json=payload)
+        assert r.status_code == 404
+    finally:
+        await db_session.delete(profile_row)
+        await db_session.commit()
+
+
 # ─── /agent-runs/:id/stream (SSE smoke) ────────────────────────────────────
 
 
