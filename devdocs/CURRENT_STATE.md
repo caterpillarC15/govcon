@@ -393,8 +393,8 @@ Dropped vs. earlier states: `DATABASE_URL`, `OPENAI_*`,
 | Hermes runtime context (dev only) | `HERMES.md` (root) |
 | API contracts | `tasks/CONTRACTS.md` |
 | Schemas | `schemas/*.json`, generated `api/schemas/*.py` |
-| Demo script | `tasks/DEMO.md` |
 | Fixtures | `tasks/FIXTURES.md`, `fixtures/` |
 | Landing copy | `tasks/LANDING_BRIEF.md` |
 | Deploy | `infra/RUNBOOK.md`, `infra/{bootstrap,deploy}.sh` |
-| Historical handoff | `devdocs/_archive/HANDOFF_2026-05-09.md` |
+| Continuation prompt | `devdocs/HANDOFF_PROMPT.md` |
+| Active plans | `docs/superpowers/plans/2026-05-10-finish-it-all.md`, `docs/superpowers/plans/2026-05-10-frontend-cleanup-fixes.md` |

@@ -3,10 +3,9 @@
 > **Read top to bottom before doing anything.** This single file is
 > designed to be pasted into a fresh Claude Code, Codex, or comparable
 > agent session running against `/Volumes/CS_Stuff/govcon`. It picks up
-> where the **2026-05-09 capability-pack repositioning** left off, with
-> Sprint B HTTP `/tools` parity now added on top of PRD v1.2.5.
-> Predecessor:
-> `devdocs/_archive/HANDOFF_2026-05-09.md`.
+> where the **2026-05-10 launch-runway and frontend-cleanup sprints**
+> left off, on top of PRD v1.2.5. The pre-v1.2.5 handoff (capability-pack
+> repositioning) was deleted as part of the doc-redundancy sweep.
 
 ---
 
@@ -61,8 +60,8 @@ post-runway frontend/agent fix patch (commits `5ff99cb`, `310bb`,
 | `find api/agent -type f` | (empty — directory gone) |
 | `grep -rn 'from api\.agent' api/` | (empty) |
 | `ls .hermes/skills/govcapture/` | exactly 5 dirs: `extract_requirements_with_evidence`, `score_fit_with_eligibility_check`, `detect_risks_calibrated`, `generate_full_action_package`, `generate_reject_summary` |
-| `ls tasks/` | `CONTRACTS.md DEMO.md FIXTURES.md INTERFERENCE_MAP.md LANDING_BRIEF.md README.md` (no AGENT_ARCHITECTURE.md, no HERMES.md) |
-| `ls devdocs/` | `CAPABILITY_PACK_INTEGRATION.md CAPABILITY_PACKS_CANVAS.md CURRENT_STATE.md HANDOFF_PROMPT.md MICHAELA_SYSTEM_MODEL.md V1_PRODUCT_ALIGNMENT.md _archive/` |
+| `ls tasks/` | `CONTRACTS.md FIXTURES.md LANDING_BRIEF.md README.md` (DEMO/INTERFERENCE_MAP retired in the 2026-05-10 doc sweep) |
+| `ls devdocs/` | `CAPABILITY_PACK_INTEGRATION.md CAPABILITY_PACKS_CANVAS.md CURRENT_STATE.md HANDOFF_PROMPT.md MICHAELA_SYSTEM_MODEL.md V1_PRODUCT_ALIGNMENT.md` (no `_archive/`) |
 | `git check-ignore .env` | matches `.env` (real keys safely uncommitted) |
 | Bucket `govcapture-attachments` | created (private) |
 
@@ -333,26 +332,27 @@ match `api/config.py` keys exactly.
 ├── web/                             ← Next 15 product UI
 ├── landing/                         ← Next 15 marketing
 ├── tasks/                           ← reference docs
-│   ├── README.md                    ← frozen decisions, layout
-│   ├── CONTRACTS.md                 ← schemas, SSE, env, skill registry
-│   ├── INTERFERENCE_MAP.md          ← file ownership, protocols
+│   ├── README.md                    ← frozen decisions, decision log
+│   ├── CONTRACTS.md                 ← schemas, SSE, env, skill registry, API surface
 │   ├── FIXTURES.md
-│   ├── DEMO.md
 │   └── LANDING_BRIEF.md             ← landing-page copy brief
-└── devdocs/
-    ├── CURRENT_STATE.md             ← single page state of the repo
-    ├── CAPABILITY_PACKS_CANVAS.md   ← strategic horizon
-    ├── V1_PRODUCT_ALIGNMENT.md      ← public framing filter
-    ├── MICHAELA_SYSTEM_MODEL.md     ← orchestrator + pack relationship
-    ├── CAPABILITY_PACK_INTEGRATION.md ← Hermes plugin + HTTP API spec
-    ├── HANDOFF_PROMPT.md            ← THIS FILE
-    └── _archive/
-        └── HANDOFF_2026-05-09.md    ← previous (pre-v1.2.5) handoff
+├── devdocs/
+│   ├── CURRENT_STATE.md             ← single page state of the repo
+│   ├── CAPABILITY_PACKS_CANVAS.md   ← strategic horizon
+│   ├── V1_PRODUCT_ALIGNMENT.md      ← public framing filter
+│   ├── MICHAELA_SYSTEM_MODEL.md     ← orchestrator + pack relationship
+│   ├── CAPABILITY_PACK_INTEGRATION.md ← Hermes plugin + HTTP API spec
+│   └── HANDOFF_PROMPT.md            ← THIS FILE
+└── docs/superpowers/plans/          ← active execution plans
+    ├── 2026-05-10-finish-it-all.md       ← consolidated runway → v1.0.0
+    └── 2026-05-10-frontend-cleanup-fixes.md  ← in-flight FE hyperanalysis fixes
 ```
 
-**Files NO LONGER present** (deleted in the v1.2.5 repositioning):
+**Files NO LONGER present** (deleted in the v1.2.5 repositioning + the
+2026-05-10 doc-redundancy sweep):
 
 ```
+# v1.2.5 repositioning
 api/agent/                                    ← entire dir removed
 api/tests/test_hermes_bridge.py               ← tested removed code
 .hermes/SOUL.md                               ← runtime artifact, gitignored
@@ -363,6 +363,14 @@ tasks/AGENT_ARCHITECTURE.md                   ← Michaela's bench design
 tasks/HERMES.md                               ← duplicated root HERMES.md
 devdocs/HERMES_INTEGRATION_PLAN.md            ← stale plan
 devdocs/prompt.md                             ← misnamed; → tasks/LANDING_BRIEF.md
+
+# 2026-05-10 doc sweep (redundant/superseded)
+tasks/INTERFERENCE_MAP.md                     ← retired Track A/B layout
+tasks/DEMO.md                                 ← hackathon §13.1 stage script
+devdocs/_archive/HANDOFF_2026-05-09.md        ← pre-v1.2.5 handoff
+docs/superpowers/plans/2026-05-09-sprint-b-http-tools-parity.md  ← Sprint B done
+docs/superpowers/plans/2026-05-10-launch-runway.md               ← superseded by finish-it-all
+docs/superpowers/plans/2026-05-10-sprint-c-web-ui-and-auth.md    ← superseded by finish-it-all
 ```
 
 ---

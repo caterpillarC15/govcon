@@ -11,12 +11,10 @@ demo script, file ownership.
 
 ```
 tasks/
-├── README.md                  ← you are here
-├── CONTRACTS.md               ← schemas, SSE shapes, env, skill registry
-├── INTERFERENCE_MAP.md        ← file ownership, shared-file protocols
+├── README.md                  ← you are here (decision log + frozen decisions)
+├── CONTRACTS.md               ← schemas, SSE shapes, env, skill registry, API surface
 ├── FIXTURES.md                ← fixture content spec
-├── LANDING_BRIEF.md           ← landing/product framing
-└── DEMO.md                    ← §13.1 stage script + backup paths
+└── LANDING_BRIEF.md           ← landing/product framing
 ```
 
 Hermes runtime context for this pack: `HERMES.md` (repo root) plus the
