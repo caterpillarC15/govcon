@@ -1,6 +1,91 @@
+import type {
+  ActionPackage,
+  AgentRun,
+  CompanyProfile,
+  ExtractedRequirement,
+  FitScore,
+  Opportunity,
+  RiskFlag,
+} from './types'
+
 export function getApiBase() {
   return (process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8000').replace(
     /\/$/,
     '',
   )
+}
+
+export class ApiError extends Error {
+  status: number
+  body: unknown
+  constructor(status: number, message: string, body?: unknown) {
+    super(message)
+    this.status = status
+    this.body = body
+  }
+}
+
+async function request<T>(
+  path: string,
+  token: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const response = await fetch(`${getApiBase()}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...init.headers,
+    },
+    cache: 'no-store',
+  })
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null)
+    const message =
+      typeof body === 'object' &&
+      body &&
+      'detail' in body &&
+      typeof (body as { detail: unknown }).detail === 'string'
+        ? (body as { detail: string }).detail
+        : `Request failed (${response.status})`
+    throw new ApiError(response.status, message, body)
+  }
+  return (await response.json()) as T
+}
+
+export const api = {
+  listCompanyProfiles: (token: string) =>
+    request<CompanyProfile[]>('/company-profiles', token),
+  getCompanyProfile: (token: string, id: string) =>
+    request<CompanyProfile>(`/company-profiles/${id}`, token),
+  createCompanyProfile: (token: string, payload: Partial<CompanyProfile>) =>
+    request<CompanyProfile>('/company-profiles', token, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  createAgentRun: (
+    token: string,
+    payload: { goal: string; profile_id?: string; profile?: Partial<CompanyProfile> },
+  ) =>
+    request<AgentRun>('/agent-runs', token, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  getAgentRun: (token: string, id: string) =>
+    request<AgentRun>(`/agent-runs/${id}`, token),
+  listAgentRunOpportunities: (token: string, id: string) =>
+    request<Opportunity[]>(`/agent-runs/${id}/opportunities`, token),
+
+  getOpportunity: (token: string, id: string) =>
+    request<Opportunity>(`/opportunities/${id}`, token),
+  getOpportunityRequirements: (token: string, id: string) =>
+    request<ExtractedRequirement[]>(`/opportunities/${id}/requirements`, token),
+  getOpportunityFitScore: (token: string, id: string) =>
+    request<FitScore>(`/opportunities/${id}/fit-score`, token),
+  getOpportunityRisks: (token: string, id: string) =>
+    request<RiskFlag[]>(`/opportunities/${id}/risks`, token),
+
+  getActionPackage: (token: string, id: string) =>
+    request<ActionPackage>(`/action-packages/${id}`, token),
 }
