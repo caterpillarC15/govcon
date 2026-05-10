@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowRight, ChevronRight, Menu, X } from 'lucide-react'
 import { NAV } from '../data/copy'
 import { cn } from '../lib/cn'
@@ -23,14 +23,31 @@ function Mark() {
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const firstItemRef = useRef<HTMLAnchorElement | null>(null)
+
+  // Close + return focus to the hamburger button. Returning focus is the
+  // a11y baseline so keyboard / screen-reader users land where they
+  // started rather than at the page root.
+  const close = useCallback(() => {
+    setOpen(false)
+    triggerRef.current?.focus()
+  }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') close()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [close])
+
+  // When the mobile menu opens, move focus into the panel. Otherwise
+  // keyboard users have to tab through the entire trigger area + page
+  // chrome before reaching menu items.
+  useEffect(() => {
+    if (open) firstItemRef.current?.focus()
+  }, [open])
 
   // Lock body scroll while the mobile menu is open so the page doesn't
   // ghost behind the panel — important now that we've committed harder
@@ -87,11 +104,12 @@ export default function Navbar() {
               </a>
 
               <button
+                ref={triggerRef}
                 type="button"
                 aria-label={open ? 'Close menu' : 'Open menu'}
                 aria-expanded={open}
                 aria-controls="mobile-menu"
-                onClick={() => setOpen((v) => !v)}
+                onClick={() => (open ? close() : setOpen(true))}
                 className="md:hidden w-8 h-8 inline-flex items-center justify-center rounded-full text-[var(--color-ink)] hover:bg-white/40 active:bg-white/60 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
               >
                 {open ? <X size={16} /> : <Menu size={16} />}
@@ -110,11 +128,12 @@ export default function Navbar() {
               className="md:hidden glass-strong left-0 right-0 top-full mt-3 rounded-[var(--radius-card)] p-2"
             >
               <nav className="flex flex-col gap-0.5" aria-label="Mobile">
-                {NAV.map((n) => (
+                {NAV.map((n, i) => (
                   <a
                     key={n.href}
+                    ref={i === 0 ? firstItemRef : undefined}
                     href={n.href}
-                    onClick={() => setOpen(false)}
+                    onClick={close}
                     className={cn(
                       'group flex items-center justify-between h-12 px-4 rounded-xl',
                       'text-[15px] font-medium text-[var(--color-ink)]',
@@ -134,7 +153,7 @@ export default function Navbar() {
                 <div className="glass-rule mx-2 my-2" aria-hidden />
                 <a
                   href="#waitlist"
-                  onClick={() => setOpen(false)}
+                  onClick={close}
                   className={cn(
                     'flex items-center justify-center gap-2 h-12 rounded-full',
                     'bg-[var(--color-ink)] text-white text-[14.5px] font-medium',

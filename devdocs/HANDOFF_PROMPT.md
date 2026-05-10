@@ -43,17 +43,20 @@ auth wired, env files gitignored, full test suite green.
 
 ## 1. Verified state at handoff (what's true RIGHT NOW)
 
-These were directly verified after the launch-runway sprint shipped
-(2026-05-10; 12 commits, phases 1–5 complete, all tests green).
+Verified 2026-05-10 after the launch-runway sprint and the
+post-runway frontend/agent fix patch (commits `5ff99cb`, `310bb`,
+`a03591f`, `f5a2e48`).
 
 | Check | Result |
 |-------|--------|
-| Branch | `main`, ahead of `origin/main` by ~24 commits (all launch-runway work committed) |
-| Working tree | Clean after consolidating commit on 2026-05-10 (docs + verified state) |
-| `uv run pytest api/tests/` | **181 passed** (113 baseline + 68 new across api_keys, v1_tools, rate_limit, query_usaspending, eval fixtures) |
+| Branch | `main`, working tree clean, up-to-date with `origin/main` |
+| `uv run pytest api/tests/` | **183 passed** (113 baseline + 70 new across api_keys, v1_tools, rate_limit, query_usaspending, eval fixtures, Hermes-plugin/MCP award_type_codes fixes) |
 | `uv run ruff check api` | All checks passed |
 | `uv run mypy api` | Success: no issues found in **76 source files** |
-| `uv run python -c "from api.main import app; print(sum(1 for r in app.routes if hasattr(r,'path')))"` | **53** routes (24 user-facing + 3 /api/keys + 10 /api/v1/tools + 2 /opportunities/{id}/competitors + 2 /well-known + 2 /tools) |
+| `uv run python -c "from api.main import app; print(sum(1 for r in app.routes if hasattr(r,'path')))"` | **53** routes — 11 `/api/v1/tools/<name>` + 11 `/tools/<name>` + 3 `/api/keys` + 4 `/agent-runs` + 3 `/company-profiles` + 2 `/profiles/me` + 9 `/opportunities*` + 2 `/action-packages` + 2 `/.well-known/*` + 1 `/healthz` + 1 `/waitlist` + 4 FastAPI auto |
+| `npm -w landing run build && npm -w web run build` | Both Next 15 builds clean (clear `.next/` if you see a stale `_not-found` collect-page-data error — the `transpilePackages: ['lucide-react']` fix is in `landing/next.config.mjs`) |
+| `npm -w landing run lint && npm -w web run lint && npm -w web run typecheck` | All clean |
+| `make fixtures-validate` | OK for all 4 fixtures (strong-pursue, maybe, reject, adversarial-image-pdf) |
 | `HERMES_HOME=$(pwd)/.hermes hermes config show` | Reads model.provider=anthropic, default=claude-sonnet-4-6; no unknown-key warnings |
 | `find api/agent -type f` | (empty — directory gone) |
 | `grep -rn 'from api\.agent' api/` | (empty) |
@@ -61,15 +64,36 @@ These were directly verified after the launch-runway sprint shipped
 | `ls tasks/` | `CONTRACTS.md DEMO.md FIXTURES.md INTERFERENCE_MAP.md LANDING_BRIEF.md README.md` (no AGENT_ARCHITECTURE.md, no HERMES.md) |
 | `ls devdocs/` | `CAPABILITY_PACK_INTEGRATION.md CAPABILITY_PACKS_CANVAS.md CURRENT_STATE.md HANDOFF_PROMPT.md MICHAELA_SYSTEM_MODEL.md V1_PRODUCT_ALIGNMENT.md _archive/` |
 | `git check-ignore .env` | matches `.env` (real keys safely uncommitted) |
-| Supabase CLI | linked to `vvyxjdoenjujkxwbnzyl`; all 7 migrations applied (verify with `supabase migration list`) |
 | Bucket `govcapture-attachments` | created (private) |
 
-**Schema migrations committed but NOT applied** — apply before exercising new routes:
+### Schema state (Supabase) — drift requires action
 
-- `b334c20` — `api_keys` table (per-agent gck_… keys)
-- `ec7eb5f` — `competitor_history` table (Ledger writebacks)
+`supabase migration list` (2026-05-10) shows the local
+`supabase/migrations/` folder and the linked project
+(`vvyxjdoenjujkxwbnzyl`) are NOT identical:
 
-Run `supabase db push` against the linked project to apply both before exercising the new routes against the real Supabase project.
+| Local | Remote | Status |
+|---|---|---|
+| 20260509132444 | 20260509132444 | applied (remote_schema baseline) |
+| 20260509132830 | 20260509132830 | applied (govcon core) |
+| 20260509140333 | 20260509140333 | applied (Michaela MVP layer) |
+| 20260509140838 | 20260509140838 | applied (ownership + provenance) |
+| 20260509203000 | 20260509203000 | applied (waitlist) |
+| (none) | 20260510021500 | **REMOTE-ONLY drift** — applied to Supabase outside this repo |
+| (none) | 20260510024000 | **REMOTE-ONLY drift** — applied to Supabase outside this repo |
+| 20260510120000 | (none) | **LOCAL-ONLY** — `api_keys` (commit `b334c20`) |
+| 20260510120100 | (none) | **LOCAL-ONLY** — `competitor_history` (commit `ec7eb5f`) |
+
+Two consequences:
+
+1. **`/api/keys` minting and `/opportunities/{id}/competitors` writebacks
+   will 4xx/5xx against the linked Supabase** until `supabase db push`
+   applies `20260510120000` and `20260510120100`.
+2. **The two remote-only migrations were applied to Supabase outside
+   this repo's migration folder.** Run `supabase db pull` to inspect
+   what they did and decide whether to vendor them locally; until then,
+   any fresh project provisioned from this repo's migrations is missing
+   that schema.
 
 **Still placeholder in `.env`** (won't block /healthz or DB calls — needed only when LLM-backed skills are exercised end-to-end):
 
@@ -281,7 +305,7 @@ match `api/config.py` keys exactly.
 │   │   ├── profiles.py
 │   │   └── waitlist.py
 │   ├── schemas/                     ← generated by `make schemas`
-│   ├── skills/                      ← shared GovCon tools (10)
+│   ├── skills/                      ← shared GovCon tools (11)
 │   │   ├── parse_pdf/
 │   │   ├── extract_requirements/
 │   │   ├── score_fit/               ← §11.1 short-circuit lives here
@@ -291,9 +315,12 @@ match `api/config.py` keys exactly.
 │   │   ├── fetch_attachment/
 │   │   ├── parse_goal/
 │   │   ├── rank_opportunities/
-│   │   └── load_seeded_opportunities/
+│   │   ├── load_seeded_opportunities/
+│   │   └── query_usaspending/       ← Ledger competitive intel
 │   └── tests/
-├── supabase/migrations/             ← 5 SQL files; canonical schema
+├── eval/                            ← fixture-driven LLM regression harness
+├── mcp_server_govcapture/           ← MCP wrapper around /api/v1/tools/<name>
+├── supabase/migrations/             ← 7 SQL files (5 applied + 2 local-only); canonical schema
 ├── schemas/                         ← JSON Schema sources
 ├── fixtures/                        ← strong-pursue, maybe, reject,
 │                                       adversarial-image-pdf
@@ -350,7 +377,7 @@ A and C.
 | ID | Sprint | Effort | Unblocks | Depends on |
 |----|--------|--------|----------|------------|
 | ~~**A**~~ | ~~`hermes_plugin_govcapture/` Python plugin so Michaela's Hermes-hosted workers native-call our tools~~ — **SPEC + MCP PACKAGE DONE 2026-05-09** (966fa96; `mcp-server-govcapture` wraps `/api/v1/tools`; native Hermes plugin skipped in favor of MCP bridge). | 3–5 days | Native delegation from /root/michealaai workers; better latency than HTTP | None |
-| ~~**B**~~ | ~~HTTP `POST /tools/<name>` parity for non-Hermes callers (TS, Codex, Cursor)~~ — **DONE 2026-05-09** (3c9a7de + 1b239c6; 10 routes + public /api/v1/tools/<name> mirror; 53 routes total; 181 tests). | 1–2 days | Any orchestrator that doesn't run Hermes | None |
+| ~~**B**~~ | ~~HTTP `POST /tools/<name>` parity for non-Hermes callers (TS, Codex, Cursor)~~ — **DONE 2026-05-09** (3c9a7de + 1b239c6 + Phase 4.x query_usaspending; 11 internal routes + 11 public `/api/v1/tools/<name>` mirror; 53 routes total; 183 tests). | 1–2 days | Any orchestrator that doesn't run Hermes | None |
 | ~~**C**~~ | ~~`/web` product UI build-out (profile create → goal entry → run timeline → opportunity detail → action-package review)~~ — **PHASES 0–6, 7.1, 7.2, 7.4, 8 DONE** (5628129 loading skeletons + error boundaries; 94120fd SSE upgrade + same-origin proxy; e8e2500 SEO + robots.txt; a63bf30 rate-limit fail-open). **Phases 1.3 mobile sweep, 1.4 a11y, 1.5 copy pass owed** (user-driven). | 3–5 days | Public demo; first-customer trial | A or B (something must produce real artifacts) |
 | **D** | Vultr VX1 production deploy | 4–8 hours | Public URL; hosted /healthz | A or B working locally |
 | ~~**E**~~ | ~~`query_usaspending` skill for Ledger (separate writeback table)~~ — **DONE 2026-05-10** (3b19e39; Ledger's competitive-intel skill + competitor_history schema + migrations b334c20 ec7eb5f). | 1–2 days | Real competitive-intel content (today rides on `risk_flags` w/ category convention) | Schema PR ack |

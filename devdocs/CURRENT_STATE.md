@@ -1,6 +1,6 @@
 # GovCon Bid Desk capability pack — current state
 
-> Canonical synthesis dated **2026-05-09** (PRD v1.2.5). This doc
+> Canonical synthesis dated **2026-05-10** (PRD v1.2.5). This doc
 > supersedes any older PRD section or task markdown that contradicts
 > it. When this doc disagrees with `PRD.md` or `tasks/*.md`, **this doc
 > wins** until those files are rewritten to match.
@@ -225,21 +225,21 @@ next squash.
 | `POST /opportunities/{id}/competitors`       | **InternalActor** | Ledger writeback                                      |
 | `GET  /action-packages/{id}`                 | JWT (owner)   | Read a Roy-produced package                              |
 | `POST /action-packages`                      | **InternalActor** | Roy writeback                                        |
-| `POST /tools/<name>` (×10)                   | **InternalActor** | Direct skill dispatch for non-Hermes callers      |
+| `POST /tools/<name>` (×11)                   | **InternalActor** | Direct skill dispatch for non-Hermes callers      |
 | `POST /api/keys`                             | JWT           | Mint per-agent gck_… API key                             |
 | `GET  /api/keys`                             | JWT           | List caller's API keys                                   |
 | `DELETE /api/keys/{id}`                      | JWT           | Revoke a key                                             |
 | `POST /api/v1/tools/<name>` (×11)            | gck_ or InternalActor | Public skill dispatch (per-agent bearer) |
-| `POST /tools/query-usaspending`              | **InternalActor** | Ledger competitive-intel skill                      |
-| `POST /api/v1/tools/query-usaspending`       | gck_ or InternalActor | Public competitive-intel skill                  |
-| `GET  /agents` (SEO)                         | none          | Agent landing + JSON-LD SoftwareApplication               |
-| `GET  /robots.txt`                           | none          | SEO robots rules                                         |
+| `GET  /.well-known/agent.json`               | none          | Agent discovery manifest                                  |
+| `GET  /.well-known/llms.txt`                 | none          | LLM agent description                                     |
+
+The Next.js `/landing` site additionally serves `GET /agents` (with JSON-LD `SoftwareApplication`) and `GET /robots.txt`; those are not FastAPI routes.
 
 User-facing routes use Supabase JWT; sub-agent writebacks use a
 separate internal API key (X-Internal-API-Key header) or per-agent
 bearer token (gck_…) so no human bearer token can reach the write path.
 
-**Route count:** **53** total (24 user-facing + 3 /api/keys + 10 /api/v1/tools + 2 /opportunities/{id}/competitors + 2 /tools + 2 SEO + 10 other internal/Supabase-auto)
+**Route count:** **53** total — 11 `/api/v1/tools/<name>` (public, gck_) + 11 `/tools/<name>` (internal) + 3 `/api/keys` + 4 `/agent-runs` + 3 `/company-profiles` + 2 `/profiles/me` + 1 `/opportunities/{id}` + 8 `/opportunities/{id}/{requirements,fit-score,risks,competitors}` (4 GET + 4 POST) + 2 `/action-packages` + 2 `/.well-known/*` + 1 `/healthz` + 1 `/waitlist` + 4 FastAPI auto (`/docs`, `/docs/oauth2-redirect`, `/redoc`, `/openapi.json`).
 
 ---
 
@@ -263,10 +263,12 @@ caller.
 | `fetch_attachment` | Happer | done |
 | `rank_opportunities` | Lenny | done |
 | `load_seeded_opportunities` | Scot (fixtures fallback) | done |
+| `query_usaspending` | Ledger | done |
 
-Not yet wired: a dedicated `query_usaspending` skill for Ledger
-(competitive intel). Currently Ledger's outputs ride on the same
-`risk_flags` table with a `category="competitor_history"` convention.
+Ledger's competitive-intel outputs persist to the dedicated
+`competitor_history` table (migration `20260510120100`) — the prior
+workaround of riding on `risk_flags` with `category="competitor_history"`
+was retired when the skill landed.
 
 The `.hermes/skills/govcapture/` directory holds five
 **tool-procedure** SKILL.mds (extract_requirements_with_evidence,
@@ -303,8 +305,8 @@ recipes — those live in `/root/michealaai`.
 - Auth: `AuthenticatedUser` + `InternalActor` + per-agent gck_… bearer tokens
 - Per-agent API key minting + rate limiting (Redis-backed; fail-open)
 - 4 user-facing repositories (opportunity, agent_run, company_profile, action_package) + 2 user resources (profile, waitlist)
-- 53 FastAPI path operations across 10 router modules, including 10 public `/api/v1/tools/<name>` + 3 /api/keys + 2 /opportunities/{id}/competitors + 2 /tools skill routes
-- 10 core skills + `query_usaspending` Ledger skill (parse_goal, parse_pdf, extract_requirements, score_fit, detect_risks, generate_action_package, search_sam, fetch_attachment, rank_opportunities, load_seeded, query_usaspending)
+- 53 FastAPI path operations across 10 router modules, including 11 public `/api/v1/tools/<name>` + 11 internal `/tools/<name>` + 3 /api/keys + 2 /opportunities/{id}/competitors + 2 /.well-known/*
+- 11 skills (parse_goal, parse_pdf, extract_requirements, score_fit, detect_risks, generate_action_package, search_sam, fetch_attachment, rank_opportunities, load_seeded_opportunities, query_usaspending)
 - Supabase Storage wrapper (`api/storage.py`)
 - 4 fixture sets (strong-pursue, maybe, reject, adversarial-image-pdf) with `manifest.json` + PDFs + `build_pdf.py`
 - VX1 bootstrap + deploy + nginx + systemd (runbook in `infra/RUNBOOK.md`)
@@ -312,7 +314,7 @@ recipes — those live in `/root/michealaai`.
 - Product `/web` with authenticated shell + loading skeletons + error boundaries + SSE stream upgrade
 - MCP server package (`mcp-server-govcapture` wrapping `/api/v1/tools`)
 - Eval harness scaffolding (`eval/runner/`, `eval/goldens/`, differs + tolerance) — goldens not yet bootstrapped
-- 181 passing tests (baseline 113 + 68 new across phases 1–5)
+- 183 passing tests (baseline 113 + 70 new across phases 1–5 + Hermes-plugin / MCP-server award_type_codes fixes)
 
 **Next (this repo's queue):**
 
@@ -323,10 +325,26 @@ recipes — those live in `/root/michealaai`.
 - Phase 6: Resend SMTP production email (Supabase Studio account access required)
 - v1.0.0 git tag (gated by Phase 7 + Sprint G verification)
 
-**Schema migrations committed but NOT applied:**
-- `b334c20` — api_keys table
-- `ec7eb5f` — competitor_history table
-Apply both with `supabase db push` before exercising the new routes.
+**Schema state (verified 2026-05-10 via `supabase migration list`):**
+
+| Local timestamp | Remote timestamp | Status |
+|---|---|---|
+| 20260509132444 | 20260509132444 | applied (remote_schema baseline) |
+| 20260509132830 | 20260509132830 | applied (govcon core) |
+| 20260509140333 | 20260509140333 | applied (Michaela MVP layer) |
+| 20260509140838 | 20260509140838 | applied (ownership + provenance) |
+| 20260509203000 | 20260509203000 | applied (waitlist) |
+| (none) | 20260510021500 | **REMOTE-ONLY drift** — applied to Supabase outside this repo |
+| (none) | 20260510024000 | **REMOTE-ONLY drift** — applied to Supabase outside this repo |
+| 20260510120000 | (none) | **LOCAL-ONLY** — `api_keys` (commit `b334c20`); needs `supabase db push` |
+| 20260510120100 | (none) | **LOCAL-ONLY** — `competitor_history` (commit `ec7eb5f`); needs `supabase db push` |
+
+The two LOCAL-ONLY migrations gate `/api/keys` minting and the Ledger
+`competitor_history` writebacks against the production project — push
+before exercising those routes against real Supabase. The two
+REMOTE-ONLY rows are unexpected drift; reconcile with
+`supabase db pull` and decide whether to vendor them into this repo's
+`supabase/migrations/`.
 
 **Owned by `/root/michealaai`, not us:**
 

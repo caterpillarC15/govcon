@@ -103,10 +103,10 @@ export default async function ActionPackagePage({
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-[0.08em] text-slate-500">
                 <tr>
-                  <th className="p-3">Requirement</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Next action</th>
-                  <th className="p-3">Owner</th>
+                  <th scope="col" className="p-3">Requirement</th>
+                  <th scope="col" className="p-3">Status</th>
+                  <th scope="col" className="p-3">Next action</th>
+                  <th scope="col" className="p-3">Owner</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
