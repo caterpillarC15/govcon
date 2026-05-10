@@ -9,12 +9,29 @@ function safeNext(value: string | null) {
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const oauthError = requestUrl.searchParams.get('error')
+  const oauthErrorDescription = requestUrl.searchParams.get('error_description')
   const next = safeNext(requestUrl.searchParams.get('next'))
+
+  // Provider returned an error (e.g. user denied consent, app not on the
+  // OAuth consent screen's Test users list, mismatched redirect URI).
+  // Surface the real reason instead of the generic magic-link message.
+  if (oauthError) {
+    const message = oauthErrorDescription || oauthError
+    return NextResponse.redirect(
+      new URL(
+        `/login?error=${encodeURIComponent(`Sign-in failed: ${message}`)}&next=${encodeURIComponent(next)}`,
+        requestUrl.origin,
+      ),
+    )
+  }
 
   if (!code) {
     return NextResponse.redirect(
       new URL(
-        `/login?error=${encodeURIComponent('Missing magic-link code. Request a new link.')}`,
+        `/login?error=${encodeURIComponent(
+          'Sign-in callback missing auth code. Try again or use email magic link.',
+        )}&next=${encodeURIComponent(next)}`,
         requestUrl.origin,
       ),
     )
@@ -25,9 +42,7 @@ export async function GET(request: NextRequest) {
   if (error) {
     return NextResponse.redirect(
       new URL(
-        `/login?error=${encodeURIComponent(
-          'Magic link expired or already used. Request a new link.',
-        )}`,
+        `/login?error=${encodeURIComponent(`Sign-in failed: ${error.message}`)}&next=${encodeURIComponent(next)}`,
         requestUrl.origin,
       ),
     )

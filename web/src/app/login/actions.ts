@@ -83,11 +83,22 @@ async function originUrl() {
       ? configured
       : requestOrigin || configured || 'http://localhost:3001'
 
-  if (process.env.VERCEL === '1' && isLocalOrigin(resolved)) {
+  // Refuse to send Supabase a localhost redirect from any non-development
+  // build — Vercel sets VERCEL=1, but a self-hosted prod box sets neither.
+  // NODE_ENV catches both.
+  const isDeployedEnv =
+    process.env.VERCEL === '1' || process.env.NODE_ENV === 'production'
+  if (isDeployedEnv && isLocalOrigin(resolved)) {
     throw new Error(AUTH_REDIRECT_CONFIG_ERROR)
   }
 
   return resolved
+}
+
+function callbackUrl(origin: string, next: string) {
+  const url = new URL('/auth/callback', origin)
+  url.searchParams.set('next', next)
+  return url.toString()
 }
 
 export async function signIn(formData: FormData) {
@@ -127,7 +138,7 @@ export async function signIn(formData: FormData) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      emailRedirectTo: callbackUrl(origin, next),
     },
   })
 
@@ -155,17 +166,19 @@ export async function signInWithGoogle(formData: FormData) {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      redirectTo: callbackUrl(origin, next),
       // Force account chooser so users on shared devices can switch.
       queryParams: { access_type: 'offline', prompt: 'select_account' },
     },
   })
 
-  if (error || !data?.url) {
+  if (error) {
+    redirect(`/login?error=${encodeURIComponent(`Google sign-in failed: ${error.message}`)}`)
+  }
+  if (!data?.url) {
     redirect(
       `/login?error=${encodeURIComponent(
-        error?.message ||
-          'Google sign-in is not configured. Use email magic link.',
+        'Google sign-in is not configured. Use email magic link.',
       )}`,
     )
   }

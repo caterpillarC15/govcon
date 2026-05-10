@@ -16,9 +16,15 @@ export async function createClient() {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options)
           })
-        } catch {
+        } catch (err) {
           // Server Components cannot always mutate cookies. Middleware and
           // server actions refresh sessions where mutation is available.
+          // Log in dev so a silent PKCE-verifier drop in a server action
+          // (which would surface as "code verifier not found" later)
+          // is visible during development.
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('[supabase/server] cookie setAll failed:', err)
+          }
         }
       },
     },
