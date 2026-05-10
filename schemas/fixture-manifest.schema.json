@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/fixture-manifest.schema.json",
+  "title": "FixtureManifest",
+  "description": "Per-fixture metadata used by load_seeded_opportunities and the eval harness.",
+  "type": "object",
+  "required": ["slug", "expected_decision_band", "opportunity", "attachments"],
+  "properties": {
+    "slug": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "expected_decision_band": {
+      "type": "string",
+      "enum": ["strong_pursue", "pursue", "maybe", "reject"]
+    },
+    "expected_critical_blockers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "expected_partner_suggestion": { "type": "boolean", "default": false },
+    "opportunity": {
+      "type": "object",
+      "description": "Opportunity payload passed to load_seeded_opportunities; mirrors the canonical opportunity.schema.json input shape.",
+      "required": [
+        "title",
+        "agency",
+        "solicitation_number",
+        "due_date",
+        "naics",
+        "set_aside"
+      ],
+      "properties": {
+        "title": { "type": "string" },
+        "agency": { "type": "string" },
+        "solicitation_number": { "type": "string" },
+        "source_url": { "type": ["string", "null"] },
+        "due_date": { "type": "string", "format": "date" },
+        "naics": { "type": "string" },
+        "set_aside": { "type": "string" },
+        "place_of_performance": { "type": ["string", "null"] },
+        "description": { "type": ["string", "null"] },
+        "attachments": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "raw_payload": { "type": "object" }
+      }
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["filename", "kind"],
+        "properties": {
+          "filename": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": ["solicitation", "amendment", "attachment_other"]
+          }
+        }
+      }
+    }
+  }
+}

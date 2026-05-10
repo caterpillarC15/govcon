@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/extracted-requirement-create.schema.json",
+  "title": "ExtractedRequirementCreate",
+  "description": "POST body for creating an ExtractedRequirement. Server fills id, opportunity_id (from path), and created_at.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "title", "confidence", "is_blocker"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "eligibility",
+        "technical",
+        "past_performance",
+        "certification",
+        "insurance",
+        "bonding",
+        "security",
+        "submission",
+        "evaluation",
+        "deadline",
+        "location",
+        "pricing",
+        "document_required"
+      ]
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "value": { "type": ["string", "null"] },
+    "description": { "type": ["string", "null"] },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "unknown"]
+    },
+    "evidence_snippet": { "type": ["string", "null"] },
+    "source_document": { "type": ["string", "null"] },
+    "page_number": { "type": ["integer", "null"], "minimum": 1 },
+    "is_blocker": { "type": "boolean" }
+  }
+}

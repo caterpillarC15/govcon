@@ -1,0 +1,22 @@
+{
+  "slug": "template-replace-me",
+  "expected_decision_band": "strong_pursue",
+  "expected_critical_blockers": [],
+  "expected_partner_suggestion": false,
+  "opportunity": {
+    "title": "Replace with real title",
+    "agency": "Department of X",
+    "solicitation_number": "ABC-1234",
+    "source_url": "https://sam.gov/opp/example",
+    "due_date": "2026-07-01",
+    "naics": "541512",
+    "set_aside": "Total Small Business Set-Aside",
+    "place_of_performance": "Austin, TX",
+    "description": "One-paragraph description.",
+    "attachments": ["RFP-001.pdf"],
+    "raw_payload": {}
+  },
+  "attachments": [
+    { "filename": "RFP-001.pdf", "kind": "solicitation" }
+  ]
+}

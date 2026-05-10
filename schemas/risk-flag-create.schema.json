@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/risk-flag-create.schema.json",
+  "title": "RiskFlagCreate",
+  "description": "POST body for creating a RiskFlag. Server fills id, opportunity_id (from path), and created_at.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "company_profile_id",
+    "category",
+    "severity",
+    "title",
+    "description",
+    "requires_human_review"
+  ],
+  "properties": {
+    "company_profile_id": { "type": "string", "format": "uuid" },
+    "category": {
+      "type": "string",
+      "enum": [
+        "clearance_required_unavailable",
+        "set_aside_mismatch",
+        "certification_gap",
+        "past_performance_weakness",
+        "deadline_too_close",
+        "missing_or_unclear_attachments",
+        "submission_ambiguity",
+        "insurance_or_bonding_gap",
+        "scope_mismatch",
+        "legal_compliance_review_required",
+        "pricing_complexity",
+        "required_document_not_found"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "major", "moderate", "minor"]
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "evidence": { "type": ["string", "null"] },
+    "mitigation": { "type": ["string", "null"] },
+    "requires_human_review": { "type": "boolean" }
+  }
+}

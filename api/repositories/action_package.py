@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,3 +14,11 @@ class ActionPackageRepository:
 
     async def get(self, package_id: uuid.UUID) -> ActionPackage | None:
         return await self.session.get(ActionPackage, package_id)
+
+    async def create(self, data: dict[str, Any]) -> ActionPackage:
+        row = ActionPackage(**data)
+        self.session.add(row)
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(row)
+        return row

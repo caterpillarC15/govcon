@@ -31,11 +31,12 @@ logs: ## Tail local Postgres logs (only useful when running PG=1 fallback; Supab
 	  journalctl -u postgresql -f; \
 	fi
 
-schemas: ## Regenerate Pydantic models from /schemas/*.json (and TS if /web exists)
-	@rm -rf api/schemas
-	@mkdir -p api/schemas
+schemas: ## Regenerate Pydantic models from /schemas/*.schema.json (and TS if /web exists)
+	@rm -rf api/schemas /tmp/govcon-schema-input
+	@mkdir -p api/schemas /tmp/govcon-schema-input
+	@cp schemas/*.schema.json /tmp/govcon-schema-input/
 	@uv run datamodel-codegen \
-	  --input schemas \
+	  --input /tmp/govcon-schema-input \
 	  --input-file-type jsonschema \
 	  --output api/schemas \
 	  --output-model-type pydantic_v2.BaseModel \
@@ -47,6 +48,7 @@ schemas: ## Regenerate Pydantic models from /schemas/*.json (and TS if /web exis
 	  --use-default \
 	  --enum-field-as-literal all \
 	  --disable-timestamp
+	@rm -rf /tmp/govcon-schema-input
 	@for f in api/schemas/*_schema.py; do \
 	  [ -e "$$f" ] || continue; \
 	  mv "$$f" "$${f%_schema.py}.py"; \
@@ -58,6 +60,13 @@ schemas: ## Regenerate Pydantic models from /schemas/*.json (and TS if /web exis
 	else \
 	  echo "⚠ /web/ not present — skipping TS codegen (Dev 2 wires when /web exists)"; \
 	fi
+
+fixtures-validate: ## Validate every fixture manifest against schemas/fixture-manifest.schema.json
+	@uv run python -c "import json, jsonschema, glob; \
+schema = json.load(open('schemas/fixture-manifest.schema.json')); \
+[ (jsonschema.validate(json.load(open(f)), schema), print(f'OK {f}')) \
+  for f in sorted(glob.glob('fixtures/*/manifest.json')) \
+  if '/_template/' not in f ] or print('(no fixtures yet)')"
 
 migrate: ## Apply Alembic migrations
 	cd api && uv run alembic upgrade head

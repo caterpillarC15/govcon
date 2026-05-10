@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,3 +48,33 @@ class OpportunityRepository:
             .order_by(RiskFlag.created_at)
         )
         return list(result.scalars().all())
+
+    async def create_requirement(
+        self, opp_id: uuid.UUID, data: dict[str, Any]
+    ) -> ExtractedRequirement:
+        row = ExtractedRequirement(opportunity_id=opp_id, **data)
+        self.session.add(row)
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(row)
+        return row
+
+    async def create_fit_score(
+        self, opp_id: uuid.UUID, data: dict[str, Any]
+    ) -> FitScore:
+        row = FitScore(opportunity_id=opp_id, **data)
+        self.session.add(row)
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(row)
+        return row
+
+    async def create_risk(
+        self, opp_id: uuid.UUID, data: dict[str, Any]
+    ) -> RiskFlag:
+        row = RiskFlag(opportunity_id=opp_id, **data)
+        self.session.add(row)
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(row)
+        return row
