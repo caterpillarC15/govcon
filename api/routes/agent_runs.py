@@ -8,10 +8,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from api.agent.hermes_runner import run_michaela
-from api.agent.replay import replay_example_run
 from api.auth import AuthenticatedUser, require_user
-from api.config import settings
 from api.deps import (
     get_agent_run_repo,
     get_company_profile_repo,
@@ -54,20 +51,7 @@ async def create_agent_run(
         company_profile_id=profile_id,
     )
 
-    asyncio.create_task(_kick_off_run(uuid.UUID(row["id"]), run_repo.client))
-
     return AgentRun.model_validate(row)
-
-
-async def _kick_off_run(run_id: uuid.UUID, client) -> None:
-    try:
-        await asyncio.sleep(0.25)
-        if settings.demo_replay_trace:
-            await replay_example_run(redis_client, run_id)
-        else:
-            await run_michaela(redis=redis_client, client=client, run_id=run_id)
-    except Exception:  # noqa: BLE001
-        logger.exception("agent.run kickoff failed: %s", run_id)
 
 
 @router.get("/{run_id}", response_model=AgentRun)
