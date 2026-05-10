@@ -59,9 +59,10 @@ All 11 routes from the pack's `/api/v1/tools/<name>` surface:
 | `load_seeded_opportunities` | fixture manifests → opportunities table |
 | `query_usaspending` | USASpending.gov prior-awards lookup with degraded fallback |
 
-Responses share the envelope `{"data": ..., "metrics": LLMMetrics | null}`.
-The wrapper passes the envelope through unchanged so the agent sees the
-full structure (cost, latency, model on LLM tools).
+Responses share the envelope `{"data": ...}` (PRD v1.2.6 — every
+skill is deterministic; no `metrics` field). The wrapper passes the
+envelope through unchanged. Cost + token tracking belongs to the
+caller, not this pack.
 
 ## Rate limits
 

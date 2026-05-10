@@ -198,30 +198,31 @@ input/output is validated on the API side. TypeScript/zod codegen is still
 planned, not wired. See `HERMES.md` and
 `devdocs/CAPABILITY_PACK_INTEGRATION.md` for the runtime boundary.
 
-This repo owns the **domain skills** (11) — purely deterministic
-mechanics or LLM-backed structured-output calls. Hermes built-ins
-(`verify_source_page`, `request_human_review`) are runtime-layer
-concerns and live with the orchestrator, not here.
+This repo owns the **domain skills** (11) — all deterministic
+(PRD v1.2.6). LLM judgment lives in the calling worker's agent
+context (in `/root/michealaai`); these skills hold mechanics +
+validators only. Hermes built-ins (`verify_source_page`,
+`request_human_review`) are runtime-layer concerns and live with the
+orchestrator, not here.
 
-| Skill | LLM | Input schema | Output schema |
-|-------|-----|--------------|---------------|
-| `parse_goal` | yes | `ParseGoalInput` | `{naics_codes, keywords, due_window_days, …}` |
-| `search_sam` | no | `SearchSamInput` | `Opportunity[]` |
-| `load_seeded_opportunities` | no | `LoadSeededInput` (filters) | `Opportunity[]` |
-| `rank_opportunities` | no | `RankOpportunitiesInput` | sorted `Opportunity[]` |
-| `fetch_attachment` | no | `FetchAttachmentInput` (url, opportunity_id) | `{storage_path, content_type, bytes}` |
-| `parse_pdf` | no | `ParsePdfInput` (storage_path) | `{chunks: [{page_number, text, doc_id}], unparseable: bool}` |
-| `extract_requirements` | yes | `ExtractRequirementsInput` (chunks, opportunity_id) | §10.1 `RequirementExtractionOutput` |
-| `score_fit` | conditional | `ScoreFitInput` (profile, requirements) | §10.2 `FitScoreOutput` (§11.1 short-circuit can skip the LLM) |
-| `detect_risks` | yes | `DetectRisksInput` (profile, requirements) | `RiskFlag[]` |
-| `generate_action_package` | conditional | `GenerateActionPackageInput` | §10.3 `ActionPackageOutput` (`mode: "reject_summary"` skips LLM) |
-| `query_usaspending` | no | `QueryUsaspendingInput` (opportunity_id, naics, agency) | `CompetitorHistory[]` (Ledger writeback) |
+| Skill | Caller worker | Input schema | Output |
+|-------|---------------|--------------|--------|
+| `parse_goal` | Michaela | `ParseGoalInput` | `{raw_goal, company_profile}` (pass-through) |
+| `search_sam` | Scot | `SearchSamInput` | `Opportunity[]` |
+| `load_seeded_opportunities` | Scot | `LoadSeededInput` (filters) | `Opportunity[]` |
+| `rank_opportunities` | Lenny | `RankOpportunitiesInput` | sorted `Opportunity[]` |
+| `fetch_attachment` | Happer | `FetchAttachmentInput` (url, opportunity_id) | `{storage_path, content_type, bytes}` |
+| `parse_pdf` | Happer | `ParsePdfInput` (storage_path) | `{chunks: [{page_number, text, doc_id}], unparseable: bool}` |
+| `extract_requirements` | Gate | `ExtractInput` (parsed, optional requirements) | `{chunks, requirements (validated), missing_fields, conflicts}` |
+| `score_fit` | Lenny + Gate | `ScoreFitInput` (profile, requirements, optional total_score) | §11.1 short-circuit + decision-band normalizer |
+| `detect_risks` | Gate | `DetectRisksInput` (profile, requirements, risks) | §5.8 taxonomy-validated risks |
+| `generate_action_package` | Roy | `GenerateActionPackageInput` (mode, content) | §10.3 ActionPackage (full or reject_summary) |
+| `query_usaspending` | Ledger | `QueryUsaspendingInput` (opportunity_id, naics, agency) | `CompetitorHistory[]` (writeback) |
 
-LLM-backed tools report `latency_ms` and `cost_usd` through
-`LLMMetrics`; deterministic short-circuits may report a synthetic
-zero-cost metrics block. HTTP `POST /tools/<name>` wrappers return a
-uniform `{"data": ..., "metrics": ...}` envelope, with `metrics: null`
-for pure non-LLM mechanics that do not emit metrics.
+HTTP `POST /tools/<name>` wrappers return a uniform `{"data": ...}`
+envelope. PRD v1.2.6 dropped the `metrics` field — every skill is
+deterministic, so cost + token tracking belongs with the caller, not
+this repo.
 
 Michaela bench ownership:
 
@@ -299,7 +300,7 @@ with rate limiting (60 rpm refilled at 1/s, fail-open on Redis loss).
 ### `POST /tools/<name>` — internal-only skill surface (Sprint B)
 
 All routes require `X-Internal-API-Key`. Response envelope:
-`{"data": ..., "metrics": LLMMetrics | null}`. `metrics` is null for non-LLM skills.
+`{"data": ...}` (PRD v1.2.6 — deterministic-only, no `metrics` field).
 
 | Route | Skill module | LLM | Notes |
 |---|---|---|---|

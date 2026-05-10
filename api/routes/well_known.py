@@ -65,7 +65,6 @@ async def agent_manifest() -> dict:
         },
         "envelope": {
             "data": "skill output (dict or Pydantic model dump)",
-            "metrics": "LLMMetrics if the skill called an LLM, else null",
         },
         "contact": {
             "support": "support@govcapture.example",
@@ -97,26 +96,32 @@ fit scoring, risk detection, or bid memo synthesis.
 
 ## Tools
 
-| Tool | Purpose | LLM |
-|---|---|---|
-| parse-goal | natural-language goal -> structured search criteria | yes |
-| parse-pdf | deterministic page-aware PDF text extraction | no |
-| extract-requirements | parsed PDF -> §10.1 structured requirements | yes |
-| score-fit | company × requirements -> fit score; §11.1 short-circuits eligibility blockers | conditional |
-| detect-risks | §5.8 risk taxonomy w/ silent-drop on hallucinated categories | yes |
-| generate-action-package | full bid memo (LLM) or reject_summary (deterministic) | conditional |
-| search-sam | SAM.gov v2 search; degraded fallback on rate-limit / 5xx | no |
-| fetch-attachment | URL -> Supabase Storage at raw/<run_id>/<filename> | no |
-| rank-opportunities | deterministic sort by (decision band, -score, due asc) | no |
-| load-seeded-opportunities | fixture manifests into the opportunities table; idempotent | no |
+Per PRD v1.2.6 every tool is **deterministic** — this pack holds
+mechanics + validators only; LLM judgment lives in the calling
+agent's context (see CAPABILITY_PACK_INTEGRATION.md).
+
+| Tool | Purpose |
+|---|---|
+| parse-goal | input pass-through validator (caller does goal extraction) |
+| parse-pdf | deterministic page-aware PDF text extraction |
+| extract-requirements | parsed-PDF chunks emitter + §11 evidence-binding validator |
+| score-fit | §11.1 short-circuit + decision-band normalizer (caller supplies total_score) |
+| detect-risks | §5.8 risk taxonomy validator (caller supplies risks; skill enforces filtering + critical_blocker carry-forward) |
+| generate-action-package | reject_summary mode (deterministic); full mode validates caller-supplied content + §5.13 enforcement |
+| search-sam | SAM.gov v2 search; degraded fallback on rate-limit / 5xx |
+| fetch-attachment | URL -> Supabase Storage at raw/<run_id>/<filename> |
+| rank-opportunities | deterministic sort by (decision band, -score, due asc) |
+| load-seeded-opportunities | fixture manifests into the opportunities table; idempotent |
+| query-usaspending | USASpending HTTP query → competitor_history persistence |
 
 ## Conventions
 
-- All responses share envelope: `{"data": ..., "metrics": LLMMetrics | null}`
-- `metrics: null` for non-LLM tools; populated `{model, latency_ms, cost_usd, ...}` otherwise
+- All responses share envelope: `{"data": ...}` — no `metrics` field
+  (PRD v1.2.6: every skill is deterministic, no LLM cost to report).
+  Cost + token tracking live with the caller (Michaela's bench).
 - All requests are JSON bodies; required fields per /openapi.json
 - 401 on missing/wrong auth header; 422 on malformed payload; 200 on success
-- `decision` values: strong_pursue | pursue | maybe | reject
+- `decision` values: strong_pursue | pursue | maybe | reject | needs_score
 
 ## Auth
 

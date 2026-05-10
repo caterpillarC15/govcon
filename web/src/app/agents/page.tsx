@@ -119,8 +119,8 @@ curl -X POST https://api.govcapture.example/tools/rank-opportunities \\
     ]
   }'
 
-# Response
-# {"data": {"ranked": [...]}, "metrics": null}`}
+# Response (PRD v1.2.6: deterministic skills; no metrics field)
+# {"data": {"ranked": [...]}}`}
           </pre>
         </section>
 
@@ -130,19 +130,13 @@ curl -X POST https://api.govcapture.example/tools/rank-opportunities \\
             <li>
               All responses share envelope:{' '}
               <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
-                {`{"data": ..., "metrics": LLMMetrics | null}`}
+                {`{"data": ...}`}
               </code>
             </li>
             <li>
-              Non-LLM tools return{' '}
-              <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
-                metrics: null
-              </code>
-              ; LLM tools include{' '}
-              <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
-                {`{model, latency_ms, cost_usd, …}`}
-              </code>
-              .
+              Per PRD v1.2.6 every tool is deterministic (mechanics + validators
+              only). LLM judgment lives in the calling agent's context; cost +
+              token tracking happens there, not in this envelope.
             </li>
             <li>401 on missing or wrong auth header; 422 on malformed payload; 200 on success.</li>
             <li>
