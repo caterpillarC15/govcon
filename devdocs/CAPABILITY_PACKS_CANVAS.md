@@ -1,5 +1,10 @@
 # Capability Packs Canvas
 
+> Strategic horizon — multi-pack future, hackathon demo, sellable
+> agents, pricing shape. For the V1-specific product filter that
+> shapes every prompt / UI surface / demo decision today, see
+> `devdocs/V1_PRODUCT_ALIGNMENT.md` (shorter, narrower scope).
+
 Working thesis for the company, hackathon demo, and first sellable agents.
 
 ## One-Line Thesis

@@ -1,6 +1,6 @@
 # GovCon Bid Desk capability pack — current state
 
-> Canonical synthesis dated **2026-05-10** (PRD v1.2.5). This doc
+> Canonical synthesis dated **2026-05-10** (PRD v1.2.6). This doc
 > supersedes any older PRD section or task markdown that contradicts
 > it. When this doc disagrees with `PRD.md` or `tasks/*.md`, **this doc
 > wins** until those files are rewritten to match.

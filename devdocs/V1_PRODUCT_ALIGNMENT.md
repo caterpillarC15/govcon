@@ -1,5 +1,10 @@
 # V1 Product Alignment
 
+> Today-shaped product filter for every Michaela prompt, Hermes skill,
+> UI surface, and demo decision. For the multi-pack strategic horizon
+> (pricing, what's after V1, YC pitch, second + third pack candidates),
+> see `devdocs/CAPABILITY_PACKS_CANVAS.md`.
+
 This doc is the product filter for every Michaela prompt, Hermes skill, UI
 surface, and demo decision.
 
