@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/action-package-create.schema.json",
+  "title": "ActionPackageCreate",
+  "description": "POST body for creating an ActionPackage. Server fills id and created_at.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "opportunity_id",
+    "company_profile_id",
+    "executive_summary",
+    "decision",
+    "fit_score",
+    "fit_rationale",
+    "compliance_matrix",
+    "risk_register",
+    "proposal_checklist",
+    "timeline",
+    "approval_required"
+  ],
+  "properties": {
+    "opportunity_id": { "type": "string", "format": "uuid" },
+    "company_profile_id": { "type": "string", "format": "uuid" },
+    "executive_summary": { "type": "string" },
+    "decision": { "type": "string" },
+    "fit_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "fit_rationale": { "type": "string" },
+    "compliance_matrix": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requirement", "status"],
+        "properties": {
+          "requirement": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["met", "missing", "unclear", "not_applicable"]
+          },
+          "evidence": { "type": ["string", "null"] },
+          "next_action": { "type": ["string", "null"] },
+          "owner": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "risk_register": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["risk", "severity"],
+        "properties": {
+          "risk": { "type": "string" },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "major", "moderate", "minor"]
+          },
+          "explanation": { "type": ["string", "null"] },
+          "mitigation": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "proposal_checklist": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "timeline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["task"],
+        "properties": {
+          "date": { "type": ["string", "null"] },
+          "task": { "type": "string" },
+          "owner": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "partner_suggestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["partner_type", "gap_solved"],
+        "properties": {
+          "partner_type": { "type": "string" },
+          "gap_solved": { "type": "string" },
+          "why_needed": { "type": ["string", "null"] },
+          "outreach_angle": { "type": ["string", "null"] },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          }
+        }
+      }
+    },
+    "outreach_draft": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["subject", "body"],
+      "properties": {
+        "subject": { "type": "string" },
+        "body": { "type": "string" }
+      }
+    },
+    "approval_required": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

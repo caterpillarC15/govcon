@@ -30,18 +30,41 @@ class Opportunity(BaseModel):
         extra='forbid',
     )
     id: UUID
-    slug: str = Field(..., min_length=1, max_length=160)
-    source_notice_id: str | None = Field(None, max_length=128)
+    slug: str = Field(
+        ...,
+        description='Stable URL segment; SAM-linked rows often derive from notice id / solicitation.',
+        max_length=160,
+        min_length=1,
+    )
+    source_notice_id: str | None = Field(
+        None,
+        description='SAM.gov notice id when ingested — canonical external key alongside raw_payload.',
+        max_length=128,
+    )
     title: str = Field(..., min_length=1)
     agency: str
     solicitation_number: str
-    notice_type: str | None = None
+    notice_type: str | None = Field(
+        None, description='SAM notice type / combined synopsis label when available.'
+    )
     posted_date: date | None = None
-    office_name: str | None = None
-    psc_code: str | None = None
-    resource_links: list[str] = Field(default_factory=list)
-    opportunity_status: Literal['open', 'active', 'closed'] = 'open'
-    record_kind: Literal['rfp', 'contract'] | None = None
+    office_name: str | None = Field(
+        None, description='Sub-tier office label (denormalized for list cards).'
+    )
+    psc_code: str | None = Field(
+        None,
+        description='PSC text from source (denormalized); optional FK resolution in DB.',
+    )
+    resource_links: list[str] = Field(
+        ..., description='Attachment / resource URLs from SAM resources API.'
+    )
+    opportunity_status: Literal['open', 'active', 'closed'] = Field(
+        ...,
+        description='Lifecycle for UI filtering (govbase-style Open/Active/Closed, lowercased).',
+    )
+    record_kind: Literal['rfp', 'contract'] | None = Field(
+        None, description='RFP vs already-awarded contract record when distinguishable.'
+    )
     source_url: AnyUrl | None = None
     due_date: date | None = None
     naics: str | None = None

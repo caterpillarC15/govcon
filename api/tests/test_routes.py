@@ -338,6 +338,157 @@ async def test_action_package_404(client) -> None:
     assert r.status_code == 404
 
 
+# ─── POST analysis writes (Task 0.1) ───────────────────────────────────────
+
+
+async def _seed_opp_and_profile(db_session) -> tuple[OpportunityModel, CompanyProfileModel]:
+    profile = CompanyProfileModel(
+        id=uuid.uuid4(), name="POST Co", preferred_role="either"
+    )
+    opp = OpportunityModel(
+        id=uuid.uuid4(),
+        title="POST RFP",
+        agency="POST Agency",
+        solicitation_number="POST-001",
+        attachments=[],
+    )
+    db_session.add_all([profile, opp])
+    await db_session.commit()
+    return opp, profile
+
+
+async def test_post_requirement_persists_and_returns_201(client, db_session) -> None:
+    opp, profile = await _seed_opp_and_profile(db_session)
+    payload = {
+        "type": "eligibility",
+        "title": "Small business set-aside",
+        "value": "Total small business set-aside",
+        "description": "Reserved per FAR 19.502-2.",
+        "confidence": "high",
+        "evidence_snippet": "Set aside for small businesses.",
+        "source_document": "RFP-001.pdf",
+        "page_number": 3,
+        "is_blocker": False,
+    }
+    try:
+        r = await client.post(f"/opportunities/{opp.id}/requirements", json=payload)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["title"] == "Small business set-aside"
+        assert body["confidence"] == "high"
+        assert body["opportunity_id"] == str(opp.id)
+        assert "id" in body
+    finally:
+        await db_session.delete(opp)
+        await db_session.delete(profile)
+        await db_session.commit()
+
+
+async def test_post_requirement_404_on_unknown_opportunity(client) -> None:
+    payload = {
+        "type": "eligibility",
+        "title": "X",
+        "confidence": "high",
+        "is_blocker": False,
+    }
+    r = await client.post(f"/opportunities/{uuid.uuid4()}/requirements", json=payload)
+    assert r.status_code == 404
+
+
+async def test_post_fit_score_persists_and_returns_201(client, db_session) -> None:
+    opp, profile = await _seed_opp_and_profile(db_session)
+    payload = {
+        "company_profile_id": str(profile.id),
+        "total_score": 88,
+        "decision": "strong_pursue",
+        "confidence": "high",
+        "breakdown": {
+            "capability": 18, "eligibility": 14, "naics": 9,
+            "past_performance": 12, "certification": 9,
+            "insurance_bonding": 8, "deadline": 10, "complexity": 4,
+            "geography": 4,
+        },
+        "strengths": ["AWS GovCloud experience"],
+        "weaknesses": [],
+        "blockers": [],
+        "missing_info": [],
+        "recommended_next_action": "Begin proposal drafting.",
+    }
+    try:
+        r = await client.post(f"/opportunities/{opp.id}/fit-score", json=payload)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["total_score"] == 88
+        assert body["decision"] == "strong_pursue"
+        assert body["opportunity_id"] == str(opp.id)
+    finally:
+        await db_session.delete(opp)
+        await db_session.delete(profile)
+        await db_session.commit()
+
+
+async def test_post_risk_persists_and_returns_201(client, db_session) -> None:
+    opp, profile = await _seed_opp_and_profile(db_session)
+    payload = {
+        "company_profile_id": str(profile.id),
+        "category": "deadline_too_close",
+        "severity": "major",
+        "title": "Tight deadline",
+        "description": "Submission due in 5 days.",
+        "evidence": "Section L: 5 days from posting.",
+        "mitigation": "Decline or compress drafting.",
+        "requires_human_review": True,
+    }
+    try:
+        r = await client.post(f"/opportunities/{opp.id}/risks", json=payload)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["category"] == "deadline_too_close"
+        assert body["severity"] == "major"
+        assert body["requires_human_review"] is True
+    finally:
+        await db_session.delete(opp)
+        await db_session.delete(profile)
+        await db_session.commit()
+
+
+async def test_post_action_package_persists_and_returns_201(client, db_session) -> None:
+    opp, profile = await _seed_opp_and_profile(db_session)
+    payload = {
+        "opportunity_id": str(opp.id),
+        "company_profile_id": str(profile.id),
+        "executive_summary": "Strong fit. Proceed to drafting.",
+        "decision": "strong_pursue",
+        "fit_score": 88,
+        "fit_rationale": "NAICS aligned, capabilities match.",
+        "compliance_matrix": [
+            {"requirement": "Small business", "status": "met",
+             "evidence": "Self-cert in SAM", "next_action": None, "owner": "Capture"}
+        ],
+        "risk_register": [],
+        "proposal_checklist": ["Verify SAM registration"],
+        "timeline": [{"date": "2026-06-01", "task": "Kickoff", "owner": "PM"}],
+        "approval_required": ["Authorized review required before submission."],
+    }
+    pkg_id = None
+    try:
+        r = await client.post("/action-packages", json=payload)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        pkg_id = uuid.UUID(body["id"])
+        assert body["decision"] == "strong_pursue"
+        assert body["executive_summary"] == "Strong fit. Proceed to drafting."
+        assert body["opportunity_id"] == str(opp.id)
+    finally:
+        if pkg_id:
+            pkg_row = await db_session.get(ActionPackageModel, pkg_id)
+            if pkg_row:
+                await db_session.delete(pkg_row)
+        await db_session.delete(opp)
+        await db_session.delete(profile)
+        await db_session.commit()
+
+
 # ─── /agent-runs/:id/stream (SSE smoke) ────────────────────────────────────
 
 
