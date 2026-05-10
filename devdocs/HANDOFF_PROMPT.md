@@ -349,7 +349,7 @@ A and C.
 | **D** | Vultr VX1 production deploy | 4–8 hours | Public URL; hosted /healthz | A or B working locally |
 | E | `query_usaspending` skill for Ledger (separate writeback table) | 1–2 days | Real competitive-intel content (today rides on `risk_flags` w/ category convention) | Schema PR ack |
 | F | `eval/` harness — fixture-driven regression on LLM skills | 2–3 days | Confidence in cross-version model upgrades | None |
-| G | Cross-repo coordination with `/root/michealaai` — emit-spec, run-row pickup contract, trace event format | 1–2 days | All of A/B/C in real end-to-end | michealaai's own status |
+| ~~G~~ | ~~Cross-repo coordination with `/root/michealaai` — emit-spec, run-row pickup contract, trace event format~~ — **SPEC DONE 2026-05-10** in `devdocs/CAPABILITY_PACK_INTEGRATION.md` (pickup contract, claim SQL, status state machine, INTERNAL_API_KEY provisioning, known-unknowns table). End-to-end verification owed by `/root/michealaai`. | 1–2 days | All of A/B/C in real end-to-end | michealaai's own status |
 
 **Recommended order:** B → A → G → C → D → E → F
 
