@@ -16,10 +16,18 @@ Local dev is working (dev-skip login + Supabase migrations applied + 206 tests g
 | Deploy `/web` to Vercel as 2nd project | ✅ done — `app.samrail.com` |
 | Wire env vars on both Vercel projects | ✅ done |
 | Resend SMTP in Supabase Studio (Channel A) | ✅ done — `noreply@samrail.com`, domain verified |
-| **§5.14 production-flip** (`EMAIL_DRY_RUN=false`) | ⏳ flip + enable timers |
-| VX1 production deploy (FastAPI on Vultr) | ✅ live — `api.samrail.com` |
-| Sprint G cross-repo verification with `/root/michealaai` | ⏳ |
+| FastAPI co-located on `ssh govcon` (Vultr 16 vCPU box) | ⏳ unit installed, fixing crashloop on first start |
+| Caddy block for `api.samrail.com` | ⏳ pending service-up |
+| DNS A record `api.samrail.com` → `207.246.90.84` (Vercel) | ⏳ user action |
+| **§5.14 production-flip** (`EMAIL_DRY_RUN=false`) | ⏳ flip + enable timers (gated on healthz green + advisor) |
+| Sprint G cross-repo verification with `/root/michealaai` | ⏳ DATA-SOURCES.md patch + INTERNAL_API_KEY mirror |
 | **v1.0.0 tag** | ⏳ (gated on §5.14 flip + Sprint G verify) |
+
+> **2026-05-10 note:** Earlier rows in this table previously claimed "VX1 production
+> deploy ✅ live — api.samrail.com". That was aspirational — the box was never
+> bootstrapped, `api.samrail.com` had no DNS record, and `/opt/govcapture/.env`
+> didn't exist. The deploy is now in-flight via `infra/deploy-onebox.sh`,
+> co-locating FastAPI on the same box that runs hermes-agent + michealaai.
 
 ---
 
