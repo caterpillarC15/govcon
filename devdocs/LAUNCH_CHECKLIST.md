@@ -17,7 +17,7 @@
 | Schema | All 10 migrations applied to remote Supabase (incl. drift placeholders) |
 | `/web` | Auth-hardened (`requireUser` helper) · ApprovalGate persisted server-side · SSE memoize/dedupe shipped |
 | `/landing` | SEO + a11y baseline shipped; brand strings aligned with `LANDING_BRIEF.md` |
-| Eval | 15 fixture × skill `eval_inputs` authored; goldens NOT yet bootstrapped |
+| Eval | Goldens bootstrapped (byte-exact, deterministic per PRD v1.2.6); `make eval` is the regression gate |
 | MCP | `mcp-server-govcapture` package wraps `/api/v1/tools` |
 | Infra | `bootstrap.sh`/`deploy.sh`/systemd/nginx authored + bash-syntax-clean; **§5.14 cron timers added**; never executed in prod |
 | Email Channel A (auth) | Supabase default SMTP (4/hr cap); needs swap to Resend SMTP |
@@ -77,7 +77,7 @@ Phase 6 [USER]   Vultr VX1 production deploy (now also runs the §5.14 timers
    ↓
 Phase 7 [USER+ENG]  Sprint G cross-repo verification (or SSE-stub-only fallback)
    ↓
-Phase 8 [USER+ENG]  Eval goldens bootstrap (real ANTHROPIC_API_KEY + ~$0.50)
+Phase 8 [ENG]       Eval goldens — already byte-exact + free (PRD v1.2.6)
    ↓
 Phase 9 [ENG]    v1.0.0 tag + final state docs (gated on all above)
 ```
@@ -170,7 +170,9 @@ sudo -u govcapture editor /opt/govcapture/.env
 Paste from `.env.production.example` and fill:
 
 ```
-ANTHROPIC_API_KEY        — sk-ant-api…(real)
+# PRD v1.2.6: every skill is deterministic. Anthropic, model selection,
+# and budget caps live with Michaela in /root/michealaai. This repo's
+# .env carries Supabase + Resend + Redis + INTERNAL_API_KEY only.
 SUPABASE_URL             — https://vvyxjdoenjujkxwbnzyl.supabase.co
 SUPABASE_SERVICE_ROLE_KEY — sb_secret_…
 SUPABASE_ANON_KEY        — sb_publishable_…
@@ -178,11 +180,6 @@ SUPABASE_STORAGE_BUCKET  — govcapture-attachments
 INTERNAL_API_KEY         — $INTERNAL_KEY  (the openssl rand value)
 REDIS_URL                — redis://localhost:6379/0
 CORS_ALLOWED_ORIGINS     — https://app.<your-domain>,https://<your-domain>
-LLM_DEV_MODEL            — claude-haiku-4-5-20251001
-LLM_SYNTH_MODEL          — claude-sonnet-4-6
-RUN_BUDGET_USD           — 0.50
-RUN_BUDGET_STEPS         — 40
-RUN_BUDGET_SECONDS       — 360
 NEXT_PUBLIC_API_BASE     — https://api.<your-domain>   (for parity; only /web reads this)
 
 # §5.14 weekly opportunity email — keep EMAIL_DRY_RUN=true for first deploy.
@@ -291,55 +288,35 @@ If not: ship v1.0.0 on **7-stub** alone. Add a "Known limitation" line in `CURRE
 
 ---
 
-## 6 · Phase 8 — Eval goldens bootstrap
+## 6 · Phase 8 — Eval goldens (already bootstrapped, byte-exact)
 
-**Cost:** ~$0.40–$0.60 in Sonnet tokens (12 actual LLM calls; `score_fit` short-circuits on `reject` fixture without an LLM call). Inputs already authored — `make eval-bootstrap` is one command.
+PRD v1.2.6 made every skill deterministic, so `make eval` is now a
+**byte-exact** regression gate against goldens already committed under
+`fixtures/<slug>/goldens/`. No LLM call, no Anthropic key, no budget.
+The harness PASSes today; treat it like the test suite.
 
-### 8.1 Replace placeholder Anthropic key [USER]
-
-Edit `/Volumes/CS_Stuff/govcon/.env`:
-
-```diff
-- ANTHROPIC_API_KEY=sk-ant-test-placeholder
-+ ANTHROPIC_API_KEY=sk-ant-api…<real key from console.anthropic.com>
-```
-
-### 8.2 Bootstrap goldens [ENG, ack budget first]
+### 8.1 Daily-use [ENG]
 
 ```bash
-make eval-bootstrap                      # 12 LLM calls, ~$0.50
+make eval         # diff committed goldens vs current skill output
 ```
 
-Writes `fixtures/<slug>/goldens/<skill>.json` per (fixture × skill) declared.
+Run on every PR that touches `api/skills/`, `schemas/*.json`, or any
+fixture under `fixtures/`. Failure means a skill's behavior drifted —
+either the change is intentional (and the golden needs re-bootstrapping
+in 8.2) or it's a regression (fix the skill).
 
-### 8.3 Hand-review every golden [USER+ENG]
-
-I open each generated file and check:
-
-| Skill | Golden must show |
-|---|---|
-| `parse_goal` (×3 fixtures) | keywords + naics_hints align with goal |
-| `score_fit` strong-pursue | `decision=strong_pursue`, `total_score ≥ 85`, blockers empty |
-| `score_fit` maybe | `decision=maybe`, `total_score 55–69`, suggests partner |
-| `score_fit` reject | `decision=reject`, `total_score=0`, blockers populated (§11.1 short-circuit) |
-| `detect_risks` | severities follow PRD §5.8 taxonomy |
-| `generate_action_package` strong-pursue | `mode=full`, `human_approval_required[]` populated |
-| `generate_action_package` reject | `mode=reject_summary`, no submit material |
-| `extract_requirements` adversarial | output includes `unparseable=true` marker |
-
-If any golden is wrong, we DO NOT commit it — fix the skill or the input first.
-
-### 8.4 Lock as regression gate [ENG]
+### 8.2 Re-bootstrap when behavior changes intentionally [ENG]
 
 ```bash
-make eval                                 # passes against committed goldens
-# deliberately mutate api/skills/score_fit/skill.py constant
-make eval                                 # fails (gate is real)
-git checkout api/skills/score_fit/skill.py
-make eval                                 # passes again
+make eval-bootstrap            # rewrites every golden from current skill output
+git diff fixtures/*/goldens/   # hand-review what changed before committing
+git add fixtures/*/goldens/
+git commit -m "feat(eval): re-bootstrap goldens — <what changed and why>"
 ```
 
-Commit goldens.
+Hand-review IS the gate. A drifted golden is only correct if the human
+agrees the new behavior is the intended one.
 
 ---
 
@@ -381,7 +358,7 @@ Single list of everything you need to procure before resuming. Most are free.
 
 | # | Credential | Where | Cost | Used in |
 |---|---|---|---|---|
-| 1 | Real `ANTHROPIC_API_KEY` | console.anthropic.com | pay-as-you-go (~$0.50 for eval bootstrap) | Phase 8 |
+| 1 | ~~Real `ANTHROPIC_API_KEY`~~ — **dropped at PRD v1.2.6**; pack carries no LLM credential | — | — | — |
 | 2 | Vultr account + VX1 instance | my.vultr.com | ~$96/mo for VX1 | Phase 6 |
 | 3 | A domain you control | (any registrar) | ~$10/yr | Phase 5/6 |
 | 4 | DNS record write access | (your registrar) | free | Phase 5/6 |
@@ -434,7 +411,7 @@ When any blocker clears, drop me a one-liner. Suggested phrasing:
 
 | Blocker cleared | Tell me |
 |---|---|
-| Real Anthropic key in `.env` | "Run eval bootstrap" |
+| Skill behavior intentionally changed | "Re-bootstrap goldens" — I run `make eval-bootstrap`, you hand-review the diff, we commit |
 | Resend SMTP configured in Studio | "Verify Phase 5 done" — I run a magic-link smoke test |
 | VX1 reachable + .env in place | "VX1 at <IP>, domain <domain>" — I walk through 6.4–6.8 |
 | `/root/michealaai` orchestrator ready | "michealaai is on commit <sha>" — I run Phase 7-real |

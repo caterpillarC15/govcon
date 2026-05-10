@@ -131,10 +131,10 @@ NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_API_BASE=http://localhost:8000
 
-# LLM — Anthropic (required for Hermes defaults in P0)
-ANTHROPIC_API_KEY=
-LLM_DEV_MODEL=claude-haiku-4-5-20251001
-LLM_SYNTH_MODEL=claude-sonnet-4-6
+# PRD v1.2.6: skills are deterministic — pack carries no LLM credential.
+# ANTHROPIC_API_KEY, LLM_DEV_MODEL, LLM_SYNTH_MODEL, and the
+# RUN_BUDGET_USD/STEPS/SECONDS env vars were dropped at v1.2.6. Michaela's
+# bench in /root/michealaai owns LLM calls + budget tracking.
 
 # External APIs
 SAM_API_KEY=
@@ -145,11 +145,6 @@ REDIS_URL=redis://localhost:6379/0
 # API security / CORS
 INTERNAL_API_KEY=
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:5173
-
-# Agent budgets (PRD §4.5, §17 Q1)
-RUN_BUDGET_USD=0.50
-RUN_BUDGET_STEPS=40
-RUN_BUDGET_SECONDS=360
 
 # Resend (weekly opportunity email — PRD §5.14, v1.2.6)
 RESEND_API_KEY=

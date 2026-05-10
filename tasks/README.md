@@ -45,7 +45,7 @@ These are settled. Do not relitigate without a logged decision below.
 | Deployment target | Vultr VX1 (16 vCPU / 64 GB / 960 GB / Ubuntu 24.04) | PRD §7.6 |
 | Agent runtime | **hermes-agent** (Nous Research) belongs to the Michaela project; this repo only carries pack-local Hermes context + tool procedures for isolated testing | `HERMES.md`, `devdocs/MICHAELA_SYSTEM_MODEL.md` |
 | Agent identities | Michaela / Scot / Lenny / Gate / Ledger / Happer / Roy | `devdocs/MICHAELA_SYSTEM_MODEL.md` |
-| LLM provider | Direct Anthropic Claude (Sonnet 4.6 + Haiku 4.5) via project env `ANTHROPIC_API_KEY`; OpenRouter is only a future routing option | `CONTRACTS.md §4`, `devdocs/MICHAELA_SYSTEM_MODEL.md` |
+| LLM provider | **None in this repo** — PRD v1.2.6 dropped `api/llm.py` + the anthropic SDK. Skills are deterministic. Provider auth, model selection, and budget tracking live with Michaela's bench in `/root/michealaai`. | PRD v1.2.6 changelog |
 | **Data layer** | **Supabase via `supabase-py` AsyncClient (PostgREST). No SQLAlchemy/asyncpg/Alembic.** | PRD v1.2.4, `devdocs/CURRENT_STATE.md` |
 | **Schema mgmt** | **`supabase/migrations/*.sql` applied with `supabase db push`** | PRD v1.2.4 |
 | **Auth** | Supabase JWT (`AuthenticatedUser`) for users, X-Internal-API-Key (`InternalActor`) for sub-agent writebacks | `api/auth.py` |
@@ -53,8 +53,8 @@ These are settled. Do not relitigate without a logged decision below.
 | Frontend hosting | Vercel for `/web` + `/landing`; VX1 hosts FastAPI + Redis + nginx; Supabase hosts DB/Auth/Storage | PRD §7.1, §7.6 |
 | Fixture set | strong-pursue, maybe-needs-partner, reject, adversarial-image-pdf | PRD §5.4, `FIXTURES.md` |
 | Eligibility rule | §11.1 — uncertainty = score 0 + critical blocker, never soft penalty. **Gate owns the gate.** | PRD §11.1, `api/skills/score_fit/skill.py` |
-| Cost ceiling | $0.50 per agent run | PRD §17 Q1 |
-| Step/time budget | 40 steps / 6 minutes per run | PRD §4.5 |
+| Cost ceiling | **N/A in this repo** — moved to Michaela (PRD v1.2.6) | PRD v1.2.6 changelog |
+| Step/time budget | **N/A in this repo** — moved to Michaela (PRD v1.2.6) | PRD v1.2.6 changelog |
 | **No Docker** | Local dev and VX1 prod both run Redis + FastAPI + nginx + Hermes as native services. Postgres/Auth/Storage live in Supabase. | 2026-05-09 |
 
 ---

@@ -1,5 +1,9 @@
 # Hermes context for the GovCon Bid Desk capability pack
 
+> For wiring this pack into a real Hermes runtime (Michaela's host or
+> any other), see **`devdocs/HERMES_LINK.md`**. This file documents only
+> the dev-time `HERMES_HOME=$(pwd)/.hermes hermes` testing pattern.
+
 This file gives a Hermes runtime project-context when a developer points
 their `HERMES_HOME` at this repo's `.hermes/` to test the pack's tools in
 isolation. It is **NOT** loaded by FastAPI or by any production process.

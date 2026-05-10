@@ -51,8 +51,9 @@ cp .env.example .env
 ```
 
 Fill `.env` with Supabase project values, `INTERNAL_API_KEY`, and any
-optional `SAM_API_KEY` / `ANTHROPIC_API_KEY` for the path you're
-testing.
+optional `SAM_API_KEY` for live SAM.gov reads (empty falls back to
+seeded fixtures). PRD v1.2.6 dropped the LLM credentials — this repo's
+skills are deterministic.
 
 Run the landing page:
 
@@ -76,17 +77,22 @@ uv run uvicorn api.main:app --reload
 
 Server-only:
 
-- `ANTHROPIC_API_KEY`
 - `SAM_API_KEY` (optional; empty falls back to seeded fixtures)
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_STORAGE_BUCKET`
 - `REDIS_URL`
-- `INTERNAL_API_KEY`
+- `INTERNAL_API_KEY` (also gates `POST /internal/cron/*` per PRD §5.14)
 - `CORS_ALLOWED_ORIGINS`
-- `LLM_DEV_MODEL`, `LLM_SYNTH_MODEL`
-- `RUN_BUDGET_USD`, `RUN_BUDGET_STEPS`, `RUN_BUDGET_SECONDS`
+- §5.14 weekly opportunity email: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`,
+  `EMAIL_PUBLIC_BASE_URL`, `EMAIL_UNSUBSCRIBE_SECRET`,
+  `EMAIL_LEGAL_FOOTER_ADDRESS`, `EMAIL_DRY_RUN` (default `true`),
+  plus auto-picker tunables. See `api/config.py` + `.env.example`.
+
+PRD v1.2.6 dropped: `ANTHROPIC_API_KEY`, `LLM_DEV_MODEL`,
+`LLM_SYNTH_MODEL`, `RUN_BUDGET_USD/STEPS/SECONDS` — skills are
+deterministic; LLM cost + budget tracking live with Michaela.
 
 Browser-safe:
 

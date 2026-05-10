@@ -118,30 +118,18 @@ the architecture is OpenRouter.
 
 ## Provider Guidance
 
-Use **direct Anthropic** for the project-isolated Hermes environment unless
-there is a specific model-routing reason to use OpenRouter.
+**PRD v1.2.6 update (2026-05-10):** This pack carries no LLM credential.
+The `api/llm.py` module and the `anthropic` SDK were removed; every skill
+in this repo is deterministic. Provider auth, model selection, and budget
+tracking live entirely with Michaela's bench in `/root/michealaai`. Per
+her runtime self-introduction, Michaela is on Hermes Agent v0.13.0 with
+`deepseek-v4-pro` as the primary model and Anthropic Sonnet 4.6 as the
+synthesis fallback — those are her concerns, not this repo's.
 
-Reasons:
-
-- fewer moving parts
-- clearer auth path
-- easier 401 debugging
-- FastAPI skills and Hermes workers can share `ANTHROPIC_API_KEY`
-- no confusion between OpenRouter and Anthropic credentials
-
-Project config must reference environment variables and must not contain
-literal secrets:
-
-```yaml
-providers:
-  anthropic:
-    api_key: null
-    api_key_env: ANTHROPIC_API_KEY
-```
-
-Global personal Hermes can keep separate provider settings. Project Hermes
-should be deterministic through `HERMES_HOME=<repo>/.hermes` and a project
-`.env`/isolated Hermes `.env` that both expose the same `ANTHROPIC_API_KEY`.
+If a developer wants a project-isolated Hermes for tool-call testing
+against `.hermes/` here, they set their own credential in their local
+`~/.hermes/auth.json` or in `HERMES_HOME=<repo>/.hermes/.env`. That env
+file is gitignored and never read by FastAPI.
 
 ## Data Boundary
 

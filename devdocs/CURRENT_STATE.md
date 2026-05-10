@@ -171,7 +171,6 @@ worker's job (Gate, Lenny) running in Michaela's Hermes — not ours.
 | **Schema mgmt** | `supabase/migrations/*.sql` applied with the Supabase CLI       |
 | Storage     | Supabase Storage REST API via httpx (`api/storage.py`)               |
 | Pub/sub     | Redis (`redis.asyncio`) — SSE event fan-out                          |
-| LLM         | Anthropic SDK (Sonnet 4.6 synth, Haiku 4.5 dev)                      |
 | PDFs        | pypdf for parse, reportlab+Pillow for fixture PDFs                   |
 | Frontend    | Next 15 App Router, React 19, Tailwind 4, zod                        |
 |             | `landing/` (marketing) + `/web` (product, authenticated shell)       |
@@ -183,6 +182,11 @@ on-box Postgres, the dev1-backend / dev2-frontend two-track folder
 layout, the `/var/lib/govcapture` filesystem layout, and the in-repo
 Hermes runner / seeded bridge / replay path. Orchestration now belongs
 to `/root/michealaai`; this repo only exposes the contracts it calls.
+
+PRD v1.2.6 (2026-05-10) further dropped: `api/llm.py`, the `anthropic`
+SDK, `ANTHROPIC_API_KEY`, `LLM_DEV_MODEL`, `LLM_SYNTH_MODEL`, and the
+`RUN_BUDGET_USD/STEPS/SECONDS` env vars. Skills are deterministic; LLM
+calls live in `/root/michealaai` with Michaela's bench.
 
 ---
 
@@ -334,8 +338,7 @@ recipes — those live in `/root/michealaai`.
 - Landing site (Next 15 glassmorphism) with SEO (robots.txt, JSON-LD SoftwareApplication)
 - Product `/web` with authenticated shell + loading skeletons + error boundaries + SSE stream upgrade
 - MCP server package (`mcp-server-govcapture` wrapping `/api/v1/tools`)
-- Eval harness scaffolding (`eval/runner/`, differs + tolerance) — goldens not yet bootstrapped (Phase 8.2 owed)
-- Eval inputs authored across all 4 fixtures (15 fixture × skill slots; `make eval-bootstrap` ready when ANTHROPIC_API_KEY is real)
+- Eval harness — byte-exact regression gate (PRD v1.2.6, deterministic-only). Goldens committed under `fixtures/<slug>/goldens/`; `make eval` PASSes today.
 - ApprovalGate server-side persistence: `POST /action-packages/{id}/approve` + `approved_at`/`approved_by` columns + frontend wire-up (commit `93e396b`)
 - SSE polish: RunTimeline memoize + dedupe + partial badge (commit `0f03693`)
 - Auth hardening: `getSession`→`getUser` via `requireUser` helper across 9 web routes + middleware (commit `6827594`)
@@ -349,9 +352,8 @@ recipes — those live in `/root/michealaai`.
 - Phase 5: Resend account + DNS + Supabase Studio SMTP (Channel A magic-link); also unblocks `RESEND_API_KEY` for Channel B (§5.14 weekly opportunity email).
 - Phase 6: Vultr VX1 production deploy (Vultr account + DNS + Vercel env). Once deployed, enable §5.14 cron timers via `systemctl enable --now govcapture-cron-auto-pick.timer govcapture-cron-weekly.timer`.
 - Phase 7: Sprint G cross-repo e2e (coordination with `/root/michealaai`).
-- Phase 8.2–8.4: Run `make eval-bootstrap` (real `ANTHROPIC_API_KEY` in `.env` + ~$0.40–$0.60 budget) → hand-review goldens → lock as regression gate.
 - §5.14 production-flip: see `devdocs/LAUNCH_CHECKLIST.md` §9. Sequence is dry-run smoke test → flip `EMAIL_DRY_RUN=false` → self-test send → enable timers.
-- Phase 9: v1.0.0 git tag (gated on 5/6/7/8 above).
+- Phase 9: v1.0.0 git tag (gated on 5/6/7 above).
 
 **Schema state (verified 2026-05-10 via `supabase migration list` — all applied):**
 
@@ -381,7 +383,7 @@ Studio and authoring equivalent migrations.
 - Michaela orchestrator + worker bench
 - Per-opportunity orchestration recipe
 - Trace event emission (we ship the schema; they emit against it)
-- Goldens bootstrap (token cost; user-initiated)
+- LLM cost + budget tracking (PRD v1.2.6 — pack is deterministic; Michaela owns provider auth)
 
 ---
 
@@ -391,20 +393,19 @@ Studio and authoring equivalent migrations.
 
 | Variable                           | Required | Purpose                                          |
 |------------------------------------|----------|--------------------------------------------------|
-| `ANTHROPIC_API_KEY`                | yes      | Anthropic SDK for skill-internal LLM calls       |
 | `SAM_API_KEY`                      | optional | Live SAM.gov; empty = seeded fixtures only       |
-| `SUPABASE_URL`                     | yes      | Supabase project URL                             |
+| `SUPABASE_URL`                     | yes      | Supabase project URL (`vvyxjdoenjujkxwbnzyl`)    |
 | `SUPABASE_SERVICE_ROLE_KEY`        | yes      | Server-only, bypasses RLS for internal writes    |
 | `SUPABASE_ANON_KEY`                | yes      | Used by `require_user` JWT verification          |
 | `SUPABASE_STORAGE_BUCKET`          | yes      | Default `govcapture-attachments`                 |
-| `INTERNAL_API_KEY`                 | yes      | Header value for sub-agent writeback routes      |
+| `INTERNAL_API_KEY`                 | yes      | Header value for sub-agent writeback routes; also Bearer for `/internal/cron/*` |
 | `REDIS_URL`                        | yes      | Redis pub/sub                                    |
-| `LLM_DEV_MODEL` / `LLM_SYNTH_MODEL`| yes      | Haiku / Sonnet split                             |
-| `RUN_BUDGET_USD/STEPS/SECONDS`     | yes      | PRD §4.5 budgets                                 |
-| `CORS_ALLOWED_ORIGINS`             | optional | Comma-separated list                              |
+| `CORS_ALLOWED_ORIGINS`             | optional | Comma-separated list                             |
+| `RESEND_API_KEY` + `EMAIL_*` (×13) | yes (prod) | §5.14 weekly opportunity email; production guard refuses start unless required keys are set when `EMAIL_DRY_RUN=false` |
 | `NEXT_PUBLIC_SUPABASE_URL`         | yes (/web) | Browser-safe Supabase URL                      |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`    | yes (/web) | Browser-safe Supabase anon key                 |
 | `NEXT_PUBLIC_API_BASE`             | yes (/web + landing) | FastAPI base URL                       |
+| `NEXT_PUBLIC_SITE_URL` / `NEXT_PUBLIC_APP_URL` | yes (/web + landing) | Canonical landing + app URLs |
 
 Dropped vs. earlier states: `DATABASE_URL`, `OPENAI_*`,
 `NEXT_PUBLIC_APP_NAME`, `HERMES_HOME`, `HERMES_MODEL`,
