@@ -44,6 +44,11 @@ The product truth is `PRD.md` v1.2.5. The layer model is
 
 ## Local setup
 
+> **For the full walkthrough** — prerequisites, Supabase setup,
+> migration apply, three-terminal dev workflow, dev-skip login, and
+> deployment overview — see **`devdocs/SETUP.md`**. The block below
+> is the ~30-second TL;DR for someone already-set-up.
+
 ```bash
 npm install
 uv sync
