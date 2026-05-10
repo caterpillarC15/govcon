@@ -1,15 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { api, ApiError } from '@/lib/api'
+import { api } from '@/lib/api'
 import { Card } from '@/components/Card'
 import { EmptyState } from '@/components/EmptyState'
 import type { AgentRun, Opportunity, RunStatus, TraceEvent } from '@/lib/types'
 
-const POLL_INTERVAL_MS = 2000
 const TERMINAL_STATUSES: RunStatus[] = ['complete', 'partial', 'failed']
 
 export function RunTimeline({
@@ -23,52 +22,73 @@ export function RunTimeline({
   const [opportunities, setOpportunities] =
     useState<Opportunity[]>(initialOpportunities)
   const [error, setError] = useState<string | null>(null)
-  const cancelledRef = useRef(false)
   const supabase = createClient()
 
   useEffect(() => {
-    cancelledRef.current = false
+    if (TERMINAL_STATUSES.includes(initial.status)) return undefined
 
-    async function poll() {
-      if (cancelledRef.current) return
+    let stillMounted = true
+    const es = new EventSource(`/api/run-stream/${run.id}`)
+
+    async function fetchAndSetTerminal() {
       try {
         const session = (await supabase.auth.getSession()).data.session
-        if (!session) {
-          setError('Session expired. Sign in again.')
-          return
-        }
+        if (!session) return
         const next = await api.getAgentRun(session.access_token, run.id)
-        if (cancelledRef.current) return
+        if (!stillMounted) return
         setRun(next)
-        if (next.opportunities.length !== opportunities.length) {
-          const opps = await api.listAgentRunOpportunities(
-            session.access_token,
-            run.id,
-          )
-          if (!cancelledRef.current) setOpportunities(opps)
-        }
-        if (TERMINAL_STATUSES.includes(next.status)) return
-      } catch (err) {
-        if (cancelledRef.current) return
-        setError(
-          err instanceof ApiError ? err.message : 'Could not refresh run.',
+        const opps = await api.listAgentRunOpportunities(
+          session.access_token,
+          run.id,
         )
+        if (stillMounted) setOpportunities(opps)
+      } catch {
+        /* swallow; UI already shows last-known state */
       }
-      if (!cancelledRef.current) setTimeout(poll, POLL_INTERVAL_MS)
     }
 
-    if (!TERMINAL_STATUSES.includes(run.status)) {
-      const timeout = setTimeout(poll, POLL_INTERVAL_MS)
-      return () => {
-        cancelledRef.current = true
-        clearTimeout(timeout)
+    function handle(rawType: string) {
+      return (ev: Event) => {
+        if (!stillMounted) return
+        const data = (ev as MessageEvent).data
+        let parsed: TraceEvent
+        try {
+          parsed = JSON.parse(data) as TraceEvent
+        } catch {
+          return
+        }
+        setRun((prev) => ({
+          ...prev,
+          steps: [...prev.steps, parsed],
+        }))
+        if (rawType === 'run_completed') {
+          es.close()
+          void fetchAndSetTerminal()
+        }
       }
     }
+
+    ;[
+      'run_started',
+      'step_started',
+      'step_completed',
+      'tool_called',
+      'tool_returned',
+      'opportunity_ranked',
+      'needs_human',
+      'run_completed',
+    ].forEach((t) => es.addEventListener(t, handle(t)))
+
+    es.onerror = () => {
+      if (stillMounted) setError('Live stream disconnected — retrying.')
+    }
+
     return () => {
-      cancelledRef.current = true
+      stillMounted = false
+      es.close()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [run.id])
+  }, [run.id, initial.status])
 
   return (
     <div className="space-y-6">
