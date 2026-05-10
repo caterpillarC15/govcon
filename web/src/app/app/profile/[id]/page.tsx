@@ -49,7 +49,7 @@ export default async function ProfileDetailPage({
     <div className="space-y-6">
       <Link
         href="/app/profile"
-        className="inline-flex items-center gap-1 text-sm font-medium text-blue-900 underline-offset-4 hover:underline"
+        className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
       >
         <ChevronLeft size={14} aria-hidden /> Back to profiles
       </Link>
@@ -62,7 +62,7 @@ export default async function ProfileDetailPage({
             type="button"
             disabled
             title="Profile editing comes in a follow-up sprint."
-            className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-500 disabled:cursor-not-allowed"
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-canvas-border)] bg-white px-4 text-sm font-medium text-[var(--color-ink-muted)] disabled:cursor-not-allowed"
           >
             Edit (coming soon)
           </button>
@@ -100,7 +100,7 @@ export default async function ProfileDetailPage({
       <div className="flex gap-3">
         <Link
           href={`/app/goal?profileId=${profile.id}`}
-          className="inline-flex h-10 items-center gap-2 rounded-full bg-blue-900 px-4 text-sm font-medium text-white transition hover:bg-blue-800"
+          className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-accent)] px-4 text-sm font-medium text-white transition hover:bg-[var(--color-accent-hover)]"
         >
           Start a run with this profile
         </Link>
@@ -112,10 +112,10 @@ export default async function ProfileDetailPage({
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
+      <dt className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink-muted)]">
         {label}
       </dt>
-      <dd className="mt-1 text-sm text-slate-900">{value}</dd>
+      <dd className="mt-1 text-sm text-[var(--color-ink)]">{value}</dd>
     </div>
   )
 }

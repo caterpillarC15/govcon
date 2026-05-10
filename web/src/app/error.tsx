@@ -15,18 +15,18 @@ export default function GlobalError({
   }, [error])
 
   return (
-    <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
+    <main className="min-h-screen bg-[#f7f8fb] text-[var(--color-ink)]">
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6 py-12">
         <div className="rounded-[28px] border border-white/80 bg-white/72 p-7 shadow-[0_24px_70px_-36px_rgba(15,23,42,0.42)] backdrop-blur-2xl">
           <p className="text-sm font-medium text-rose-700">Something broke</p>
           <h1 className="mt-3 text-2xl font-semibold tracking-normal">
             We hit an unexpected error
           </h1>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
+          <p className="mt-3 text-sm leading-6 text-[var(--color-ink-muted)]">
             Try again, or head back to the dashboard. If this keeps happening,
             email{' '}
             <a
-              className="font-medium text-blue-900 underline-offset-4 hover:underline"
+              className="font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
               href="mailto:support@govcapture.example"
             >
               support@govcapture.example
@@ -37,13 +37,13 @@ export default function GlobalError({
             <button
               type="button"
               onClick={() => reset()}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-ink)] px-4 text-sm font-medium text-white transition hover:bg-[#1e293b]"
             >
               Try again
             </button>
             <Link
               href="/app"
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-canvas-border)] bg-white px-4 text-sm font-medium text-[var(--color-ink)] transition hover:border-[var(--color-canvas-border)] hover:bg-slate-50"
             >
               Dashboard
             </Link>

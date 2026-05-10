@@ -66,11 +66,11 @@ export function GoalForm({ profiles }: { profiles: CompanyProfile[] }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <label className="block">
-        <span className="text-xs font-medium text-slate-600">Profile</span>
+        <span className="text-xs font-medium text-[var(--color-ink-muted)]">Profile</span>
         <select
           value={profileId}
           onChange={(e) => setProfileId(e.target.value)}
-          className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          className="mt-1 h-10 w-full rounded-xl border border-[var(--color-canvas-border)] bg-white px-3 text-sm outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent-subtle)]"
         >
           {profiles.map((profile) => (
             <option key={profile.id} value={profile.id}>
@@ -80,12 +80,12 @@ export function GoalForm({ profiles }: { profiles: CompanyProfile[] }) {
         </select>
       </label>
       <label className="block">
-        <span className="text-xs font-medium text-slate-600">Goal</span>
+        <span className="text-xs font-medium text-[var(--color-ink-muted)]">Goal</span>
         <textarea
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
           rows={4}
-          className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          className="mt-1 w-full rounded-xl border border-[var(--color-canvas-border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent-subtle)]"
         />
       </label>
       {error ? (
@@ -99,7 +99,7 @@ export function GoalForm({ profiles }: { profiles: CompanyProfile[] }) {
       <button
         type="submit"
         disabled={busy}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-blue-900 px-4 text-sm font-medium text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-4 text-sm font-medium text-white transition hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {busy ? (
           <Loader2 size={15} className="animate-spin" aria-hidden />
@@ -108,7 +108,7 @@ export function GoalForm({ profiles }: { profiles: CompanyProfile[] }) {
         )}
         {busy ? 'Queuing run…' : 'Queue run'}
       </button>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-[var(--color-ink-muted)]">
         The run row is queued for Michaela. The orchestrator picks it up,
         drives the work, and writes results back. The run page polls for
         updates.

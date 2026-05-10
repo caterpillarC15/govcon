@@ -23,7 +23,7 @@ export const NAV = [
 
 export const HERO = {
   pill: 'Private beta · onboarding design partners',
-  title: 'Find contracts worth bidding\nbefore the deadline',
+  title: 'Find contracts worth bidding before the deadline',
   subtitle:
     'Hire an AI operator that qualifies opportunities, drafts the bid plan, and keeps proposal work moving.',
   primaryCta: 'Start bid review',

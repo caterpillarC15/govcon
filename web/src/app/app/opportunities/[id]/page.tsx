@@ -27,7 +27,7 @@ const SEVERITY_CLASS: Record<string, string> = {
   critical_blocker: 'bg-rose-50 text-rose-900 border-rose-200',
   major_risk: 'bg-amber-50 text-amber-900 border-amber-200',
   moderate_risk: 'bg-sky-50 text-sky-900 border-sky-200',
-  minor_concern: 'bg-slate-50 text-slate-700 border-slate-200',
+  minor_concern: 'bg-slate-50 text-[var(--color-ink)] border-[var(--color-canvas-border)]',
 }
 
 export default async function OpportunityPage({
@@ -117,7 +117,7 @@ export default async function OpportunityPage({
     <div className="space-y-6">
       <Link
         href="/app"
-        className="inline-flex items-center gap-1 text-sm font-medium text-blue-900 underline-offset-4 hover:underline"
+        className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
       >
         <ChevronLeft size={14} aria-hidden /> Dashboard
       </Link>
@@ -137,7 +137,7 @@ export default async function OpportunityPage({
               href={opportunity.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-canvas-border)] bg-white px-4 text-sm font-medium text-[var(--color-ink)] transition hover:border-[var(--color-canvas-border)] hover:bg-slate-50"
             >
               SAM listing <ExternalLink size={14} aria-hidden />
             </Link>
@@ -147,8 +147,8 @@ export default async function OpportunityPage({
 
       {opportunity.description ? (
         <Card>
-          <p className="text-sm font-medium text-blue-900">Description</p>
-          <p className="mt-2 text-sm leading-6 text-slate-700">
+          <p className="text-sm font-medium text-[var(--color-accent)]">Description</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-ink)]">
             {opportunity.description}
           </p>
         </Card>
@@ -158,27 +158,27 @@ export default async function OpportunityPage({
 
       {requirements.length > 0 ? (
         <Card>
-          <p className="text-sm font-medium text-blue-900">
+          <p className="text-sm font-medium text-[var(--color-accent)]">
             Requirements ({requirements.length})
           </p>
           <ul className="mt-3 space-y-2">
             {requirements.map((req) => (
               <li
                 key={req.id}
-                className="rounded-2xl border border-slate-200 bg-white p-3"
+                className="rounded-2xl border border-[var(--color-canvas-border)] bg-white p-3"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-950">
+                  <p className="text-sm font-semibold text-[var(--color-ink)]">
                     {req.title}
                   </p>
-                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-[var(--color-ink-muted)]">
                     {req.type}
                   </span>
                 </div>
                 {req.value ? (
-                  <p className="mt-1 text-xs text-slate-600">{req.value}</p>
+                  <p className="mt-1 text-xs text-[var(--color-ink-muted)]">{req.value}</p>
                 ) : null}
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
                   Confidence: {req.confidence}
                   {req.is_blocker ? ' · Blocker' : ''}
                   {req.page_number ? ` · p.${req.page_number}` : ''}
@@ -191,7 +191,7 @@ export default async function OpportunityPage({
 
       {risks.length > 0 ? (
         <Card>
-          <p className="text-sm font-medium text-blue-900">
+          <p className="text-sm font-medium text-[var(--color-accent)]">
             Risks ({risks.length})
           </p>
           <ul className="mt-3 space-y-2">
@@ -238,9 +238,9 @@ function FitCard({ fit }: { fit: FitScore }) {
   const bandClass = DECISION_BAND_CLASS[band] ?? ''
   return (
     <Card>
-      <p className="text-sm font-medium text-blue-900">Fit score</p>
+      <p className="text-sm font-medium text-[var(--color-accent)]">Fit score</p>
       <div className="mt-2 flex items-baseline gap-3">
-        <span className="text-4xl font-semibold text-slate-950">
+        <span className="text-4xl font-semibold text-[var(--color-ink)]">
           {fit.total_score}
         </span>
         <span
@@ -248,17 +248,17 @@ function FitCard({ fit }: { fit: FitScore }) {
         >
           {band.replaceAll('_', ' ')}
         </span>
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-[var(--color-ink-muted)]">
           confidence: {fit.confidence}
         </span>
       </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {fit.strengths.length > 0 ? (
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink-muted)]">
               Strengths
             </p>
-            <ul className="mt-2 space-y-1 text-sm text-slate-700">
+            <ul className="mt-2 space-y-1 text-sm text-[var(--color-ink)]">
               {fit.strengths.map((s) => (
                 <li key={s}>· {s}</li>
               ))}
@@ -267,10 +267,10 @@ function FitCard({ fit }: { fit: FitScore }) {
         ) : null}
         {fit.weaknesses.length > 0 ? (
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink-muted)]">
               Weaknesses
             </p>
-            <ul className="mt-2 space-y-1 text-sm text-slate-700">
+            <ul className="mt-2 space-y-1 text-sm text-[var(--color-ink)]">
               {fit.weaknesses.map((s) => (
                 <li key={s}>· {s}</li>
               ))}

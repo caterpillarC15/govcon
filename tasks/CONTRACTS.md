@@ -151,6 +151,20 @@ RUN_BUDGET_USD=0.50
 RUN_BUDGET_STEPS=40
 RUN_BUDGET_SECONDS=360
 
+# Resend (weekly opportunity email — PRD §5.14, v1.2.6)
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=GovCapture <onboarding@resend.dev>
+RESEND_REPLY_TO=
+EMAIL_PUBLIC_BASE_URL=http://localhost:8000
+EMAIL_UNSUBSCRIBE_SECRET=
+EMAIL_LEGAL_FOOTER_ADDRESS=
+EMAIL_REQUIRE_DOUBLE_OPT_IN=false
+EMAIL_DRY_RUN=true
+EMAIL_AUTO_PICK_ENABLED=true
+EMAIL_AUTO_PICK_MIN_SCORE=60
+EMAIL_AUTO_PICK_MAX_CANDIDATES=20
+EMAIL_NAICS_ALLOWLIST=
+EMAIL_USE_FIXTURES_FOR_AUTO_PICK=false
 ```
 
 **Rules:**
@@ -162,8 +176,17 @@ RUN_BUDGET_SECONDS=360
   Vercel env or any Next.js client bundle. Frontend uses
   `NEXT_PUBLIC_SUPABASE_ANON_KEY`; FastAPI uses the service role for server
   persistence and verifies browser JWTs before protected reads/writes.
-- `INTERNAL_API_KEY` is only for Hermes/tool-write paths. Public users cannot
-  POST analysis artifacts directly.
+- `INTERNAL_API_KEY` is only for Hermes/tool-write paths AND for the
+  weekly-opportunity-email cron route (`POST /internal/cron/weekly-opportunity-email`,
+  PRD §5.14). Public users cannot POST analysis artifacts directly, and
+  the cron route is also nginx-blocked at the edge for `/internal/*` paths.
+- `EMAIL_UNSUBSCRIBE_SECRET` is the HMAC key for unsubscribe-link signing.
+  MUST differ between dev and prod. Generate with `openssl rand -hex 32`.
+- `EMAIL_LEGAL_FOOTER_ADDRESS` is required in production (`api/config.py`
+  refuses to start when `EMAIL_DRY_RUN=false` and this is empty).
+- `RESEND_API_KEY` is server-only; never prefix with `NEXT_PUBLIC_`. The
+  weekly-email job calls Resend's HTTP API from FastAPI; the Next.js
+  bundle never imports `resend`.
 
 ---
 
@@ -225,6 +248,8 @@ GET    /healthz                           → { status: "ok" }
 POST   /waitlist                          → { status: "ok", already_registered: boolean }
 GET    /.well-known/agent.json            → MCP-style agent manifest
 GET    /.well-known/llms.txt              → plain-text agent description for LLM crawlers
+GET    /email-subscriptions/unsubscribe   → 200 HTML success page (HMAC token in ?token=)  (PRD §5.14)
+POST   /email-subscriptions/unsubscribe   → 204 No Content (RFC 8058 List-Unsubscribe-Post one-click)  (PRD §5.14)
 
 # user JWT (Supabase)
 POST   /company-profiles                  → CompanyProfile
@@ -256,6 +281,10 @@ POST   /tools/<name>                      → see §6 sub-table below (×11)
 
 # per-agent bearer (gck_…) — same surface mirrored under /api/v1
 POST   /api/v1/tools/<name>               → see §6 sub-table below (×11)
+
+# internal cron — Authorization: Bearer ${INTERNAL_API_KEY} (loopback only; nginx 404s /internal/*)
+POST   /internal/cron/auto-pick-weekly-opportunity      → { week_key, opportunity_id|null, reason }   (PRD §5.14)
+POST   /internal/cron/weekly-opportunity-email          → { week_key, opportunity_id, total_eligible, sent, skipped_already_sent, failed, dry_run }   (PRD §5.14)
 ```
 
 Public: `GET /healthz`, `POST /waitlist`, the two `/.well-known/*` paths.

@@ -32,7 +32,7 @@ export default function AppError({
       <button
         type="button"
         onClick={() => reset()}
-        className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+        className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-ink)] px-4 text-sm font-medium text-white transition hover:bg-[#1e293b]"
       >
         Try again
       </button>

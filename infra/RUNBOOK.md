@@ -199,7 +199,107 @@ Schema rollback is handled in Supabase: revert the offending migration in
 `supabase/migrations/`, write the inverse migration, `supabase db push`.
 **There is no `alembic downgrade` anymore.**
 
-## 11. Common gotchas
+## 11. Weekly opportunity email (PRD §5.14, v1.2.6)
+
+A standalone outbound channel: one curated federal opportunity per week to opted-in waitlist signups via Resend. **Implementation status: spec'd, not yet built.** The bullets below are the runbook devs follow when the work lands.
+
+### Resend account + domain (one-time, manual)
+
+1. Sign up at https://resend.com (free tier covers 3,000/month).
+2. Add `<your-domain>` at https://resend.com/domains. Copy the SPF (TXT) and DKIM (3 × CNAME) records into your DNS. Wait for verification (usually <10 min).
+3. Create a sending API key at https://resend.com/api-keys with `send_emails` scope only. Capture the `re_…` value.
+4. Until step 2 verifies, the Resend sandbox sender (`onboarding@resend.dev`) only delivers to the Resend account-owner inbox — fine for the first dev test, useless for production.
+
+### Drop secrets into the box
+
+Add to `/opt/govcapture/.env`:
+
+```bash
+RESEND_API_KEY=re_…
+RESEND_FROM_EMAIL=GovCapture <noreply@your-domain>
+EMAIL_PUBLIC_BASE_URL=https://api.govcapture.example
+EMAIL_UNSUBSCRIBE_SECRET=$(openssl rand -hex 32)
+EMAIL_LEGAL_FOOTER_ADDRESS="Your Co · 123 Main St · Austin, TX 78701"
+EMAIL_DRY_RUN=true
+```
+
+Keep `EMAIL_DRY_RUN=true` until the first verified-domain test send lands.
+
+### Apply the schema migration
+
+```bash
+sudo -u govcapture -H bash -lc 'cd /opt/govcapture && supabase db push'
+```
+
+This runs `supabase/migrations/<timestamp>_add_email_preferences_and_logs.sql` which:
+- Adds `weekly_opportunity_enabled`, `unsubscribed_at`, `unsubscribed_reason`, `bounced_at`, `complained_at`, `confirmed_at`, `last_emailed_at` to `waitlist_signups`.
+- Creates `weekly_opportunity_picks` (one row per `week_key`).
+- Creates `weekly_opportunity_email_log` (UNIQUE on `(email, week_key, email_type)` for idempotency).
+
+### Install the systemd timers
+
+Two units, decoupled so a failed pick never breaks the send:
+
+```bash
+sudo cp infra/systemd/govcapture-cron-auto-pick.service /etc/systemd/system/
+sudo cp infra/systemd/govcapture-cron-auto-pick.timer  /etc/systemd/system/
+sudo cp infra/systemd/govcapture-cron-weekly.service   /etc/systemd/system/
+sudo cp infra/systemd/govcapture-cron-weekly.timer     /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now govcapture-cron-auto-pick.timer
+sudo systemctl enable --now govcapture-cron-weekly.timer
+```
+
+Cadence:
+- `govcapture-cron-auto-pick.timer` — Sunday 22:00 UTC. Picks the week's opportunity. Idempotent on `(week_key)`.
+- `govcapture-cron-weekly.timer` — Monday 14:00 UTC. Sends to eligible recipients. Idempotent on `(email, week_key, email_type)`.
+
+Both `curl` `127.0.0.1:8000/internal/cron/...` with `Authorization: Bearer ${INTERNAL_API_KEY}` from `/opt/govcapture/.env`. nginx returns 404 for `/internal/*` — these routes are loopback-only.
+
+### Manual fire (dry-run safe)
+
+```bash
+# Pick this week manually (overrides the auto-picker):
+sudo -u govcapture -H bash -lc 'cd /opt/govcapture && \
+  uv run python scripts/pick_weekly_opportunity.py --week 2026-W19 --opportunity-id <uuid>'
+
+# Trigger the auto-picker on demand:
+curl -fsS -X POST -H "Authorization: Bearer $INTERNAL_API_KEY" \
+  http://127.0.0.1:8000/internal/cron/auto-pick-weekly-opportunity
+
+# Trigger the email send on demand (respects EMAIL_DRY_RUN):
+curl -fsS -X POST -H "Authorization: Bearer $INTERNAL_API_KEY" \
+  http://127.0.0.1:8000/internal/cron/weekly-opportunity-email
+
+# Force a one-off dry-run regardless of env:
+curl -fsS -X POST -H "Authorization: Bearer $INTERNAL_API_KEY" \
+  'http://127.0.0.1:8000/internal/cron/weekly-opportunity-email?dry_run=true'
+```
+
+### Logs
+
+```bash
+sudo journalctl -u govcapture-cron-auto-pick -f
+sudo journalctl -u govcapture-cron-weekly -f
+sudo journalctl -u govcapture-api -f | grep weekly_opportunity_email
+```
+
+Per-attempt JSON logs hash recipient emails (SHA-256). Resend message IDs are kept; raw addresses, API keys, and token values never enter logs.
+
+### Going live
+
+1. Confirm a test send to your own verified inbox.
+2. Inspect the rendered email — subject < 78 chars, footer address present, unsubscribe link returns the success page when clicked.
+3. Edit `/opt/govcapture/.env`: `EMAIL_DRY_RUN=false`.
+4. `sudo systemctl restart govcapture-api`.
+5. Manually fire the cron with `?dry_run=true` to confirm settings load.
+6. The next Monday 14:00 UTC sends for real.
+
+### Rollback
+
+`EMAIL_DRY_RUN=true` + `systemctl restart govcapture-api` halts all sends immediately. Already-claimed `weekly_opportunity_email_log` rows for the current week stay (preventing accidental re-sends if you toggle back).
+
+## 12. Common gotchas
 
 | Symptom | Likely cause | Fix |
 |---|---|---|

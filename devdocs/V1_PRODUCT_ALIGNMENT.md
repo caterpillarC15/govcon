@@ -7,6 +7,11 @@ surface, and demo decision.
 
 Hire an AI bid-desk operator that finds government contracts worth pursuing and turns each one into a clear bid/no-bid decision, action plan, and team follow-up list.
 
+## Channels
+
+- **In-product run** — the full bid-desk workflow on govcapture.app (current focus).
+- **Weekly opportunity email** — one curated federal opportunity per week to opted-in waitlist signups (PRD §5.14, v1.2.6+). Honest framing: "one opportunity to read," not "you should pursue this." Sent via Resend; one-click unsubscribe. Acts as a low-commitment preview of in-product value. Implementation status: spec'd, not yet built — see `tasks/dev1-backend/tasks/A14.md`.
+
 ## What We Sell
 
 We do not sell "compliance automation," "an agent platform," "MCP," or "OpenClaw."

@@ -1,14 +1,39 @@
+import type { Metadata, Viewport } from 'next'
+import { GeistSans } from 'geist/font/sans'
+import { GeistMono } from 'geist/font/mono'
+import { Instrument_Serif } from 'next/font/google'
 import './globals.css'
 
-export const metadata = {
-  title: 'GovCapture App',
-  description: 'Authenticated GovCapture bid-desk workspace.',
+const instrumentSerif = Instrument_Serif({
+  weight: '400',
+  style: ['normal', 'italic'],
+  subsets: ['latin'],
+  variable: '--font-instrument-serif',
+  display: 'swap',
+})
+
+export const metadata: Metadata = {
+  title: {
+    default: 'GovCon Bid Desk',
+    template: '%s · GovCon Bid Desk',
+  },
+  description: 'Authenticated bid-desk workspace.',
+}
+
+export const viewport: Viewport = {
+  themeColor: '#fafaf7',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html
+      lang="en"
+      className={`${GeistSans.variable} ${GeistMono.variable} ${instrumentSerif.variable}`}
+    >
+      <body>
+        <div className="atmosphere" aria-hidden />
+        <div className="page-shell">{children}</div>
+      </body>
     </html>
   )
 }

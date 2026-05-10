@@ -1,6 +1,9 @@
 import Link from 'next/link'
-import { signIn } from './actions'
+import { signIn, signInWithGoogle } from './actions'
 import { SubmitButton } from './SubmitButton'
+import { GoogleButton } from './GoogleButton'
+import { Mark } from '@/components/Mark'
+import { ErrorBanner, inputClass } from '@/components/Field'
 
 type LoginSearchParams = {
   sent?: string
@@ -18,63 +21,109 @@ export default async function LoginPage({
   const sent = params.sent === '1'
 
   return (
-    <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6 py-12">
-        <div className="rounded-[28px] border border-white/80 bg-white/72 p-7 shadow-[0_24px_70px_-36px_rgba(15,23,42,0.42)] backdrop-blur-2xl">
-          <p className="text-sm font-medium text-blue-900">GovCapture private beta</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-normal">
+    <main className="relative min-h-screen w-full">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-12">
+        <Link
+          href="/"
+          aria-label="GovCon Bid Desk — home"
+          className="mb-7 inline-flex items-center gap-2 self-start rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+        >
+          <Mark />
+          <span className="text-[14px] font-medium tracking-tight text-[var(--color-ink)]">
+            GovCon Bid Desk
+          </span>
+        </Link>
+
+        <div className="glass-strong rounded-[var(--radius-card)] p-7">
+          <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-[var(--color-ink-muted)]">
+            Sign in or create your account
+          </p>
+          <h1 className="mt-3 text-[30px] font-semibold leading-[1.05] tracking-[-0.01em] text-[var(--color-ink)]">
             Sign in to the bid desk
           </h1>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            Enter your work email and we&apos;ll send a magic link. We don&apos;t use
-            passwords.
+          <p className="mt-3 text-[14px] leading-[1.55] text-[var(--color-ink-muted)]">
+            New here? We&apos;ll create your account automatically — no separate
+            signup step.
           </p>
 
-          {!sent && (
-            <form action={signIn} className="mt-6 space-y-4">
-              <input type="hidden" name="next" value={next} />
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Work email</span>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  placeholder="you@company.com"
-                  className="mt-2 h-11 w-full rounded-full border border-slate-200 bg-white px-4 text-sm text-slate-950 outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-                />
-              </label>
-              <SubmitButton label="Send magic link" />
-            </form>
-          )}
-
-          {sent && (
+          {sent ? (
             <div className="mt-6 space-y-4">
-              <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                <p className="font-medium">Magic link sent.</p>
-                <p className="mt-1">
-                  Check your inbox and click the link to sign in. The link works
-                  once and expires after 5 minutes.
+              <div className="glass-subtle rounded-2xl px-4 py-3 text-[13.5px] leading-[1.55] text-[var(--color-ink)]">
+                <p className="font-semibold">Magic link sent.</p>
+                <p className="mt-1 text-[var(--color-ink-muted)]">
+                  Check your inbox and click the link to sign in. The link
+                  works once and expires after 5 minutes.
                 </p>
               </div>
               <Link
                 href="/login"
-                className="block text-center text-sm font-medium text-blue-900 underline-offset-4 hover:underline"
+                className="block text-center text-[13px] font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
               >
-                Use a different email
+                Use a different method
               </Link>
             </div>
+          ) : (
+            <>
+              <form action={signInWithGoogle} className="mt-6">
+                <input type="hidden" name="next" value={next} />
+                <GoogleButton />
+              </form>
+
+              <div className="my-5 flex items-center gap-3" aria-hidden>
+                <div className="h-px flex-1 bg-[var(--color-paper-line)]" />
+                <span className="text-[11.5px] font-medium uppercase tracking-[0.12em] text-[var(--color-ink-subtle)]">
+                  or with email
+                </span>
+                <div className="h-px flex-1 bg-[var(--color-paper-line)]" />
+              </div>
+
+              <form action={signIn} className="space-y-3">
+                <input type="hidden" name="next" value={next} />
+                <label className="block">
+                  <span className="text-[12.5px] font-medium text-[var(--color-ink)]">
+                    Work email
+                  </span>
+                  <input
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    placeholder="you@company.com"
+                    className={inputClass}
+                  />
+                </label>
+                <SubmitButton label="Send magic link" />
+                <p className="pt-1 text-center text-[11.5px] text-[var(--color-ink-subtle)]">
+                  No password — we&apos;ll email you a one-time link.
+                </p>
+              </form>
+            </>
           )}
 
-          {params.error && (
-            <p
-              className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-900"
-              role="alert"
-            >
-              {params.error}
-            </p>
-          )}
+          {params.error ? (
+            <div className="mt-4">
+              <ErrorBanner message={params.error} />
+            </div>
+          ) : null}
         </div>
+
+        <p className="mt-6 text-center text-[12.5px] text-[var(--color-ink-subtle)]">
+          By signing in you agree to our{' '}
+          <Link
+            href="/terms"
+            className="underline underline-offset-2 hover:text-[var(--color-ink)]"
+          >
+            terms
+          </Link>{' '}
+          and{' '}
+          <Link
+            href="/privacy"
+            className="underline underline-offset-2 hover:text-[var(--color-ink)]"
+          >
+            privacy policy
+          </Link>
+          .
+        </p>
       </div>
     </main>
   )

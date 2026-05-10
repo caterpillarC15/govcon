@@ -12,11 +12,19 @@ export function EmptyState({
   icon?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-[20px] border border-dashed border-slate-200 bg-white/40 p-10 text-center">
-      {icon ? <div className="text-blue-900">{icon}</div> : null}
-      <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+    <div className="glass-subtle flex flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] p-10 text-center">
+      {icon ? (
+        <div className="text-[var(--color-accent)]" aria-hidden>
+          {icon}
+        </div>
+      ) : null}
+      <h3 className="text-[15px] font-semibold text-[var(--color-ink)]">
+        {title}
+      </h3>
       {description ? (
-        <p className="max-w-sm text-sm leading-6 text-slate-600">{description}</p>
+        <p className="max-w-sm text-[13.5px] leading-[1.6] text-[var(--color-ink-muted)]">
+          {description}
+        </p>
       ) : null}
       {action}
     </div>

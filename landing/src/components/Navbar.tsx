@@ -5,6 +5,13 @@ import { ArrowRight, ChevronRight, Menu, X } from 'lucide-react'
 import { NAV } from '../data/copy'
 import { cn } from '../lib/cn'
 
+// NEXT_PUBLIC_APP_URL is inlined at build time and is identical on server
+// and client, so this can't drift across hydration. Set it per-env;
+// localhost default keeps `next dev` working out of the box.
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'http://localhost:3001'
+const SIGN_IN_HREF = `${APP_URL}/login`
+
 function Mark() {
   return (
     <svg viewBox="0 0 32 32" className="w-7 h-7" aria-hidden>
@@ -94,6 +101,12 @@ export default function Navbar() {
 
             <div className="ml-auto flex items-center gap-1">
               <a
+                href={SIGN_IN_HREF}
+                className="hidden sm:inline-flex items-center rounded-full px-3 py-1 text-[13px] font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-white/40 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+              >
+                Sign in
+              </a>
+              <a
                 href="#waitlist"
                 className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[var(--color-ink)] text-white pl-3.5 pr-1 py-1 text-[13px] font-medium hover:bg-[#1e293b] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
               >
@@ -150,6 +163,24 @@ export default function Navbar() {
                     />
                   </a>
                 ))}
+                <a
+                  href={SIGN_IN_HREF}
+                  onClick={close}
+                  className={cn(
+                    'flex items-center justify-between h-12 px-4 rounded-xl',
+                    'text-[15px] font-medium text-[var(--color-ink)]',
+                    'hover:bg-white/50 active:bg-white/65 transition-colors',
+                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]',
+                  )}
+                >
+                  <span>Sign in</span>
+                  <ChevronRight
+                    size={16}
+                    strokeWidth={1.75}
+                    className="text-[var(--color-ink-subtle)]"
+                    aria-hidden
+                  />
+                </a>
                 <div className="glass-rule mx-2 my-2" aria-hidden />
                 <a
                   href="#waitlist"

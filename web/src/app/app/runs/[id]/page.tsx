@@ -52,7 +52,7 @@ export default async function RunDetailPage({
     <div className="space-y-6">
       <Link
         href="/app"
-        className="inline-flex items-center gap-1 text-sm font-medium text-blue-900 underline-offset-4 hover:underline"
+        className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
       >
         <ChevronLeft size={14} aria-hidden /> Dashboard
       </Link>

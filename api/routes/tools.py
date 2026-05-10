@@ -1,10 +1,12 @@
 """Internal HTTP surface for the GovCon skills.
 
 Every endpoint POST /tools/<name> requires X-Internal-API-Key (InternalActor).
-Responses share a uniform `{"data": ..., "metrics": ...}` envelope:
+Responses share a uniform `{"data": ..., "metrics": null}` envelope.
 
-    - data:    skill output (dict or Pydantic model dump)
-    - metrics: LLMMetrics if the skill called an LLM, else null
+Per PRD v1.2.6, every skill is deterministic — `metrics` is always
+None. Phase 7 of the skills-deterministic-only plan drops the field
+entirely; for now it stays as a placeholder so cross-repo callers
+(`/root/michealaai`) keep parsing the envelope without breaking.
 
 Routes intentionally hold no business logic — they validate input via
 api.schemas.tool_requests, dispatch to the underlying skill, and return.
@@ -20,7 +22,6 @@ from supabase import AsyncClient
 from api.auth import InternalActor, require_internal_actor
 from api.config import settings
 from api.deps import get_storage, get_supabase
-from api.llm import LLMMetrics
 from api.schemas.tool_requests import (
     DetectRisksRequest,
     ExtractRequirementsRequest,
@@ -52,7 +53,9 @@ router = APIRouter(prefix="/tools", tags=["tools"])
 
 class ToolResponse(BaseModel):
     data: Any
-    metrics: LLMMetrics | None = None
+    # PRD v1.2.6: every skill is deterministic; field always None.
+    # Phase 7 will drop the field. Callers must stop reading it.
+    metrics: None = None
 
 
 @router.post("/parse-goal", response_model=ToolResponse)

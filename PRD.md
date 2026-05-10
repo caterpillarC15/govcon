@@ -3,10 +3,18 @@
 ## Product Requirements Document
 
 **Product name:** GovCapture Agent
-**Document status:** MVP PRD v1.2.5
+**Document status:** MVP PRD v1.2.6
 **Primary track:** Agents Track
 **Primary objective:** Build an autonomous AI capture agent that turns a small business profile and government contracting goal into a useful federal opportunity analysis package by searching opportunities, parsing solicitation documents, extracting requirements, scoring fit, detecting blockers, and producing actionable next steps with human approval gates.
 
+> **Changelog v1.2.5 → v1.2.6** (2026-05-10)
+> - **Added §5.14 Weekly Opportunity Email.** A standalone outbound channel: one curated federal opportunity per week to opted-in waitlist signups, sent via Resend. The pick is chosen by an LLM auto-picker against a clearly-labeled synthetic SMB profile, gated by deterministic safety filters (no narrow set-asides, deadline ≥ 14 days, no clearance/CUI keywords, US performance). PRD §11.1 spirit is preserved across the audience: when in doubt, refuse to pick. The email job is idempotent per `(email, week_key)`, dry-run by default, and refuses to send in production unless `EMAIL_LEGAL_FOOTER_ADDRESS` is set.
+> - **§6 wording corrected.** "Real email sending" was always meant to forbid auto-submission of proposals via email, not all outbound mail. Replaced with "Real proposal submission via email" so weekly opportunity emails are unambiguously in scope.
+> - **§17 Q10 added** — Resend domain verification status (default: dev uses sandbox sender; prod requires verified domain DNS).
+> - **Two systemd timers added** on the VX1: `govcapture-cron-auto-pick.timer` (Sun 22:00 UTC, runs the picker) and `govcapture-cron-weekly.timer` (Mon 14:00 UTC, runs the send). Decoupled so a failed pick never breaks the send job. Both gated by `INTERNAL_API_KEY`.
+> - **Reuses existing `INTERNAL_API_KEY`** for cron auth — no new `CRON_SECRET` env var.
+> - **Reuses the existing `waitlist_signups` table** by adding `weekly_opportunity_enabled`, `unsubscribed_at`, `unsubscribed_reason`, `bounced_at`, `complained_at`, `confirmed_at`, `last_emailed_at` columns. Two new tables `weekly_opportunity_picks` and `weekly_opportunity_email_log` carry per-week curation and per-recipient idempotency. New Supabase migration under `supabase/migrations/`.
+>
 > **Changelog v1.2.4 → v1.2.5** (2026-05-09)
 > - **Repo boundary corrected.** This repo is now the GovCon Bid Desk
 >   capability pack: tools, schemas, Supabase data layer, FastAPI routes,
@@ -707,7 +715,92 @@ Buttons may include:
 * Mark reviewed
 * Export package
 
-No real email sending is required for MVP.
+No real email sending is required for MVP. (Inside the agent run, that is. Outbound marketing email — the §5.14 weekly opportunity drop — is a separate, opt-in channel.)
+
+---
+
+## 5.14 Weekly Opportunity Email
+
+A standalone outbound channel: one curated federal opportunity per week, sent to opted-in subscribers as a low-commitment preview of what the bid-desk produces in-product. **One email per recipient per week, ever.** Unsubscribe is one-click and works without login.
+
+### Audience
+
+Reuses `waitlist_signups` (the existing landing form). New columns on that table track preferences:
+
+* `weekly_opportunity_enabled` (default `true` — the form copy says "we'll send you one curated federal opportunity each week")
+* `unsubscribed_at` / `unsubscribed_reason`
+* `bounced_at` / `complained_at` (driven by future Resend webhook; harmless until then)
+* `confirmed_at` (only consulted if `EMAIL_REQUIRE_DOUBLE_OPT_IN=true`; default `false`)
+* `last_emailed_at` (denormalized convenience; authoritative log is `weekly_opportunity_email_log`)
+
+Eligibility = `weekly_opportunity_enabled AND unsubscribed_at IS NULL AND bounced_at IS NULL AND complained_at IS NULL AND no row in weekly_opportunity_email_log for (email, week_key, 'weekly_opportunity', 'sent')`.
+
+### Cadence and idempotency
+
+* `week_key = "YYYY-Www"` (ISO 8601, UTC).
+* `weekly_opportunity_email_log` carries `UNIQUE (email, week_key, email_type)`. Job uses two-phase `INSERT … ON CONFLICT DO NOTHING RETURNING id` to claim a slot atomically before calling Resend, then `UPDATE` with `status='sent', resend_message_id, sent_at`.
+* On Resend 4xx/5xx, the row is left as `failed`. The next weekly run will skip it (slot taken). Re-attempt requires manual `DELETE` — intentional, prevents runaway retries that look spammy.
+
+### Pick selection
+
+Two paths into `weekly_opportunity_picks (week_key UNIQUE, opportunity_id, source, picker_audit, …)`:
+
+1. **Curator override** — `scripts/pick_weekly_opportunity.py --week 2026-W19 --opportunity-id <uuid>`. `source='manual'`. Refuses fixture-sourced opportunities unless `--allow-fixture` is passed.
+2. **LLM auto-picker** — `api/jobs/auto_pick_weekly_opportunity.py`, fired by `govcapture-cron-auto-pick.timer` Sunday 22:00 UTC. Pulls a candidate set from the last 7 days of cached opportunities (or live SAM if `SAM_API_KEY` set), applies hard safety filters, ranks survivors against a clearly-labeled synthetic SMB profile via the existing `score_fit` skill, picks the top candidate above `EMAIL_AUTO_PICK_MIN_SCORE` (default 60) with `confidence ∈ {high, medium}`. `source='llm_auto'`. If no candidate passes, no row is written and the Monday send job exits clean. The `picker_audit` JSONB column logs which candidates were considered and why each was rejected.
+
+Manual override wins via `INSERT … ON CONFLICT (week_key) DO NOTHING` — if the curator pinned a pick before Sunday 22:00, the auto-picker silently skips.
+
+### Hard safety filters (auto-picker, deterministic, no LLM input)
+
+Honor the spirit of §11.1 across an audience the agent does not have CompanyProfile data for:
+
+* `set_aside IS NULL OR set_aside = 'Total Small Business'`. Anything narrower (8(a), HUBZone, WOSB, EDWOSB, SDVOSB, VOSB) requires per-subscriber eligibility we don't have.
+* `due_date >= today + 14 days`. Recipient needs time to act.
+* `place_of_performance` is US (NULL or US states).
+* Description does not contain (case-insensitive whole-word): `secret`, `top secret`, `clearance`, `cleared personnel`, `CUI`, `controlled unclassified`, `ITAR`, `classified`.
+* NAICS in `EMAIL_NAICS_ALLOWLIST` if set.
+* `attachments` non-empty.
+
+Only survivors are scored.
+
+### Email content
+
+Subject: `"This week's federal opportunity: {opportunity.title[:60]}"`. Plain-text alternative always sent alongside HTML.
+
+Body, in order:
+
+1. Header — "GovCapture · Week NN, YYYY".
+2. Honest framing — "One contract worth a look. We picked it from this week's SAM.gov listings." Not "you should pursue this."
+3. Opportunity card — title, agency, solicitation number, due date, NAICS, set-aside, place of performance, short description.
+4. Single CTA button — "View on SAM.gov" linking to `opportunity.source_url`. No secondary CTAs.
+5. Honest framing 2 — "This isn't a fit analysis — it's one opportunity to read. Run a real fit check at govcapture.app."
+6. Footer — sender name, `EMAIL_LEGAL_FOOTER_ADDRESS`, signed unsubscribe link, "you're getting this because…" line.
+
+No fake personalization (no `Hi {first_name}` — we don't have first names).
+
+### Headers
+
+* `List-Unsubscribe: <https://api.govcapture.example/email-subscriptions/unsubscribe?token=…>, <mailto:unsubscribe@govcapture.app>`
+* `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058)
+* `X-Entity-Ref-ID: <log_row_id>` for trace correlation
+
+### Unsubscribe
+
+Token = `base64url(HMAC-SHA256(EMAIL_UNSUBSCRIBE_SECRET, subscription_id + ':' + email))`. Stable across weeks. URL `GET /email-subscriptions/unsubscribe?token=…` validates, sets `unsubscribed_at = now()`, returns a small inline HTML page from FastAPI (no Next.js round-trip). `POST` of the same URL serves List-Unsubscribe-Post one-click and returns 204. Raw subscription IDs and emails never appear in URLs — the HMAC binds them.
+
+### Cron + protection
+
+* `POST /internal/cron/weekly-opportunity-email` requires `Authorization: Bearer ${INTERNAL_API_KEY}` (constant-time compare). Returns structured JSON: `{week_key, opportunity_id, total_eligible, sent, skipped_already_sent, failed, dry_run}`.
+* nginx returns 404 for `/internal/*` paths at the edge — the route is reachable only over loopback from the systemd timer.
+* `EMAIL_DRY_RUN=true` (default) writes `weekly_opportunity_email_log` rows with `status='dry_run'` and never calls Resend. Production deploy must explicitly flip to `false` after a verified domain test.
+
+### Production gating
+
+`api/config.py` refuses to start when `EMAIL_DRY_RUN=false` AND any of `RESEND_API_KEY`, `EMAIL_UNSUBSCRIBE_SECRET`, `EMAIL_LEGAL_FOOTER_ADDRESS` is empty.
+
+### Observability
+
+Per-attempt structured JSON to `journalctl -u govcapture-cron-weekly`. Logs hash recipient emails (SHA-256). Resend message ID retained — not a secret. No raw email addresses, no API keys, no token values in logs.
 
 ---
 
@@ -724,7 +817,7 @@ The MVP will not include:
 * Full partner marketplace
 * Payment system
 * Team workspaces
-* Real email sending
+* Real proposal submission via email (weekly opportunity emails ARE in scope — see §5.14)
 * Google Docs export
 * Full proposal drafting from scratch
 * Self-hosted models
@@ -1505,6 +1598,7 @@ These are unresolved decisions to track during build. None block Phase 1, but ea
 | 7 | What happens when fit score is borderline (e.g., 54 vs. 55)? | Phase 4 | Display score with confidence band; do not treat boundary as binary. |
 | 8 | Do we need amendment-detection (solicitation modifications)? | Phase 3 | Out of scope for MVP; document as known limitation. |
 | 9 | Hackathon track selection — Agents Track only, or also layer Texas Open Data? | Phase 6 | **Agents Track is primary.** Optional stretch: ship a TX place-of-performance filter and an adapter for `data.austintexas.gov` / `data.sanantonio.gov` / `data.houstontx.gov` / `dallasopendata.com` to surface state and local procurement alongside federal SAM opportunities. Adds a Texas relevance signal for AITX judges without diluting the Agents Track submission. |
+| 10 | §5.14 weekly opportunity email — sender domain status? | Outbound email | **Default to the Resend sandbox sender** (`onboarding@resend.dev`) which only delivers to the Resend account-owner inbox — fine for dev. Production requires a verified domain at resend.com/domains (SPF + DKIM + optional DMARC DNS records); flip `RESEND_FROM_EMAIL` to a `noreply@<verified-domain>` address before flipping `EMAIL_DRY_RUN=false`. |
 
 ## Top product risks
 
@@ -1526,8 +1620,9 @@ MVP commitments:
 * No CUI (Controlled Unclassified Information) or classified material should be uploaded; the upload UI must display this restriction.
 * Raw uploaded documents are retained per §17 question 6; users can request deletion.
 * No PII beyond user email and company-volunteered profile data is collected.
+* **Weekly opportunity email subscribers (§5.14):** address is shared with Resend (email-delivery processor) at send time and stored in Supabase Postgres. No third-party sharing beyond delivery. Unsubscribe is one-click and removes the recipient from all future sends; the `weekly_opportunity_email_log` row is retained for audit but the subscription row is marked `unsubscribed_at` and skipped by all future eligibility queries.
 
-Out of scope for MVP: SOC 2, FedRAMP, ITAR handling, encrypted-at-rest guarantees beyond cloud provider defaults.
+Out of scope for MVP: SOC 2, FedRAMP, ITAR handling, encrypted-at-rest guarantees beyond cloud provider defaults, GDPR/CCPA data-subject-request endpoints beyond unsubscribe, Resend bounce/complaint webhook ingestion (planned post-MVP — `bounced_at`/`complained_at` columns are present and unused).
 
 ---
 

@@ -128,10 +128,10 @@ export function RunTimeline({
           <div className="flex items-center gap-3">
             <StatusBadge status={run.status} />
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-ink-muted)]">
                 Status
               </p>
-              <h2 className="text-lg font-semibold text-slate-950">
+              <h2 className="text-lg font-semibold text-[var(--color-ink)]">
                 {humanStatus(run.status)}
               </h2>
             </div>
@@ -139,7 +139,7 @@ export function RunTimeline({
           {run.action_package_id ? (
             <Link
               href={`/app/action-packages/${run.action_package_id}`}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-blue-900 px-4 text-sm font-medium text-white transition hover:bg-blue-800"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-accent)] px-4 text-sm font-medium text-white transition hover:bg-[var(--color-accent-hover)]"
             >
               Open action package
             </Link>
@@ -173,20 +173,20 @@ export function RunTimeline({
         ) : null}
 
         <div className="mt-5">
-          <p className="text-sm font-medium text-blue-900">Run timeline</p>
-          <div className="mt-3 max-h-[360px] overflow-auto rounded-2xl border border-slate-200 bg-white">
+          <p className="text-sm font-medium text-[var(--color-accent)]">Run timeline</p>
+          <div className="mt-3 max-h-[360px] overflow-auto rounded-2xl border border-[var(--color-canvas-border)] bg-white">
             {run.steps.length === 0 ? (
-              <p className="p-4 text-sm text-slate-500">
+              <p className="p-4 text-sm text-[var(--color-ink-muted)]">
                 No trace events yet. Michaela has not written results for this run.
               </p>
             ) : (
               <ol className="divide-y divide-slate-100">
                 {run.steps.map((event, index) => (
                   <li key={`${event.type}-${index}`} className="p-3">
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-[var(--color-ink)]">
                       {eventLabel(event)}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
                       {event.type}
                       {event.cost_usd != null
                         ? ` · $${event.cost_usd.toFixed(4)}`
@@ -205,7 +205,7 @@ export function RunTimeline({
 
       {opportunities.length > 0 ? (
         <Card>
-          <p className="text-sm font-medium text-blue-900">
+          <p className="text-sm font-medium text-[var(--color-accent)]">
             Ranked opportunities
           </p>
           <ul className="mt-3 grid gap-3">
@@ -213,12 +213,12 @@ export function RunTimeline({
               <li key={opportunity.id}>
                 <Link
                   href={`/app/opportunities/${opportunity.id}`}
-                  className="block rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:bg-slate-50"
+                  className="block rounded-2xl border border-[var(--color-canvas-border)] bg-white p-4 transition hover:border-[var(--color-canvas-border)] hover:bg-slate-50"
                 >
-                  <p className="text-sm font-semibold text-slate-950">
+                  <p className="text-sm font-semibold text-[var(--color-ink)]">
                     {opportunity.title}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
                     {opportunity.agency} ·{' '}
                     {opportunity.naics ?? 'NAICS unknown'} ·{' '}
                     {opportunity.due_date ?? 'No due date'}
@@ -257,7 +257,7 @@ function StatusBadge({ status }: { status: RunStatus }) {
       <Loader2 size={28} className="animate-spin text-blue-700" aria-hidden />
     )
   }
-  return <Clock size={28} className="text-slate-500" aria-hidden />
+  return <Clock size={28} className="text-[var(--color-ink-muted)]" aria-hidden />
 }
 
 function humanStatus(status: RunStatus) {

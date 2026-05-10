@@ -134,7 +134,7 @@ export function ProfileForm() {
             className={inputCls}
           />
         </Field>
-        <label className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700">
+        <label className="flex h-10 items-center gap-2 rounded-xl border border-[var(--color-canvas-border)] bg-white px-3 text-xs font-medium text-[var(--color-ink)]">
           <input
             type="checkbox"
             checked={form.smallBusiness}
@@ -166,7 +166,7 @@ export function ProfileForm() {
       <button
         type="submit"
         disabled={busy}
-        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[var(--color-ink)] px-4 text-sm font-medium text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {busy ? <Loader2 size={15} className="animate-spin" aria-hidden /> : null}
         {busy ? 'Saving…' : 'Create profile'}
@@ -176,7 +176,7 @@ export function ProfileForm() {
 }
 
 const inputCls =
-  'mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20'
+  'mt-1 w-full rounded-xl border border-[var(--color-canvas-border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent-subtle)]'
 
 function Field({
   label,
@@ -189,7 +189,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-medium text-slate-600">
+      <span className="text-xs font-medium text-[var(--color-ink-muted)]">
         {label}
         {required ? ' *' : ''}
       </span>

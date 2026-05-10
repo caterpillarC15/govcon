@@ -52,7 +52,7 @@ export function ApprovalGate({
       <ul className="space-y-2">
         {items.map((item, i) => (
           <li key={i}>
-            <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+            <label className="flex items-start gap-3 rounded-xl border border-[var(--color-canvas-border)] bg-white p-3 text-sm">
               <input
                 type="checkbox"
                 checked={!!checked[i]}
@@ -78,7 +78,7 @@ export function ApprovalGate({
         type="button"
         disabled={!allChecked || pending}
         onClick={handleApprove}
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-blue-900 px-4 text-sm font-medium text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-4 text-sm font-medium text-white transition hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? 'Recording…' : 'Approve & continue'}
       </button>

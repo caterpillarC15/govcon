@@ -1,13 +1,10 @@
 """FastAPI dependency providers."""
 from __future__ import annotations
 
-from functools import lru_cache
-
 from fastapi import Depends
 from supabase import AsyncClient
 
 from api.db import get_client
-from api.llm import LLM
 from api.repositories.action_package import ActionPackageRepository
 from api.repositories.agent_run import AgentRunRepository
 from api.repositories.company_profile import CompanyProfileRepository
@@ -80,15 +77,6 @@ def get_weekly_email_log_repo(
     client: AsyncClient = Depends(get_supabase),
 ) -> WeeklyOpportunityEmailLogRepository:
     return WeeklyOpportunityEmailLogRepository(client)
-
-
-@lru_cache
-def _llm_singleton() -> LLM:
-    return LLM()
-
-
-def get_llm() -> LLM:
-    return _llm_singleton()
 
 
 def get_storage() -> StorageAdapter:

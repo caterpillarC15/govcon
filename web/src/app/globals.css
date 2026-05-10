@@ -1,11 +1,9 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /*
- * Design tokens for the /web product UI.
- * Mirrors landing/src/app/globals.css color/typography/radii subset
- * so both apps share the same brand vocabulary in Tailwind v4
- * utilities. Atmosphere/glass effects are landing-only and not
- * ported here.
+ * Web app design tokens. Mirrors landing/src/app/globals.css so the
+ * authenticated workspace shares the brand language (atmosphere,
+ * liquid-glass, ink/cream palette, Geist + Instrument Serif).
  */
 @theme {
   --color-ink: #0f172a;
@@ -16,6 +14,12 @@
   --color-canvas-subtle: #f6f7fb;
   --color-canvas-sunken: #eef0f6;
   --color-canvas-border: #e2e8f0;
+  --color-canvas-warm: #fafaf7;
+  --color-canvas-warm-deep: #efede7;
+
+  --color-paper: #ffffff;
+  --color-paper-line: rgba(15, 23, 42, 0.09);
+  --color-paper-shadow: rgba(15, 23, 42, 0.04);
 
   --color-accent: #1e3a8a;
   --color-accent-hover: #1e40af;
@@ -36,12 +40,15 @@
   --color-status-unclear: #b45309;
   --color-status-na: #94a3b8;
 
-  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, 'Times New Roman',
+    serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, 'SF Mono',
+    Menlo, Consolas, monospace;
 
-  --radius-card: 14px;
-  --radius-tile: 8px;
+  --radius-card: 22px;
+  --radius-tile: 12px;
   --radius-pill: 9999px;
 }
 
@@ -52,13 +59,247 @@ body {
 
 body {
   margin: 0;
+  background: var(--color-canvas-warm);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  background: var(--color-canvas-subtle);
-  color: var(--color-ink);
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
 }
 
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ================================================================
+ * Atmosphere — pure CSS layered light fields. Drop a <div class="atmosphere">
+ * fixed behind the page so .glass surfaces have color to refract.
+ * ================================================================ */
+.atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(62% 52% at 22% 6%, rgba(255, 222, 162, 0.62), transparent 72%),
+    radial-gradient(64% 54% at 86% 88%, rgba(180, 209, 255, 0.55), transparent 76%),
+    radial-gradient(46% 40% at 82% 18%, rgba(218, 198, 255, 0.34), transparent 76%),
+    linear-gradient(180deg, var(--color-canvas-warm) 0%, var(--color-canvas-warm-deep) 100%);
+}
+
+.atmosphere::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.025) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(ellipse 95% 70% at 50% 35%, #000 25%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 95% 70% at 50% 35%, #000 25%, transparent 100%);
+}
+
+.atmosphere::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 92% 82% at 50% 45%,
+    transparent 60%,
+    rgba(15, 23, 42, 0.07) 100%
+  );
+}
+
+/* Page content sits above the atmosphere. */
+.page-shell {
+  position: relative;
+  z-index: 1;
+}
+
+/* ================================================================
+ * Liquid-glass material — matches landing.
+ * .glass / .glass-strong / .glass-subtle / .glass-nav
+ * ================================================================ */
+@layer components {
+  .glass,
+  .glass-strong,
+  .glass-subtle,
+  .glass-nav {
+    position: relative;
+    isolation: isolate;
+  }
+}
+
+.glass > *,
+.glass-strong > *,
+.glass-subtle > *,
+.glass-nav > * {
+  position: relative;
+  z-index: 1;
+}
+
+.glass::before,
+.glass-strong::before,
+.glass-subtle::before,
+.glass-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.28) 10%,
+    rgba(255, 255, 255, 0.06) 26%,
+    rgba(255, 255, 255, 0) 46%
+  );
+  z-index: 0;
+}
+
+.glass-strong::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 0;
+  height: 18%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    ellipse 80% 100% at 35% 0%,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.18) 35%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  filter: blur(6px);
+  z-index: 0;
+}
+
+.glass {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.66) 0%,
+    rgba(255, 255, 255, 0.42) 100%
+  );
+  backdrop-filter: blur(20px) saturate(195%);
+  -webkit-backdrop-filter: blur(20px) saturate(195%);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 22px 48px -18px rgba(15, 23, 42, 0.18),
+    0 6px 16px -6px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.05);
+}
+
+.glass-strong {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.84) 0%,
+    rgba(255, 255, 255, 0.58) 100%
+  );
+  backdrop-filter: blur(26px) saturate(210%);
+  -webkit-backdrop-filter: blur(26px) saturate(210%);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 36px 72px -22px rgba(15, 23, 42, 0.26),
+    0 10px 22px -6px rgba(15, 23, 42, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.06);
+}
+
+.glass-subtle {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.56) 0%,
+    rgba(255, 255, 255, 0.34) 100%
+  );
+  backdrop-filter: blur(12px) saturate(170%);
+  -webkit-backdrop-filter: blur(12px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 8px 20px -8px rgba(15, 23, 42, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.glass-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.82) 0%,
+    rgba(255, 255, 255, 0.62) 100%
+  );
+  backdrop-filter: blur(22px) saturate(190%);
+  -webkit-backdrop-filter: blur(22px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 16px 32px -16px rgba(15, 23, 42, 0.2),
+    0 2px 6px -2px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+
+.glass-rule {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(15, 23, 42, 0.1) 12%,
+    rgba(15, 23, 42, 0.1) 88%,
+    transparent
+  );
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-strong,
+  .glass-subtle,
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.94);
+  }
+}
+
+@media (max-width: 640px) {
+  .glass {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.76));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+  }
+  .glass-strong {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.88));
+    backdrop-filter: blur(20px) saturate(190%);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+  }
+  .glass-subtle {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.68));
+    backdrop-filter: blur(10px) saturate(160%);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
+  }
+  .glass-nav {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.82));
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+  }
+  .glass-strong::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }

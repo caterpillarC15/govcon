@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { signOut } from '../login/actions'
 import { createClient } from '@/lib/supabase/server'
+import { Mark } from '@/components/Mark'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,44 +18,81 @@ export default async function AppLayout({
   if (!user) redirect('/login')
 
   return (
-    <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-6 sm:px-8">
-        <header className="flex flex-col gap-4 rounded-[28px] border border-white/80 bg-white/72 p-5 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.44)] backdrop-blur-2xl sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <Link
-              href="/app"
-              className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500 transition hover:text-slate-700"
-            >
-              GovCapture
-            </Link>
-            <h1 className="mt-1 text-2xl font-semibold tracking-normal">
-              Michaela bid desk
-            </h1>
-            <p className="mt-1 text-sm text-slate-600">{user.email}</p>
-          </div>
-          <nav className="flex items-center gap-2">
-            <Link
-              href="/app/profile"
-              className="grid h-10 place-items-center rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              Profiles
-            </Link>
-            <Link
-              href="/app/keys"
-              className="grid h-10 place-items-center rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              API keys
-            </Link>
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="h-10 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+    <main className="relative min-h-screen w-full">
+      <header className="sticky top-0 z-30 w-full">
+        <div className="flex justify-center px-3 pt-4 sm:px-4 sm:pt-6">
+          <div className="glass-nav relative w-full max-w-[960px] rounded-full py-2 pl-2 pr-2">
+            <div className="flex items-center gap-3">
+              <Link
+                href="/app"
+                className="flex shrink-0 items-center gap-2 rounded-full pl-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                aria-label="GovCon Bid Desk — dashboard"
               >
-                Sign out
-              </button>
-            </form>
-          </nav>
-        </header>
+                <Mark />
+                <span className="hidden text-[14px] font-medium tracking-tight text-[var(--color-ink)] sm:inline">
+                  GovCon Bid Desk
+                </span>
+              </Link>
+
+              <nav
+                className="ml-2 hidden items-center gap-5 md:flex"
+                aria-label="Primary"
+              >
+                <Link
+                  href="/app/profile"
+                  className="rounded-full text-[13px] text-[var(--color-ink-muted)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                >
+                  Profiles
+                </Link>
+                <Link
+                  href="/app/keys"
+                  className="rounded-full text-[13px] text-[var(--color-ink-muted)] transition-colors hover:text-[var(--color-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                >
+                  API keys
+                </Link>
+              </nav>
+
+              <div className="ml-auto flex items-center gap-2">
+                <span
+                  className="hidden max-w-[200px] truncate text-[12.5px] text-[var(--color-ink-muted)] md:inline"
+                  title={user.email ?? undefined}
+                >
+                  {user.email}
+                </span>
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    className="inline-flex h-9 items-center rounded-full px-3 text-[13px] font-medium text-[var(--color-ink-muted)] transition-colors hover:bg-white/50 hover:text-[var(--color-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile section pills (md-): keep section nav reachable. */}
+        <nav
+          aria-label="Sections"
+          className="mx-auto mt-3 flex w-full max-w-[960px] items-center gap-2 px-5 md:hidden"
+        >
+          <Link
+            href="/app/profile"
+            className="glass-subtle rounded-full px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-ink)]"
+          >
+            Profiles
+          </Link>
+          <Link
+            href="/app/keys"
+            className="glass-subtle rounded-full px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-ink)]"
+          >
+            API keys
+          </Link>
+        </nav>
+      </header>
+
+      <div className="mx-auto w-full max-w-[960px] px-5 py-8 sm:px-8">
         {children}
       </div>
     </main>

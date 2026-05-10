@@ -7,42 +7,18 @@ Each route gets three tests at minimum:
 
 Skill-level correctness lives in test_<skill>.py — these tests verify only
 the HTTP boundary, payload validation, and envelope shape.
+
+PRD v1.2.6: every skill is deterministic; no FakeLLM needed.
 """
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-from typing import Any, Callable
-
 import pytest
-import pytest_asyncio
 
-from api.deps import get_llm
-from api.main import app
 from api.tests.conftest import TEST_INTERNAL_API_KEY
-from api.tests.fakes import FakeLLM
 
 pytestmark = pytest.mark.asyncio
 
 INTERNAL_HEADERS = {"X-Internal-API-Key": TEST_INTERNAL_API_KEY}
-
-
-@pytest_asyncio.fixture
-async def fake_llm_factory() -> AsyncIterator[Callable[[dict[str, Any]], FakeLLM]]:
-    """Return a factory that builds a FakeLLM and registers it as the
-    get_llm override for this test. Cleans up overrides on teardown.
-    """
-    created: list[FakeLLM] = []
-
-    def _make(payload: dict[str, Any]) -> FakeLLM:
-        f = FakeLLM(payload=payload)
-        created.append(f)
-        app.dependency_overrides[get_llm] = lambda: f
-        return f
-
-    try:
-        yield _make
-    finally:
-        app.dependency_overrides.pop(get_llm, None)
 
 
 async def test_tools_router_unknown_path_returns_404(client) -> None:

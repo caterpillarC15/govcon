@@ -9,16 +9,16 @@ export const metadata = {
 
 export default function AgentsPage() {
   return (
-    <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
+    <main className="min-h-screen bg-[#f7f8fb] text-[var(--color-ink)]">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-5 py-16 sm:px-8">
         <header className="space-y-4">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-blue-900">
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--color-accent)]">
             For agents
           </p>
           <h1 className="text-4xl font-semibold tracking-tight">
             Hire a federal contracting capability pack from your agent.
           </h1>
-          <p className="max-w-2xl text-base leading-7 text-slate-700">
+          <p className="max-w-2xl text-base leading-7 text-[var(--color-ink)]">
             GovCon Bid Desk exposes 10 typed tools that find federal
             opportunities, extract requirements, score fit, detect risks,
             and produce bid memos with a human-approval gate. Any
@@ -83,12 +83,12 @@ export default function AgentsPage() {
             {TOOLS.map((tool) => (
               <li
                 key={tool.name}
-                className="rounded-2xl border border-slate-200 bg-white p-4"
+                className="rounded-2xl border border-[var(--color-canvas-border)] bg-white p-4"
               >
-                <p className="text-sm font-mono text-slate-950">
+                <p className="text-sm font-mono text-[var(--color-ink)]">
                   POST /tools/{tool.name}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">{tool.purpose}</p>
+                <p className="mt-1 text-xs text-[var(--color-ink-muted)]">{tool.purpose}</p>
               </li>
             ))}
           </ul>
@@ -96,7 +96,7 @@ export default function AgentsPage() {
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold tracking-tight">Quickstart</h2>
-          <pre className="overflow-auto rounded-2xl border border-slate-200 bg-slate-950 p-5 text-xs leading-6 text-slate-100">
+          <pre className="overflow-auto rounded-2xl border border-[var(--color-canvas-border)] bg-[var(--color-ink)] p-5 text-xs leading-6 text-slate-100">
 {`# Discover
 curl https://api.govcapture.example/.well-known/agent.json
 
@@ -126,7 +126,7 @@ curl -X POST https://api.govcapture.example/tools/rank-opportunities \\
 
         <section className="space-y-3">
           <h2 className="text-2xl font-semibold tracking-tight">Conventions</h2>
-          <ul className="space-y-2 text-sm leading-6 text-slate-700">
+          <ul className="space-y-2 text-sm leading-6 text-[var(--color-ink)]">
             <li>
               All responses share envelope:{' '}
               <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
@@ -157,10 +157,10 @@ curl -X POST https://api.govcapture.example/tools/rank-opportunities \\
           </ul>
         </section>
 
-        <footer className="border-t border-slate-200 pt-6 text-sm text-slate-600">
+        <footer className="border-t border-[var(--color-canvas-border)] pt-6 text-sm text-[var(--color-ink-muted)]">
           <Link
             href="/"
-            className="inline-flex items-center gap-1 font-medium text-blue-900 underline-offset-4 hover:underline"
+            className="inline-flex items-center gap-1 font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
           >
             Back to the human-facing site <ArrowRight size={14} aria-hidden />
           </Link>
@@ -184,14 +184,14 @@ function DiscoveryCard({
   return (
     <Link
       href={href}
-      className="block rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:bg-slate-50"
+      className="block rounded-2xl border border-[var(--color-canvas-border)] bg-white p-5 transition hover:border-[var(--color-canvas-border)] hover:bg-slate-50"
     >
-      <div className="flex items-center gap-2 text-blue-900">
+      <div className="flex items-center gap-2 text-[var(--color-accent)]">
         {icon}
         <p className="text-sm font-medium">{title}</p>
       </div>
-      <p className="mt-2 text-xs leading-5 text-slate-600">{description}</p>
-      <p className="mt-3 font-mono text-xs text-slate-500">{href}</p>
+      <p className="mt-2 text-xs leading-5 text-[var(--color-ink-muted)]">{description}</p>
+      <p className="mt-3 font-mono text-xs text-[var(--color-ink-muted)]">{href}</p>
     </Link>
   )
 }

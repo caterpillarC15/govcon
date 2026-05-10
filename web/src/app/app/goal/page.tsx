@@ -26,7 +26,7 @@ export default async function GoalPage() {
     <div className="space-y-6">
       <Link
         href="/app"
-        className="inline-flex items-center gap-1 text-sm font-medium text-blue-900 underline-offset-4 hover:underline"
+        className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
       >
         <ChevronLeft size={14} aria-hidden /> Dashboard
       </Link>
@@ -49,7 +49,7 @@ export default async function GoalPage() {
           action={
             <Link
               href="/app/profile/new"
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-ink)] px-4 text-sm font-medium text-white transition hover:bg-[#1e293b]"
             >
               Create profile
             </Link>

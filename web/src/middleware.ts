@@ -66,6 +66,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Skip api/* (handlers auth themselves; SSE streams shouldn't pay a
+    // per-request /auth/v1/user round-trip) and auth/callback (it has no
+    // session yet — middleware getUser() is wasted there).
+    '/((?!_next/static|_next/image|favicon.ico|api/|auth/callback|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

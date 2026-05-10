@@ -9,15 +9,13 @@ export default function Hero() {
         <GlassPill dot="live">{HERO.pill}</GlassPill>
 
         <h1
-          className="mt-7 sm:mt-8 text-[44px] sm:text-[72px] lg:text-[104px] text-[var(--color-ink)] mx-auto"
+          className="mt-7 sm:mt-8 text-[40px] sm:text-[68px] lg:text-[96px] text-[var(--color-ink)] mx-auto"
           style={{
-            lineHeight: 0.92,
-            letterSpacing: 0,
+            lineHeight: 0.95,
+            letterSpacing: '-0.01em',
             fontWeight: 600,
-            maxWidth: '100%',
-            // HERO.title encodes the brief's two-line headline with a \n;
-            // preserve it as a hard break in the rendered h1.
-            whiteSpace: 'pre-line',
+            maxWidth: '14ch',
+            textWrap: 'balance',
           }}
         >
           {HERO.title}

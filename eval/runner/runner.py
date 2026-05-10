@@ -23,7 +23,6 @@ import sys
 from pathlib import Path
 from typing import Any, Callable
 
-from api.llm import LLM
 from api.skills.detect_risks.skill import detect_risks
 from api.skills.extract_requirements.skill import extract_requirements
 from api.skills.generate_action_package.skill import generate_action_package
@@ -44,7 +43,10 @@ SKILLS: dict[str, Callable[..., Any]] = {
 }
 
 
-async def _run_skill(name: str, inputs: dict[str, Any], fixture_dir: Path, llm: LLM) -> dict[str, Any]:
+async def _run_skill(
+    name: str, inputs: dict[str, Any], fixture_dir: Path
+) -> dict[str, Any]:
+    """Run a (now-deterministic, PRD v1.2.6) skill against fixture inputs."""
     skill = SKILLS[name]
     if name == "extract_requirements":
         # Needs parsed PDF; either honor a pre-parsed `parsed` blob in inputs
@@ -57,9 +59,7 @@ async def _run_skill(name: str, inputs: dict[str, Any], fixture_dir: Path, llm: 
                 )
             parsed = parse_pdf({"path": str(fixture_dir / pdf_path)})
             inputs = {**inputs, "parsed": parsed.model_dump()}
-        out, _metrics = await skill(inputs, llm=llm)
-    else:
-        out, _metrics = await skill(inputs, llm=llm)
+    out = await skill(inputs)
     if hasattr(out, "model_dump"):
         return out.model_dump()
     return out  # type: ignore[no-any-return]
@@ -78,8 +78,7 @@ async def run_one(
         print(f"SKIP {skill_name} / {fixture_dir.name} (no eval_inputs declared)")
         return 2
     golden_path = fixture_dir / "goldens" / f"{skill_name}.json"
-    llm = LLM()
-    out = await _run_skill(skill_name, inputs, fixture_dir, llm)
+    out = await _run_skill(skill_name, inputs, fixture_dir)
     if bootstrap or not golden_path.exists():
         golden_path.parent.mkdir(parents=True, exist_ok=True)
         golden_path.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")

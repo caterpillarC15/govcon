@@ -111,7 +111,7 @@ export function KeysClient({ initial }: { initial: ApiKey[] }) {
           className="flex flex-col gap-2 sm:flex-row sm:items-end"
         >
           <label className="block flex-1">
-            <span className="text-xs font-medium text-slate-600">
+            <span className="text-xs font-medium text-[var(--color-ink-muted)]">
               New key name
             </span>
             <input
@@ -119,13 +119,13 @@ export function KeysClient({ initial }: { initial: ApiKey[] }) {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. claude-desktop, prod-orchestrator"
               maxLength={120}
-              className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--color-canvas-border)] bg-white px-3 text-sm outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent-subtle)]"
             />
           </label>
           <button
             type="submit"
             disabled={busy || !name.trim()}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--color-ink)] px-4 text-sm font-medium text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy ? (
               <Loader2 size={15} className="animate-spin" aria-hidden />
@@ -146,11 +146,11 @@ export function KeysClient({ initial }: { initial: ApiKey[] }) {
       </Card>
 
       <Card>
-        <p className="text-sm font-medium text-blue-900">
+        <p className="text-sm font-medium text-[var(--color-accent)]">
           Active keys ({activeCount})
         </p>
         {keys.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">
+          <p className="mt-3 text-sm text-[var(--color-ink-muted)]">
             No keys yet. Mint one to start calling /api/v1/tools/&lt;name&gt;.
           </p>
         ) : (
@@ -158,13 +158,13 @@ export function KeysClient({ initial }: { initial: ApiKey[] }) {
             {keys.map((key) => (
               <li
                 key={key.id}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3"
+                className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-canvas-border)] bg-white p-3"
               >
                 <div>
-                  <p className="text-sm font-semibold text-slate-950">
+                  <p className="text-sm font-semibold text-[var(--color-ink)]">
                     {key.name}
                   </p>
-                  <p className="mt-1 font-mono text-xs text-slate-500">
+                  <p className="mt-1 font-mono text-xs text-[var(--color-ink-muted)]">
                     {key.prefix}…{key.revoked_at ? ' · revoked' : ''}
                   </p>
                 </div>

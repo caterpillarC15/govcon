@@ -30,7 +30,7 @@ export default async function ProfilesPage() {
         actions={
           <Link
             href="/app/profile/new"
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-ink)] px-4 text-sm font-medium text-white transition hover:bg-[#1e293b]"
           >
             <Plus size={15} aria-hidden /> New profile
           </Link>
@@ -51,7 +51,7 @@ export default async function ProfilesPage() {
           action={
             <Link
               href="/app/profile/new"
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-ink)] px-4 text-sm font-medium text-white transition hover:bg-[#1e293b]"
             >
               Create profile
             </Link>
@@ -65,12 +65,12 @@ export default async function ProfilesPage() {
             <li key={profile.id}>
               <Link
                 href={`/app/profile/${profile.id}`}
-                className="block rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:bg-slate-50"
+                className="block rounded-2xl border border-[var(--color-canvas-border)] bg-white p-4 transition hover:border-[var(--color-canvas-border)] hover:bg-slate-50"
               >
-                <p className="text-sm font-semibold text-slate-950">
+                <p className="text-sm font-semibold text-[var(--color-ink)]">
                   {profile.name}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
                   {profile.naics_codes.join(', ') || 'No NAICS'} ·{' '}
                   {profile.small_business_status
                     ? 'Small business'
@@ -78,7 +78,7 @@ export default async function ProfilesPage() {
                   · {profile.clearance_status ?? 'no clearance'}
                 </p>
                 {profile.capabilities.length > 0 ? (
-                  <p className="mt-2 line-clamp-2 text-xs text-slate-600">
+                  <p className="mt-2 line-clamp-2 text-xs text-[var(--color-ink-muted)]">
                     {profile.capabilities.join(', ')}
                   </p>
                 ) : null}

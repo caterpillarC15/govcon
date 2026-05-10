@@ -7,7 +7,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    anthropic_api_key: str = Field("", alias="ANTHROPIC_API_KEY")
     sam_api_key: str = Field("", alias="SAM_API_KEY")
 
     redis_url: str = Field("redis://localhost:6379/0", alias="REDIS_URL")
@@ -20,12 +19,11 @@ class Settings(BaseSettings):
         "govcapture-attachments", alias="SUPABASE_STORAGE_BUCKET"
     )
 
-    llm_dev_model: str = Field("claude-haiku-4-5-20251001", alias="LLM_DEV_MODEL")
-    llm_synth_model: str = Field("claude-sonnet-4-6", alias="LLM_SYNTH_MODEL")
-
-    run_budget_usd: float = Field(0.50, alias="RUN_BUDGET_USD")
-    run_budget_steps: int = Field(40, alias="RUN_BUDGET_STEPS")
-    run_budget_seconds: int = Field(360, alias="RUN_BUDGET_SECONDS")
+    # PRD v1.2.6: ANTHROPIC_API_KEY, LLM_DEV_MODEL, LLM_SYNTH_MODEL,
+    # RUN_BUDGET_USD/STEPS/SECONDS were dropped — every skill is now
+    # deterministic. Michaela's bench in /root/michealaai owns LLM
+    # cost + budget tracking. Anything still setting these env vars
+    # in .env is harmless (Pydantic Settings's extra="ignore").
 
     internal_api_key: str = Field("", alias="INTERNAL_API_KEY")
     cors_allowed_origins: str = Field(
