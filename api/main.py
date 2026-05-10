@@ -15,6 +15,7 @@ from api.routes import (
     profiles,
     tools,
     waitlist,
+    well_known,
 )
 
 
@@ -44,3 +45,4 @@ app.include_router(agent_runs.router)
 app.include_router(opportunities.router)
 app.include_router(action_packages.router)
 app.include_router(tools.router)
+app.include_router(well_known.router)
