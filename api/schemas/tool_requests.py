@@ -75,6 +75,9 @@ class GenerateActionPackageRequest(_Strict):
     requirements: list[dict[str, Any]] = Field(default_factory=list)
     fit_score: dict[str, Any] = Field(default_factory=dict)
     risks: list[dict[str, Any]] = Field(default_factory=list)
+    # PRD v1.2.6: Roy supplies content for full mode in her agent context.
+    # Omit on first call to receive an empty skeleton with §5.13 default.
+    content: dict[str, Any] | None = None
 
 
 class SearchSamRequest(_Strict):

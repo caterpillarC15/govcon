@@ -19,7 +19,7 @@ from supabase import AsyncClient
 
 from api.auth import InternalActor, require_internal_actor
 from api.config import settings
-from api.deps import get_llm, get_storage, get_supabase
+from api.deps import get_storage, get_supabase
 from api.llm import LLMMetrics
 from api.schemas.tool_requests import (
     DetectRisksRequest,
@@ -126,10 +126,11 @@ async def detect_risks_route(
 async def generate_action_package_route(
     payload: GenerateActionPackageRequest,
     _actor: InternalActor = Depends(require_internal_actor),
-    llm=Depends(get_llm),
 ) -> ToolResponse:
-    data, metrics = await generate_action_package(payload.model_dump(), llm=llm)
-    return ToolResponse(data=data, metrics=metrics)
+    # PRD v1.2.6: deterministic. reject_summary mode unchanged;
+    # full mode validates Roy's content + enforces §5.13.
+    data = await generate_action_package(payload.model_dump())
+    return ToolResponse(data=data, metrics=None)
 
 
 @router.post("/search-sam", response_model=ToolResponse)

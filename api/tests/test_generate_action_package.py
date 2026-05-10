@@ -1,27 +1,33 @@
-"""generate_action_package — A8: full mode (LLM) + reject_summary mode (deterministic)."""
+"""generate_action_package — schema validator + reject_summary (PRD v1.2.6).
+
+The skill no longer calls an LLM. Roy synthesizes content in her
+agent context; this skill validates the §5.11 shape and enforces
+§5.13 (non-empty approval gate). reject_summary mode is unchanged
+(was already deterministic).
+"""
 from __future__ import annotations
 
-from api.skills.generate_action_package import generate_action_package
-from api.tests.fakes import FakeLLM
+from api.skills.generate_action_package.skill import (
+    GenerateActionPackageInput,
+    generate_action_package,
+)
 
 
-async def test_reject_summary_mode_does_not_call_llm():
-    """Reject mode must be deterministic — no LLM call, slim package, no checklist/timeline/outreach."""
-    fake_llm = FakeLLM(should_not_be_called=True)
-    out, _ = await generate_action_package(
-        {
-            "mode": "reject_summary",
-            "company_profile": {"name": "DemoCo"},
-            "opportunity": {"title": "Classified Net Defense"},
-            "requirements": [],
-            "fit_score": {
+# ─── reject_summary mode (deterministic, unchanged) ────────────────────────
+
+
+async def test_reject_summary_mode_returns_slim_package():
+    out = await generate_action_package(
+        GenerateActionPackageInput(
+            mode="reject_summary",
+            company_profile={"name": "DemoCo"},
+            opportunity={"title": "Classified Net Defense"},
+            fit_score={
                 "total_score": 0,
                 "decision": "reject",
                 "blockers": ["TS clearance required — company has none"],
             },
-            "risks": [],
-        },
-        llm=fake_llm,
+        )
     )
     assert out["decision"] == "reject"
     assert "Do not pursue" in out["executive_summary"]
@@ -29,124 +35,128 @@ async def test_reject_summary_mode_does_not_call_llm():
     assert out["proposal_checklist"] == []
     assert out["timeline"] == []
     assert out["outreach_draft"] is None
-    # Approval gate ALWAYS present, even in reject mode
+    # §5.13: approval gate always present, even in reject mode
     assert any(
-        "eligibility" in s.lower() or "approval" in s.lower() or "review" in s.lower()
+        "eligibility" in s.lower()
+        or "approval" in s.lower()
+        or "review" in s.lower()
         for s in out["human_approval_required"]
     )
-    assert fake_llm.call_count == 0
 
 
-async def test_full_mode_calls_llm_and_includes_all_sections():
-    """Full mode calls LLM once, returns full §5.11 package with all sections populated."""
-    fake_llm = FakeLLM(
-        payload={
-            "executive_summary": "Strong fit. Proceed.",
-            "decision": "strong_pursue",
-            "fit_score": 88,
-            "fit_rationale": "Capabilities + NAICS + cleared past performance align.",
-            "compliance_matrix": [
-                {
-                    "requirement": "SAM registration",
-                    "status": "met",
-                    "evidence": "SAM #12345",
-                    "next_action": "Confirm active",
-                    "owner": "Capture",
-                }
-            ],
-            "risk_register": [
-                {
-                    "risk": "Past performance gap",
-                    "severity": "minor",
-                    "explanation": "Need 1 more federal cloud reference",
-                    "mitigation": "Highlight commercial GovCloud project as analog",
-                }
-            ],
-            "proposal_checklist": [
-                "Verify SAM active",
-                "Draft Section L volume",
-                "Get pricing review",
-            ],
-            "timeline": [
-                {"date": "2026-06-01", "task": "Kickoff", "owner": "PM"},
-                {"date": "2026-06-08", "task": "Tech volume draft", "owner": "Lead Engineer"},
-            ],
-            "partner_suggestions": [],
-            "outreach_draft": {
-                "subject": "Re: DOI-CMS-2026-001 — Cloud Migration Support",
-                "body": "Hello, we're a small business focused on AWS GovCloud...",
-            },
-            "human_approval_required": [
-                "Approve outreach draft before sending.",
-                "Confirm pricing assumptions before final submission.",
-            ],
-        }
+async def test_reject_summary_no_blockers_falls_back_gracefully():
+    out = await generate_action_package(
+        GenerateActionPackageInput(
+            mode="reject_summary",
+            opportunity={"title": "Generic Opp"},
+            fit_score={"total_score": 30, "decision": "reject"},
+        )
     )
-    out, _ = await generate_action_package(
-        {
-            "mode": "full",
-            "company_profile": {"name": "DemoCo"},
-            "opportunity": {"title": "DOI Cloud Migration"},
-            "requirements": [
-                {
-                    "title": "Cloud migration experience",
-                    "type": "technical",
-                    "confidence": "high",
-                    "value": "AWS GovCloud preferred",
-                    "evidence_snippet": "AWS GovCloud preferred",
-                    "is_blocker": False,
-                    "source_document": "RFP-001.pdf",
-                    "page_number": 3,
-                    "description": "...",
-                }
-            ],
-            "fit_score": {"total_score": 88, "decision": "strong_pursue", "blockers": []},
-            "risks": [],
-        },
-        llm=fake_llm,
+    assert out["decision"] == "reject"
+    assert out["risk_register"] == []  # no blockers to expand
+    assert len(out["human_approval_required"]) >= 1
+
+
+# ─── full mode — Roy supplies content (validator path) ─────────────────────
+
+
+async def test_full_mode_with_content_passes_through_and_validates():
+    """Full mode: Roy supplies content; skill validates + echoes."""
+    out = await generate_action_package(
+        GenerateActionPackageInput(
+            mode="full",
+            opportunity={"title": "DOI Cloud Migration"},
+            fit_score={
+                "total_score": 88,
+                "decision": "strong_pursue",
+                "blockers": [],
+            },
+            content={
+                "executive_summary": "Strong fit. Proceed.",
+                "decision": "strong_pursue",
+                "fit_score": 88,
+                "fit_rationale": "Capabilities + NAICS + cleared past performance align.",
+                "compliance_matrix": [
+                    {
+                        "requirement": "SAM registration",
+                        "status": "met",
+                        "evidence": "SAM #12345",
+                        "next_action": "Confirm active",
+                        "owner": "Capture",
+                    }
+                ],
+                "risk_register": [],
+                "proposal_checklist": [
+                    "Verify SAM active",
+                    "Draft Section L volume",
+                ],
+                "timeline": [
+                    {"date": "2026-06-01", "task": "Kickoff", "owner": "PM"}
+                ],
+                "partner_suggestions": [],
+                "outreach_draft": {
+                    "subject": "Re: DOI-CMS-2026-001 — Cloud Migration Support",
+                    "body": "Hello, we're a small business focused on AWS GovCloud...",
+                },
+                "human_approval_required": [
+                    "Approve outreach draft before sending.",
+                    "Confirm pricing assumptions before final submission.",
+                ],
+            },
+        )
     )
     assert out["decision"] == "strong_pursue"
     assert out["executive_summary"] == "Strong fit. Proceed."
     assert len(out["compliance_matrix"]) == 1
-    assert len(out["proposal_checklist"]) == 3
-    assert len(out["timeline"]) == 2
+    assert len(out["proposal_checklist"]) == 2
+    assert len(out["timeline"]) == 1
     assert out["outreach_draft"] is not None
     assert out["outreach_draft"]["subject"].startswith("Re:")
     assert len(out["human_approval_required"]) >= 2
-    assert fake_llm.call_count == 1
 
 
-async def test_human_approval_block_always_present_even_when_llm_omits():
-    """§5.13 — human_approval_required MUST always be non-empty; if LLM returns empty,
-    a default approval line MUST be injected."""
-    fake_llm = FakeLLM(
-        payload={
-            "executive_summary": "Solid pursue.",
-            "decision": "pursue",
-            "fit_score": 75,
-            "fit_rationale": "Capabilities align.",
-            "compliance_matrix": [],
-            "risk_register": [],
-            "proposal_checklist": [],
-            "timeline": [],
-            "partner_suggestions": [],
-            "outreach_draft": None,
-            "human_approval_required": [],  # LLM forgot — controller MUST inject default
-        }
+async def test_full_mode_empty_approval_gate_gets_default_injected():
+    """§5.13 invariant: human_approval_required MUST be non-empty.
+    If Roy forgets, the skill injects a default."""
+    out = await generate_action_package(
+        GenerateActionPackageInput(
+            mode="full",
+            opportunity={"title": "X"},
+            fit_score={"total_score": 75, "decision": "pursue", "blockers": []},
+            content={
+                "executive_summary": "Solid pursue.",
+                "decision": "pursue",
+                "fit_score": 75,
+                "fit_rationale": "Capabilities align.",
+                "human_approval_required": [],  # Roy forgot
+            },
+        )
     )
-    out, _ = await generate_action_package(
-        {
-            "mode": "full",
-            "company_profile": {},
-            "opportunity": {"title": "X"},
-            "requirements": [],
-            "fit_score": {"total_score": 75, "decision": "pursue", "blockers": []},
-            "risks": [],
-        },
-        llm=fake_llm,
-    )
-    assert len(out["human_approval_required"]) > 0  # default injected
+    assert len(out["human_approval_required"]) > 0
     assert any(
-        "authorized" in s.lower() or "approval" in s.lower() or "review" in s.lower()
+        "authorized" in s.lower()
+        or "approval" in s.lower()
+        or "review" in s.lower()
         for s in out["human_approval_required"]
     )
+
+
+async def test_full_mode_no_content_returns_skeleton():
+    """First call (no content): skill returns an empty skeleton so Roy
+    knows she needs to synthesize content and call back."""
+    out = await generate_action_package(
+        GenerateActionPackageInput(
+            mode="full",
+            opportunity={"title": "X"},
+            fit_score={
+                "total_score": 75,
+                "decision": "pursue",
+                "blockers": [],
+            },
+        )
+    )
+    assert out["decision"] == "pursue"  # echoed from fit_score
+    assert out["executive_summary"] == ""
+    assert out["fit_score"] == 75
+    # §5.13 default still injected so the skeleton is shape-valid.
+    assert len(out["human_approval_required"]) >= 1

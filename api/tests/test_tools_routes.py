@@ -288,22 +288,8 @@ async def test_detect_risks_happy_path(client) -> None:
 # ─── /tools/generate-action-package ────────────────────────────────────────
 
 
-async def test_generate_action_package_reject_summary(client, fake_llm_factory) -> None:
-    fake_llm_factory(
-        {
-            "executive_summary": "unused",
-            "decision": "reject",
-            "fit_score": 0,
-            "fit_rationale": "unused",
-            "compliance_matrix": [],
-            "risk_register": [],
-            "proposal_checklist": [],
-            "timeline": [],
-            "partner_suggestions": [],
-            "outreach_draft": None,
-            "human_approval_required": ["unused"],
-        }
-    )
+async def test_generate_action_package_reject_summary(client) -> None:
+    """PRD v1.2.6: reject_summary mode is fully deterministic; metrics None."""
     r = await client.post(
         "/tools/generate-action-package",
         json={
@@ -317,7 +303,7 @@ async def test_generate_action_package_reject_summary(client, fake_llm_factory) 
     body = r.json()
     assert body["data"]["decision"] == "reject"
     assert body["data"]["human_approval_required"]
-    assert body["metrics"]["model"] == "none"
+    assert body["metrics"] is None
 
 
 async def test_generate_action_package_rejects_unknown_mode(client) -> None:

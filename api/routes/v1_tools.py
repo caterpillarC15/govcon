@@ -14,7 +14,7 @@ from supabase import AsyncClient
 
 from api.auth import AgentActor, require_agent_or_internal
 from api.config import settings
-from api.deps import get_llm, get_storage, get_supabase
+from api.deps import get_storage, get_supabase
 from api.routes.tools import ToolResponse
 from api.schemas.tool_requests import (
     DetectRisksRequest,
@@ -112,10 +112,10 @@ async def detect_risks_route(
 async def generate_action_package_route(
     payload: GenerateActionPackageRequest,
     _actor: AgentActor = Depends(require_agent_or_internal),
-    llm=Depends(get_llm),
 ) -> ToolResponse:
-    data, metrics = await generate_action_package(payload.model_dump(), llm=llm)
-    return ToolResponse(data=data, metrics=metrics)
+    # PRD v1.2.6: deterministic. See tools.py.
+    data = await generate_action_package(payload.model_dump())
+    return ToolResponse(data=data, metrics=None)
 
 
 @router.post("/search-sam", response_model=ToolResponse)
