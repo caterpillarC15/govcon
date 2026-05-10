@@ -11,11 +11,14 @@ User=govcapture
 Group=govcapture
 WorkingDirectory=/opt/govcapture
 EnvironmentFile=/opt/govcapture/.env
-# uv is installed under ~govcapture/.local/bin (see bootstrap.sh).
-Environment=PATH=/home/govcapture/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Run the venv's gunicorn directly. We do NOT use `uv run` at runtime because
+# uv writes a lockfile to ~/.cache/uv/, which collides with ProtectHome=read-only.
+# The venv is created at deploy time by `uv sync` (writes to /opt/govcapture/.venv,
+# which is covered by ReadWritePaths below).
+Environment=PATH=/opt/govcapture/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # 4–8 workers per PRD §7.6 ("scale with vCPU"). Start at 4 on the VX1; bump if needed.
-ExecStart=/home/govcapture/.local/bin/uv run gunicorn api.main:app \
+ExecStart=/opt/govcapture/.venv/bin/gunicorn api.main:app \
   --worker-class uvicorn.workers.UvicornWorker \
   --workers 4 \
   --bind 127.0.0.1:8000 \
