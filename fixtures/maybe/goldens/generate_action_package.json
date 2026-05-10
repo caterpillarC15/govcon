@@ -1,0 +1,15 @@
+{
+  "compliance_matrix": [],
+  "decision": "maybe",
+  "executive_summary": "",
+  "fit_rationale": "",
+  "fit_score": 60,
+  "human_approval_required": [
+    "Authorized review required before any external action (outreach, submission, claims of compliance)."
+  ],
+  "outreach_draft": null,
+  "partner_suggestions": [],
+  "proposal_checklist": [],
+  "risk_register": [],
+  "timeline": []
+}

@@ -1,0 +1,21 @@
+{
+  "blockers": [],
+  "confidence": "low",
+  "decision": "needs_score",
+  "missing_information": [],
+  "recommended_next_action": "",
+  "score_breakdown": {
+    "capability": 0,
+    "certification": 0,
+    "complexity": 0,
+    "deadline": 0,
+    "eligibility": 0,
+    "geography": 0,
+    "insurance_bonding": 0,
+    "naics": 0,
+    "past_performance": 0
+  },
+  "strengths": [],
+  "total_score": 0,
+  "weaknesses": []
+}

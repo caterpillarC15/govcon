@@ -1,0 +1,19 @@
+{
+  "company_profile": {
+    "capabilities": [
+      "cloud migration",
+      "AWS GovCloud",
+      "cloud assessment"
+    ],
+    "certifications": [
+      "CMMC L2"
+    ],
+    "clearance_status": "none",
+    "naics_codes": [
+      "541512"
+    ],
+    "name": "DemoCo",
+    "small_business_status": true
+  },
+  "raw_goal": "Find DC-area cloud migration and AWS GovCloud RFPs due in the next 90 days for a 541512 small business with CMMC L2."
+}

@@ -1,0 +1,16 @@
+{
+  "company_profile": {
+    "capabilities": [
+      "network defense",
+      "cybersecurity"
+    ],
+    "certifications": [],
+    "clearance_status": "none",
+    "naics_codes": [
+      "541512"
+    ],
+    "name": "DemoCo",
+    "small_business_status": true
+  },
+  "raw_goal": "Find DOD network defense or cyber RFPs in the next 90 days for a 541512 small business."
+}

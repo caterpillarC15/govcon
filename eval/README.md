@@ -1,35 +1,39 @@
 # Eval harness
 
-Fixture-driven regression tests for LLM-backed skills.
+Fixture-driven regression tests for the (now deterministic) GovCon
+skills. PRD v1.2.6 made every skill in this repo deterministic;
+goldens are byte-exact.
 
 ## What this catches
 
-Drift in skill behavior across model upgrades, prompt edits, or stack
-changes. The unit tests under `api/tests/` use `FakeLLM` and verify
-shape/contract; these eval runs use a real Anthropic call and verify
-*behavior* against committed goldens.
+- Accidental shape changes in skill returns (a refactor that drops a
+  field, renames a key, changes a default).
+- Validator regressions: §11.1 short-circuit logic, §11 evidence-binding
+  downgrades, §5.8 risk taxonomy filtering, §5.13 approval-gate
+  enforcement, decision-band normalization.
+- Anything that changes a fixture's expected output without intent.
+
+It does **not** test the LLM judgment that produces the inputs to
+these validators — that's owned by Michaela's bench in
+`/root/michealaai`. They have their own eval harness.
 
 ## Cost
 
-Each `make eval` run hits a real LLM for every (fixture × skill) pair
-declared in `manifest.json`'s `eval_inputs` block. With 4 fixtures and
-5 LLM-backed skills, a full run is up to 20 calls — roughly $0.10–$0.40
-per full run depending on model. Run only on PRs that touch
-`api/skills/`, `api/llm.py`, fixtures, or migrations.
+**Free.** No LLM calls. No `ANTHROPIC_API_KEY` needed.
 
 ## Run
 
 ```bash
-# Bootstrap goldens (overwrites). Run after intentional behavior change.
+# Bootstrap (or rebuild) goldens after an intentional skill change.
 make eval-bootstrap
 
-# Verify against existing goldens. Use this as the regression gate.
+# Verify against committed goldens. Use as a regression gate on every PR.
 make eval
 ```
 
 ## Adding eval coverage for a fixture
 
-Edit `fixtures/<slug>/manifest.json` and add an `eval_inputs` block:
+Edit `fixtures/<slug>/manifest.json`'s `eval_inputs` block:
 
 ```json
 {
@@ -42,26 +46,22 @@ Edit `fixtures/<slug>/manifest.json` and add an `eval_inputs` block:
     },
     "score_fit": {
       "company_profile": { ... },
+      "requirements": [ ... ],
+      "total_score": 88
+    },
+    "extract_requirements": {
+      "pdf_path": "attachments/main.pdf",
       "requirements": [ ... ]
     }
   }
 }
 ```
 
-Skills without an entry are skipped for that fixture (not failed).
-After adding inputs, run `make eval-bootstrap` once to write the
-golden, hand-review the JSON, then `make eval` becomes the regression
-gate.
+Each skill's `eval_inputs.<skill>` is the exact payload the skill is
+called with. Re-bootstrap to capture the deterministic output:
 
-## Tolerance
-
-LLM outputs aren't bit-stable, so `eval/runner/differs.py` applies
-per-field rules:
-
-- `total_score` (int): ±5 drift allowed
-- `decision` (str): must match exactly
-- `evidence_snippet` (str): substring match on first 60 chars
-- everything else: structural equality
-
-If a real behavior change makes a golden stale, run `make
-eval-bootstrap` and hand-review the diff before committing.
+```bash
+make eval-bootstrap
+git add fixtures/<slug>/goldens/
+git commit -m "eval(<slug>): bootstrap goldens"
+```

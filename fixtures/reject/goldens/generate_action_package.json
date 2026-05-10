@@ -1,0 +1,28 @@
+{
+  "compliance_matrix": [],
+  "decision": "reject",
+  "executive_summary": "Do not pursue Classified Network Defense Operations Support. Critical eligibility blocker(s): Top Secret + SCI clearance required \u2014 company has no clearance; 8(a) Set-Aside \u2014 company is not 8(a)-certified.",
+  "fit_rationale": "Eligibility short-circuit (\u00a711.1). Blockers: ['Top Secret + SCI clearance required \u2014 company has no clearance', '8(a) Set-Aside \u2014 company is not 8(a)-certified']",
+  "fit_score": 0,
+  "human_approval_required": [
+    "Critical eligibility blocker(s) detected for Classified Network Defense Operations Support. Authorized review required before any external action (outreach, submission, claims of compliance)."
+  ],
+  "outreach_draft": null,
+  "partner_suggestions": [],
+  "proposal_checklist": [],
+  "risk_register": [
+    {
+      "explanation": "",
+      "mitigation": "Out of scope \u2014 pursue only if certification/clearance acquired.",
+      "risk": "Top Secret + SCI clearance required \u2014 company has no clearance",
+      "severity": "critical"
+    },
+    {
+      "explanation": "",
+      "mitigation": "Out of scope \u2014 pursue only if certification/clearance acquired.",
+      "risk": "8(a) Set-Aside \u2014 company is not 8(a)-certified",
+      "severity": "critical"
+    }
+  ],
+  "timeline": []
+}

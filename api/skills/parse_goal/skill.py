@@ -22,12 +22,17 @@ class ParseGoalInput(BaseModel):
     company_profile: dict[str, Any] | None = None
 
 
-async def parse_goal(payload: ParseGoalInput) -> dict[str, Any]:
+async def parse_goal(
+    payload: ParseGoalInput | dict[str, Any],
+) -> dict[str, Any]:
     """Pass-through validator.
 
     Returns the goal text + company_profile context for Michaela to
-    consume in her agent context. No LLM call.
+    consume in her agent context. No LLM call. Accepts dict for
+    HTTP/eval flow compatibility.
     """
+    if isinstance(payload, dict):
+        payload = ParseGoalInput.model_validate(payload)
     return {
         "raw_goal": payload.goal,
         "company_profile": payload.company_profile or {},

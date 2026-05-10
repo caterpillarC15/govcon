@@ -1,0 +1,18 @@
+{
+  "company_profile": {
+    "capabilities": [
+      "SIEM deployment",
+      "SOC operations"
+    ],
+    "certifications": [
+      "CMMC L2"
+    ],
+    "clearance_status": "none",
+    "naics_codes": [
+      "541512"
+    ],
+    "name": "DemoCo",
+    "small_business_status": true
+  },
+  "raw_goal": "Find SIEM/SOC managed-services RFPs in the next 90 days for a small 541512 firm \u2014 open to teaming for past-performance scale."
+}

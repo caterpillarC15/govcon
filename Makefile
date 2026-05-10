@@ -107,10 +107,10 @@ lint: ## Run ruff
 format: ## Format with ruff
 	uv run ruff format api
 
-eval: ## run LLM-skill regression eval against committed goldens
+eval: ## Deterministic skill regression — diff committed goldens (PRD v1.2.6, no LLM)
 	uv run python -m eval.runner.runner
 
-eval-bootstrap: ## (re)write goldens by running real LLM calls — costs Anthropic tokens
+eval-bootstrap: ## (Re)write goldens from current deterministic skill output
 	uv run python -m eval.runner.runner --bootstrap
 
 sse-stub: ## Publish a stub trace to Redis (RUN_ID=<uuid>) — exercises /web SSE without orchestrator
