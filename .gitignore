@@ -49,3 +49,15 @@ supabase/.temp/
 
 # NOTE: PDF fixtures live under /fixtures/<slug>/attachments/*.pdf and are CONTENT.
 # Do NOT add a global *.pdf ignore.
+
+# Hermes runtime artifacts. .hermes/config.yaml + .hermes/skills/ are tracked
+# content; the rest is per-developer state created when `hermes` runs against
+# HERMES_HOME=$(pwd)/.hermes and should not be committed.
+.hermes/SOUL.md
+.hermes/cron/
+.hermes/logs/
+.hermes/memories/
+.hermes/sessions/
+.hermes/.env
+.hermes/auth.json
+.hermes/auth.lock
