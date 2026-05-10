@@ -1,8 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  XCircle,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { Card } from '@/components/Card'
@@ -10,6 +16,8 @@ import { EmptyState } from '@/components/EmptyState'
 import type { AgentRun, Opportunity, RunStatus, TraceEvent } from '@/lib/types'
 
 const TERMINAL_STATUSES: RunStatus[] = ['complete', 'partial', 'failed']
+
+type StreamState = 'idle' | 'open' | 'reconnecting' | 'closed'
 
 export function RunTimeline({
   initial,
@@ -21,14 +29,20 @@ export function RunTimeline({
   const [run, setRun] = useState<AgentRun>(initial)
   const [opportunities, setOpportunities] =
     useState<Opportunity[]>(initialOpportunities)
-  const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
+  const [streamState, setStreamState] = useState<StreamState>('idle')
+  // Memoize so React Strict Mode's double-render doesn't open a second
+  // EventSource (createClient() returned a new client object per render
+  // before this).
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     if (TERMINAL_STATUSES.includes(initial.status)) return undefined
 
     let stillMounted = true
     const es = new EventSource(`/api/run-stream/${run.id}`)
+    es.addEventListener('open', () => {
+      if (stillMounted) setStreamState('open')
+    })
 
     async function fetchAndSetTerminal() {
       try {
@@ -57,12 +71,22 @@ export function RunTimeline({
         } catch {
           return
         }
-        setRun((prev) => ({
-          ...prev,
-          steps: [...prev.steps, parsed],
-        }))
+        setRun((prev) => {
+          // Dedup by step_id when present so server-rendered
+          // initial.steps + an upstream replay don't double-render
+          // each step. Events without step_id (run_started,
+          // opportunity_ranked, needs_human) bypass the dedup.
+          if (parsed.step_id) {
+            const seen = prev.steps.some(
+              (s) => s.step_id === parsed.step_id && s.type === parsed.type,
+            )
+            if (seen) return prev
+          }
+          return { ...prev, steps: [...prev.steps, parsed] }
+        })
         if (rawType === 'run_completed') {
           es.close()
+          setStreamState('closed')
           void fetchAndSetTerminal()
         }
       }
@@ -80,7 +104,14 @@ export function RunTimeline({
     ].forEach((t) => es.addEventListener(t, handle(t)))
 
     es.onerror = () => {
-      if (stillMounted) setError('Live stream disconnected — retrying.')
+      if (!stillMounted) return
+      // EventSource auto-retries on transient drops while readyState is
+      // CONNECTING; it gives up on hard errors and transitions to
+      // CLOSED. Distinguish the two so the UI doesn't claim "retrying"
+      // when nothing is.
+      setStreamState(
+        es.readyState === EventSource.CLOSED ? 'closed' : 'reconnecting',
+      )
     }
 
     return () => {
@@ -115,12 +146,29 @@ export function RunTimeline({
           ) : null}
         </div>
 
-        {error ? (
+        {streamState === 'reconnecting' ? (
+          <p
+            className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            role="status"
+          >
+            Reconnecting to live stream…
+          </p>
+        ) : null}
+        {streamState === 'closed' &&
+        !TERMINAL_STATUSES.includes(run.status) ? (
           <p
             className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-900"
             role="alert"
           >
-            {error}
+            Live stream disconnected.{' '}
+            <button
+              type="button"
+              onClick={() => location.reload()}
+              className="font-medium underline underline-offset-2"
+            >
+              Refresh
+            </button>{' '}
+            to reconnect.
           </p>
         ) : null}
 
@@ -194,6 +242,12 @@ export function RunTimeline({
 function StatusBadge({ status }: { status: RunStatus }) {
   if (status === 'complete') {
     return <CheckCircle2 size={28} className="text-emerald-600" aria-hidden />
+  }
+  if (status === 'partial') {
+    // Distinct icon — was falling through to grey Clock identical to
+    // 'pending', which contradicted the "Complete with degraded
+    // results" label.
+    return <AlertTriangle size={28} className="text-amber-600" aria-hidden />
   }
   if (status === 'failed') {
     return <XCircle size={28} className="text-rose-600" aria-hidden />
