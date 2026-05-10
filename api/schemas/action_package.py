@@ -84,9 +84,12 @@ class ActionPackage(BaseModel):
         description='Mirrors §10.3 human_approval_required — items requiring human gate before execution.',
         min_length=1,
     )
-    # PRD v1.2.5+: persisted approval state. Hand-added (not in JSON
-    # schema) so the model accepts the new columns; schemas/ stays
-    # unchanged for the broader codegen pipeline.
-    approved_at: AwareDatetime | None = None
-    approved_by: UUID | None = None
+    approved_at: AwareDatetime | None = Field(
+        None,
+        description='Timestamp when an authorized user approved the package. Null = not yet approved. Persisted via POST /action-packages/{id}/approve.',
+    )
+    approved_by: UUID | None = Field(
+        None,
+        description='Supabase auth user who approved. Set together with approved_at.',
+    )
     created_at: AwareDatetime

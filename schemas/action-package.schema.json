@@ -113,6 +113,16 @@
       "minItems": 1,
       "items": { "type": "string" }
     },
+    "approved_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Timestamp when an authorized user approved the package. Null = not yet approved. Persisted via POST /action-packages/{id}/approve."
+    },
+    "approved_by": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "Supabase auth user who approved. Set together with approved_at."
+    },
     "created_at": { "type": "string", "format": "date-time" }
   }
 }

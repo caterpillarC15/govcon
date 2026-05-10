@@ -21,9 +21,36 @@ services-down: ## Stop Redis.
 	fi
 
 schemas: ## Regenerate Pydantic models from /schemas/*.schema.json (and TS if /web exists)
-	@rm -rf api/schemas /tmp/govcon-schema-input
+	# Hand-written modules under api/schemas/ MUST survive codegen. JSON Schema
+	# can't express field validators, alternate class names, or PATCH-shape
+	# subsets — so these files are authored by hand:
+	#   api_key.py         — typed wrapper for /api/keys (no JSON Schema source)
+	#   tool_requests.py   — typed wrappers for POST /tools/<name> (no source)
+	#   profile.py         — Profile + ProfileUpdate (PATCH-shape; no source for Update)
+	#   waitlist.py        — WaitlistSignupCreate (with email-normalize validator)
+	#                        + WaitlistSignupResponse (no source)
+	#   opportunity.py     — Opportunity (source/active are required-with-default,
+	#                        not nullable; JSON Schema expresses defaults but not
+	#                        "required AND non-null AND has default")
+	#   fixture_manifest.py — has two distinct attachment shapes that codegen
+	#                        names Attachment / Attachment1; hand version uses
+	#                        OpportunityAttachment / Attachment for clarity.
+	#
+	# The for-loop below only deletes files whose stem matches a JSON Schema
+	# source AND is not in the hand-written allowlist.
+	@rm -rf /tmp/govcon-schema-input
 	@mkdir -p api/schemas /tmp/govcon-schema-input
-	@cp schemas/*.schema.json /tmp/govcon-schema-input/
+	@for src in schemas/*.schema.json; do \
+	  base=$$(basename "$$src" .schema.json); \
+	  stem=$$(echo "$$base" | tr '-' '_'); \
+	  case "$$stem" in \
+	    api_key|tool_requests|profile|waitlist|opportunity|fixture_manifest) \
+	      continue ;; \
+	  esac; \
+	  rm -f "api/schemas/$$stem.py"; \
+	  cp "$$src" /tmp/govcon-schema-input/; \
+	done
+	@rm -f api/schemas/__init__.py
 	@uv run datamodel-codegen \
 	  --input /tmp/govcon-schema-input \
 	  --input-file-type jsonschema \
