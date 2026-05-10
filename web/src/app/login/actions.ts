@@ -29,7 +29,11 @@ function rateLimited(key: string) {
 }
 
 async function originUrl() {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
+  // The magic-link callback route lives in /web (this app), not in
+  // /landing. NEXT_PUBLIC_APP_URL points at /web; NEXT_PUBLIC_SITE_URL
+  // points at /landing. Reading SITE_URL here was the bug — the link
+  // would hit landing's :3000, which doesn't have /auth/callback.
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
   if (configured) return configured
   return (await headers()).get('origin') || 'http://localhost:3001'
 }
