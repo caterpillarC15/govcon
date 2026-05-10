@@ -1,6 +1,6 @@
 # Sprint B: HTTP `/tools/<name>` Parity Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (recommended for this plan — see Execution Handoff at the bottom for the rationale) or superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Expose every `api/skills/<name>` skill as an HTTP `POST /tools/<name>` endpoint guarded by `X-Internal-API-Key`, so any non-Hermes caller (TS shim from `/root/michealaai`, Codex, Cursor, curl) can drive the pack without learning the Hermes plugin spec.
 
@@ -25,6 +25,8 @@
 - `uv run ruff check api` — clean
 - `uv run mypy api` — 0 errors
 - `git status` — clean
+
+**Branch state going in:** Local `main` is 16 ahead, 1 behind `origin/main`. The 1-behind commit is `65c8651 Remove Alembic`; verified harmless via `git diff HEAD origin/main -- '*alembic*' alembic.ini` (empty diff — already covered by the v1.2.4 Postgres-tooling rip-out). No action needed before Phase 0; do **not** rebase or merge during this sprint.
 
 **Final verification gates (sprint complete):**
 - App route count: 24 → **34** (+10 new POST routes)
@@ -564,26 +566,11 @@ Append to `api/tests/test_tools_routes.py`:
 # ─── /tools/search-sam ─────────────────────────────────────────────────────
 
 
-async def test_search_sam_returns_degraded_when_no_key(client, monkeypatch) -> None:
-    """If SAM_API_KEY is empty and we hit a fake 401, the skill returns degraded."""
-    from api.config import settings
-
-    monkeypatch.setattr(settings, "sam_api_key", "")
-    # Force a degraded return without a real network call by routing the skill
-    # through a stub http client that returns 401.
-    import httpx
+async def test_search_sam_returns_degraded_envelope(client, monkeypatch) -> None:
+    """When the skill reports degraded=True, the route surfaces it intact in the envelope.
+    The skill is replaced wholesale to avoid any real network call.
+    """
     from api.routes import tools as tools_module
-
-    class _FakeResp:
-        status_code = 401
-        def json(self) -> dict[str, Any]:
-            return {}
-
-    class _FakeClient:
-        async def get(self, *args: Any, **kwargs: Any) -> _FakeResp:
-            return _FakeResp()
-        async def aclose(self) -> None:
-            return None
 
     async def _fake_search(payload, *, api_key, http=None):
         return {"opportunities": [], "degraded": True, "error": "SAM client error: 401"}
@@ -1598,32 +1585,56 @@ git commit -m "feat(tools): POST /tools/generate-action-package (full + reject_s
 **Files:**
 - Modify: `tasks/CONTRACTS.md`
 
-- [ ] **Step 1: Read current §6**
+The current §6 ends with a fenced code block listing routes (closing on line 232) followed by three prose lines describing the auth split. Insert the new section AFTER the prose paragraphs (line 237) and BEFORE the `---` horizontal rule on line 239.
 
-Run: `grep -n "^## 6\." tasks/CONTRACTS.md` to find the section anchor; read 60 lines after it.
+- [ ] **Step 1: Insert the new subsection between line 237 and line 239**
 
-- [ ] **Step 2: Add the new routes table**
+Use Edit to replace the exact block:
 
-Append (or insert into the existing §6 table) the following block. Replace `<insertion_anchor>` with the actual heading text for the "Internal only" subsection in the live file:
+OLD:
+```
+Public: `GET /healthz`, `POST /waitlist`, landing page.
+Authenticated user: profile creation/read, agent-run creation/read, run outputs.
+Internal only: requirements, fit scores, risks, action packages writes through
+`X-Internal-API-Key`.
 
-```markdown
-### POST `/tools/<name>` (Sprint B — internal only)
+---
+```
 
-All routes require `X-Internal-API-Key`. Response envelope: `{"data": ..., "metrics": LLMMetrics | null}`.
+NEW:
+```
+Public: `GET /healthz`, `POST /waitlist`, landing page.
+Authenticated user: profile creation/read, agent-run creation/read, run outputs.
+Internal only: requirements, fit scores, risks, action packages writes through
+`X-Internal-API-Key`.
 
-| Route | Skill | LLM | Notes |
+### `POST /tools/<name>` — internal-only skill surface (Sprint B)
+
+All routes require `X-Internal-API-Key`. Response envelope:
+`{"data": ..., "metrics": LLMMetrics | null}`. `metrics` is null for non-LLM skills.
+
+| Route | Skill module | LLM | Notes |
 |---|---|---|---|
 | POST `/tools/parse-goal` | `api.skills.parse_goal` | yes | Goal → search criteria |
-| POST `/tools/parse-pdf` | `api.skills.parse_pdf` | no | Local FS path; deterministic |
+| POST `/tools/parse-pdf` | `api.skills.parse_pdf` | no | Server-local filesystem path |
 | POST `/tools/extract-requirements` | `api.skills.extract_requirements` | yes | §10.1 contract; evidence-binding post-validation |
 | POST `/tools/score-fit` | `api.skills.score_fit` | conditional | §11.1 short-circuit skips LLM on eligibility blockers |
-| POST `/tools/detect-risks` | `api.skills.detect_risks` | yes | §5.8 taxonomy; silent-drop unknown categories |
+| POST `/tools/detect-risks` | `api.skills.detect_risks` | yes | §5.8 taxonomy; silent-drops unknown categories |
 | POST `/tools/generate-action-package` | `api.skills.generate_action_package` | conditional | `mode: "reject_summary"` skips LLM |
 | POST `/tools/search-sam` | `api.skills.search_sam` | no | Reads `SAM_API_KEY`; degraded fallback on rate-limit/5xx |
 | POST `/tools/fetch-attachment` | `api.skills.fetch_attachment` | no | Writes to Supabase Storage `raw/<run_id>/<filename>` |
 | POST `/tools/rank-opportunities` | `api.skills.rank_opportunities` | no | Pure deterministic sort |
 | POST `/tools/load-seeded-opportunities` | `api.skills.load_seeded_opportunities` | no | Idempotent on slug |
+
+Request schemas: `api/schemas/tool_requests.py`. Routes hold no business logic; each is a thin dispatch into the underlying skill function.
+
+---
 ```
+
+- [ ] **Step 2: Verify the edit landed cleanly**
+
+Run: `grep -n "POST /tools/<name>" tasks/CONTRACTS.md`
+Expected: one match in §6.
 
 - [ ] **Step 3: Commit**
 
@@ -1634,29 +1645,83 @@ git commit -m "docs(contracts): document POST /tools/<name> internal routes"
 
 ---
 
-### Task 4.2: `devdocs/CURRENT_STATE.md` §7 — route count
+### Task 4.2: `devdocs/CURRENT_STATE.md` §7 + §10 — route count and queue
 
 **Files:**
 - Modify: `devdocs/CURRENT_STATE.md`
 
-- [ ] **Step 1: Find the route-count line**
+Two sections need surgical edits.
 
-Run: `grep -n "24" devdocs/CURRENT_STATE.md` and `grep -n "API surface" devdocs/CURRENT_STATE.md` to locate §7 and the route-count claim.
+#### Edit A — §7 API surface table (around line 225)
 
-- [ ] **Step 2: Update the route count to 34 and add the 10 new rows**
+The existing table ends with the line `| POST /action-packages | InternalActor | Roy writeback |`. Append a new row immediately after it.
 
-In §7's API table, append a "Internal — /tools" subsection or extend the existing internal-routes table with the same 10 rows from Task 4.1. Bump any prose claim of "24 routes" to "34 routes (24 user + 10 internal `/tools/`)".
+- [ ] **Step 1: Edit §7 — add the /tools row**
 
-- [ ] **Step 3: Verify route count by running the app**
+Use Edit to replace the exact block:
+
+OLD:
+```
+| `POST /action-packages`                      | **InternalActor** | Roy writeback                                        |
+
+User-facing routes use Supabase JWT; sub-agent writebacks use a
+```
+
+NEW:
+```
+| `POST /action-packages`                      | **InternalActor** | Roy writeback                                        |
+| `POST /tools/<name>` (×10)                   | **InternalActor** | Direct skill dispatch for non-Hermes callers (Sprint B) |
+
+User-facing routes use Supabase JWT; sub-agent writebacks use a
+```
+
+#### Edit B — §10 "Done" / "Next" lists (around lines 286–311)
+
+The line `- 11+ FastAPI routes across 8 router files` is stale (it's actually 24 today, becoming 34 after this sprint). The "Next" list contains `- HTTP-API parity: POST /tools/<name> endpoints for non-Hermes callers` which becomes "done" after this sprint.
+
+- [ ] **Step 2: Bump the route-count line in §10 "Done"**
+
+Use Edit to replace the exact line:
+
+OLD:
+```
+- 11+ FastAPI routes across 8 router files
+```
+
+NEW:
+```
+- 34 FastAPI routes across 9 router files (24 user + agent-runs + 10 internal `/tools/<name>` skill dispatches added 2026-05-09)
+```
+
+- [ ] **Step 3: Move the /tools/ bullet from "Next" to "Done"**
+
+Use Edit to replace the exact line in §10 "Next":
+
+OLD:
+```
+- HTTP-API parity: `POST /tools/<name>` endpoints for non-Hermes callers
+```
+
+NEW (delete the line entirely; the new "Done" entry above already covers it):
+```
+```
+(i.e., the new replacement is empty — the line is removed.)
+
+- [ ] **Step 4: Verify route count by running the app**
 
 Run: `uv run python -c "from api.main import app; print(sum(1 for r in app.routes if hasattr(r,'path')))"`
-Expected: `34`. Doc and reality must match.
+Expected: `34`.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Verify §10 reads cleanly**
+
+Run: `sed -n '284,312p' devdocs/CURRENT_STATE.md`
+Expected: "Done" mentions 34 routes; "Next" no longer lists the `/tools/<name>` bullet.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add devdocs/CURRENT_STATE.md
-git commit -m "docs(state): bump route count to 34 (Sprint B /tools/)"
+git commit -m "docs(state): bump route count to 34 (Sprint B /tools/<name> shipped)"
 ```
 
 ---
@@ -1666,17 +1731,54 @@ git commit -m "docs(state): bump route count to 34 (Sprint B /tools/)"
 **Files:**
 - Modify: `devdocs/CAPABILITY_PACK_INTEGRATION.md`
 
-- [ ] **Step 1: Find the "HTTP REST" or "POST /tools" section**
+The current file has a `### HTTP API` section starting at line 23 that describes the existing CRUD surface in three bullets and an internal-key paragraph. The file does NOT currently mention `/tools/<name>` anywhere (verified 2026-05-09). Add a new subsection right after the `### HTTP API` block, before the next heading `### Agent Run Rows` on line 39.
 
-Run: `grep -n -i "http\|/tools\|planned" devdocs/CAPABILITY_PACK_INTEGRATION.md`
+- [ ] **Step 1: Insert the new subsection between the existing HTTP API block and "Agent Run Rows"**
 
-- [ ] **Step 2: Change status from "planned" → "live (Sprint B, 2026-05-09)"**
+Use Edit to replace the exact block:
 
-Specifically: any line marking the `POST /tools/<name>` interface as "planned" or "Sprint B" must now read "live as of 2026-05-09 (commits ..a8b8df4..)" — use `git log --oneline | head -20` to find the actual commit range and substitute.
+OLD:
+```
+Browser user tokens cannot write generated analysis artifacts.
 
-Add a one-paragraph caller note:
+### Agent Run Rows
+```
 
-> Callers send `POST /tools/<name>` with `X-Internal-API-Key` and a JSON body matching the per-route request model. Responses share the envelope `{"data": ..., "metrics": <LLMMetrics | null>}`. LLM-backed routes report token counts and cost; non-LLM routes return `metrics: null`. Schema source: `api/schemas/tool_requests.py`.
+NEW:
+```
+Browser user tokens cannot write generated analysis artifacts.
+
+#### `POST /tools/<name>` — direct skill dispatch (live 2026-05-09)
+
+Any caller that doesn't run Hermes (TypeScript shim from `/root/michealaai`,
+Codex, Cursor, curl) can drive the pack's skills through ten POST endpoints
+under `/tools/<name>`. Each route requires `X-Internal-API-Key` and accepts a
+typed JSON body matching the schema in `api/schemas/tool_requests.py`.
+
+Responses share the uniform envelope:
+
+```json
+{ "data": <skill output>, "metrics": <LLMMetrics | null> }
+```
+
+`metrics` is null for non-LLM skills (parse_pdf, rank_opportunities,
+search_sam, fetch_attachment, load_seeded_opportunities) and populated with
+token counts and cost for LLM-backed skills (parse_goal,
+extract_requirements, score_fit, detect_risks, generate_action_package).
+The full table of routes lives in `tasks/CONTRACTS.md` §6.
+
+This is parity with — not a replacement for — the planned Hermes plugin
+(Sprint A). The plugin gives Michaela's Hermes-hosted workers native tool
+calls with lower latency; this HTTP surface gives every other caller a
+zero-research integration path.
+
+### Agent Run Rows
+```
+
+- [ ] **Step 2: Verify the edit landed**
+
+Run: `grep -n "POST /tools/<name>" devdocs/CAPABILITY_PACK_INTEGRATION.md`
+Expected: one match in the HTTP API section.
 
 - [ ] **Step 3: Commit**
 
@@ -1792,8 +1894,8 @@ git commit -m "docs(handoff): mark Sprint B done; bump verified state"
 
 Plan complete and saved to `docs/superpowers/plans/2026-05-09-sprint-b-http-tools-parity.md`. Two execution options:
 
-**1. Subagent-Driven (recommended)** — I dispatch a fresh subagent per task, review between tasks, fast iteration. Best for this plan because each task is small and independent enough that fresh context per task keeps each subagent's reasoning sharp, and the two-stage review per task catches drift before it compounds across 14 tasks.
+**1. Inline Execution (recommended for this plan)** — Execute tasks in this session using `superpowers:executing-plans`, batch execution with checkpoints for review. **Why recommended:** all 14 tasks accumulate on the same two files (`api/routes/tools.py`, `api/tests/test_tools_routes.py`). A single inline session keeps the growing files in context across tasks. Subagent-driven would force every fresh subagent to re-read both files to know current state — pure waste.
 
-**2. Inline Execution** — Execute tasks in this session using `superpowers:executing-plans`, batch execution with checkpoints for review. Best if you want to ride along step-by-step with minimal handoff overhead.
+**2. Subagent-Driven** — Dispatch a fresh subagent per task, review between tasks. Better when tasks touch independent files; here it pays the re-read tax 14 times. Pick this only if you want stricter per-task isolation despite the overhead.
 
 Which approach?
