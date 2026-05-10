@@ -11,8 +11,9 @@
 # Postgres lives in Supabase (PRD v1.2.3 §7.5) — no on-box pg install, no
 # pg_dump cron, no /var/lib/govcapture data dir. Object storage lives in a
 # Supabase bucket. Backups are managed by Supabase. The box keeps Redis (SSE
-# pub/sub bridge), FastAPI (gunicorn under systemd), Hermes (subprocess of
-# FastAPI), and nginx + certbot.
+# pub/sub bridge), FastAPI (gunicorn under systemd), and nginx + certbot.
+# Per PRD v1.2.5, Hermes/Michaela orchestration runs separately in
+# /root/michealaai — NOT as a subprocess of this FastAPI service.
 #
 # Idempotent. Run as root: `sudo bash infra/bootstrap.sh`.
 # After this completes, see infra/RUNBOOK.md for "First deploy".
@@ -81,7 +82,7 @@ systemctl daemon-reload
 cat <<EOF
 
 ================================================================
-Bootstrap complete (v1.2.4 — Supabase Postgres/Storage/Auth, no on-box pg).
+Bootstrap complete (PRD v1.2.5 — Supabase Postgres/Storage/Auth, no on-box pg).
 
 Next (see infra/RUNBOOK.md for full detail):
 
