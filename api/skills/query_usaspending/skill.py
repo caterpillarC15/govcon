@@ -14,6 +14,15 @@ import httpx
 
 USASPENDING_URL = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
 
+# USASpending requires `filters.award_type_codes` to disambiguate prime
+# contracts from grants/loans/IDVs. Default to all federal-contract codes:
+#   A — BPA Call          (Blanket Purchase Agreement task order)
+#   B — Purchase Order
+#   C — Delivery Order    (against an existing IDV)
+#   D — Definitive Contract
+# The caller can override via payload["award_type_codes"].
+_DEFAULT_AWARD_TYPE_CODES = ["A", "B", "C", "D"]
+
 
 async def query_usaspending(
     payload: dict[str, Any],
@@ -27,6 +36,7 @@ async def query_usaspending(
           "naics": str | None,
           "agency": str | None,         # toptier agency name
           "limit": int,                 # default 25, max 100
+          "award_type_codes": list[str] | None,  # default A/B/C/D (contracts)
         }
 
     Output:
@@ -42,7 +52,11 @@ async def query_usaspending(
     period_start, award_id, raw (the original record).
     """
     body: dict[str, Any] = {
-        "filters": {},
+        "filters": {
+            "award_type_codes": list(
+                payload.get("award_type_codes") or _DEFAULT_AWARD_TYPE_CODES
+            ),
+        },
         "fields": [
             "Recipient Name",
             "Award Amount",

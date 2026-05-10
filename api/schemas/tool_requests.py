@@ -88,3 +88,10 @@ class QueryUsaspendingRequest(_Strict):
     naics: str | None = None
     agency: str | None = None
     limit: int = Field(25, ge=1, le=100)
+    award_type_codes: list[str] | None = Field(
+        default=None,
+        description=(
+            "USASpending award type codes. Default: A/B/C/D (federal "
+            "contracts). Override to query grants (02/03/04/05) etc."
+        ),
+    )

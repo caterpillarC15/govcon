@@ -131,3 +131,45 @@ async def test_filters_built_from_naics_and_agency() -> None:
     assert captured["filters"]["agencies"] == [
         {"name": "Department of Defense", "tier": "toptier"}
     ]
+
+
+async def test_award_type_codes_default_present_so_real_api_doesnt_reject() -> None:
+    """USASpending requires `filters.award_type_codes` — without it the real
+    API returns 422 'Missing value: filters|award_type_codes is a required
+    field' and the skill always degrades. Default to A/B/C/D (federal
+    contracts) so the skill produces real data on a clean call."""
+    captured: dict[str, Any] = {}
+
+    class _CaptureClient:
+        async def post(
+            self, url: str, *, json: dict[str, Any], timeout: float
+        ) -> _Resp:
+            captured.update(json)
+            return _Resp(200, {"results": []})
+
+        async def aclose(self) -> None:
+            return None
+
+    await query_usaspending({"naics": "541512"}, http=_CaptureClient())
+    assert captured["filters"]["award_type_codes"] == ["A", "B", "C", "D"]
+
+
+async def test_award_type_codes_caller_override() -> None:
+    """Caller can override the default codes (e.g., to query grants 02/03/04/05)."""
+    captured: dict[str, Any] = {}
+
+    class _CaptureClient:
+        async def post(
+            self, url: str, *, json: dict[str, Any], timeout: float
+        ) -> _Resp:
+            captured.update(json)
+            return _Resp(200, {"results": []})
+
+        async def aclose(self) -> None:
+            return None
+
+    await query_usaspending(
+        {"naics": "541512", "award_type_codes": ["02", "03"]},
+        http=_CaptureClient(),
+    )
+    assert captured["filters"]["award_type_codes"] == ["02", "03"]
