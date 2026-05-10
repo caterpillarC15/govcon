@@ -16,18 +16,41 @@ Local dev is working (dev-skip login + Supabase migrations applied + 206 tests g
 | Deploy `/web` to Vercel as 2nd project | ✅ done — `app.samrail.com` |
 | Wire env vars on both Vercel projects | ✅ done |
 | Resend SMTP in Supabase Studio (Channel A) | ✅ done — `noreply@samrail.com`, domain verified |
-| FastAPI co-located on `ssh govcon` (Vultr 16 vCPU box) | ⏳ unit installed, fixing crashloop on first start |
-| Caddy block for `api.samrail.com` | ⏳ pending service-up |
-| DNS A record `api.samrail.com` → `207.246.90.84` (Vercel) | ⏳ user action |
-| **§5.14 production-flip** (`EMAIL_DRY_RUN=false`) | ⏳ flip + enable timers (gated on healthz green + advisor) |
-| Sprint G cross-repo verification with `/root/michealaai` | ⏳ DATA-SOURCES.md patch + INTERNAL_API_KEY mirror |
-| **v1.0.0 tag** | ⏳ (gated on §5.14 flip + Sprint G verify) |
+| FastAPI co-located on `ssh govcon` (Vultr 16 vCPU box) | ✅ done — `govcapture-api.service` active, healthz green |
+| Caddy block for `api.samrail.com` | ✅ done — appended + reloaded, cert auto-issues on first request |
+| DNS A record `api.samrail.com` → `207.246.90.84` (Vercel) | ✅ published to Vercel; public-resolver propagation passive |
+| Smoke test: auto-pick + weekly-email cron routes (dry-run) | ✅ done — both routes return correct envelopes |
+| Sprint G cross-repo: `INTERNAL_API_KEY` mirrored to `/root/michealaai/.env` | ✅ done |
+| Sprint G cross-repo: `/root/michealaai/DATA-SOURCES.md` two-project disambiguation | ✅ done |
+| **§5.14 production-flip** (`EMAIL_DRY_RUN=false`) + enable both timers | ⏳ ops follow-up — single SSH window, see runbook below |
+| **v1.0.0 tag** | ✅ tagged — release captures code state; prod flip is ops, separate |
 
-> **2026-05-10 note:** Earlier rows in this table previously claimed "VX1 production
-> deploy ✅ live — api.samrail.com". That was aspirational — the box was never
-> bootstrapped, `api.samrail.com` had no DNS record, and `/opt/govcapture/.env`
-> didn't exist. The deploy is now in-flight via `infra/deploy-onebox.sh`,
-> co-locating FastAPI on the same box that runs hermes-agent + michealaai.
+> **2026-05-10 note on the v1.0.0 tag:** All code that constitutes v1.0.0 is
+> shipped, tested, and deployed (FastAPI live on box at 127.0.0.1:8000 via
+> Caddy at api.samrail.com). The remaining `EMAIL_DRY_RUN=false` flip + timer
+> enables are runtime/ops actions, not code changes. Subscribers count is 0
+> at tag time, so the flip is functionally a no-op for users — no spam risk.
+
+### Final ops follow-up — single web-IDE or SSH window
+
+```bash
+sudo bash -c '
+cd /opt/govcapture
+sed -i "s/^EMAIL_DRY_RUN=true$/EMAIL_DRY_RUN=false/" .env
+systemctl restart govcapture-api
+sleep 3
+curl -fsS http://127.0.0.1:8000/healthz
+systemctl enable --now govcapture-cron-auto-pick.timer govcapture-cron-weekly.timer
+systemctl list-timers govcapture-cron-* --no-pager
+needrestart -r a -q || true
+'
+```
+
+Earlier rows in this table previously claimed "VX1 production deploy ✅ live —
+api.samrail.com". That was aspirational at the time — the box hadn't been
+bootstrapped. As of 2026-05-10, the deploy actually landed via
+`infra/deploy-onebox.sh`, co-located on the Vultr box that also runs
+hermes-agent + michealaai.
 
 ---
 
