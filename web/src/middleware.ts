@@ -44,11 +44,21 @@ export async function middleware(request: NextRequest) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
     loginUrl.searchParams.set('next', pathname)
-    return NextResponse.redirect(loginUrl)
+    // Preserve cookie writes (incl. token-refresh) from setAll() on the
+    // existing response — a fresh NextResponse.redirect() drops them.
+    const redirect = NextResponse.redirect(loginUrl)
+    response.cookies.getAll().forEach((c) => {
+      redirect.cookies.set(c.name, c.value)
+    })
+    return redirect
   }
 
   if (pathname === '/login' && user) {
-    return NextResponse.redirect(new URL('/app', request.url))
+    const redirect = NextResponse.redirect(new URL('/app', request.url))
+    response.cookies.getAll().forEach((c) => {
+      redirect.cookies.set(c.name, c.value)
+    })
+    return redirect
   }
 
   return response

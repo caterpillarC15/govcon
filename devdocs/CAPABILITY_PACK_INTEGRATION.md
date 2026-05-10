@@ -1,6 +1,6 @@
 # GovCon Capability Pack Integration
 
-Status: current as of 2026-05-09.
+Status: current as of 2026-05-10.
 
 This repo is the GovCon Bid Desk capability pack. It exposes tools,
 schemas, storage, and HTTP routes that Michaela can call. It is not the
@@ -40,9 +40,11 @@ Browser user tokens cannot write generated analysis artifacts.
 #### `POST /tools/<name>` — direct skill dispatch (live 2026-05-09)
 
 Any caller that doesn't run Hermes (TypeScript shim from `/root/michealaai`,
-Codex, Cursor, curl) can drive the pack's skills through ten POST endpoints
-under `/tools/<name>`. Each route requires `X-Internal-API-Key` and accepts a
-typed JSON body matching the schema in `api/schemas/tool_requests.py`.
+Codex, Cursor, curl) can drive the pack's skills through eleven POST
+endpoints under `/tools/<name>` (mirrored at `/api/v1/tools/<name>` for
+per-agent gck_ bearer tokens). Each route requires `X-Internal-API-Key`
+(or a valid `gck_…` bearer on the public mirror) and accepts a typed JSON
+body matching the schema in `api/schemas/tool_requests.py`.
 
 Responses share the uniform envelope:
 
@@ -183,6 +185,7 @@ Domain mechanics live under `api/skills/<name>/`:
 - `score_fit`
 - `detect_risks`
 - `generate_action_package`
+- `query_usaspending` (Ledger; persists to `competitor_history`)
 
 These functions are provider-agnostic except where an LLM call is explicit.
 Inputs and outputs must stay aligned with `schemas/*.json` and
@@ -282,7 +285,7 @@ end-to-end flow is provably live:
 | `agent_runs` poll loop | N/A | unknown | A `pending` row inserted via `POST /agent-runs` is claimed (`status='running'`) within N seconds |
 | Optimistic-claim race-safety | N/A | unknown | Two simultaneous claim attempts on the same row produce exactly one winner |
 | `TraceEvent` emission to Redis `agent-run:{run_id}` | SSE forwarder live | unknown | A real run produces `run_started` + ≥1 `tool_*` + `run_completed` events on the channel |
-| Calls to `POST /tools/<name>` with `INTERNAL_API_KEY` | 10 routes live, tested | unknown | An e2e run produces an `action_packages` row owned by the original requester |
+| Calls to `POST /tools/<name>` with `INTERNAL_API_KEY` | 11 routes live, tested | unknown | An e2e run produces an `action_packages` row owned by the original requester |
 | Crash recovery for stale `running` rows | not enforced (no GC) | unknown | A killed worker's row is reaped or completed via the orchestrator's recovery loop |
 
 **Sprint G is "spec-done" when this section is filled in.** It is

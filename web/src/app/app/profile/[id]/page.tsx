@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/auth'
 import { api, ApiError } from '@/lib/api'
 import { Card } from '@/components/Card'
 import { PageHeader } from '@/components/PageHeader'
@@ -9,11 +9,6 @@ import type { CompanyProfile } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
-async function getToken(): Promise<string | null> {
-  const supabase = await createClient()
-  const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
 
 type Params = { id: string }
 
@@ -23,8 +18,7 @@ export default async function ProfileDetailPage({
   params: Promise<Params>
 }) {
   const { id } = await params
-  const token = await getToken()
-  if (!token) return null
+  const { token } = await requireUser()
 
   let profile: CompanyProfile | null = null
   let loadError: string | null = null

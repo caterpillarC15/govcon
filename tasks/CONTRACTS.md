@@ -175,18 +175,24 @@ input/output is validated on the API side. TypeScript/zod codegen is still
 planned, not wired. See `HERMES.md` and
 `devdocs/CAPABILITY_PACK_INTEGRATION.md` for the runtime boundary.
 
-| Skill | Owner | Input schema | Output schema |
-|-------|-------|--------------|---------------|
-| `search_sam_opportunities` | Domain skill (A11) | `SearchSamInput` | `Opportunity[]` |
-| `load_seeded_opportunities` | Domain skill (A11) | `LoadSeededInput` (filters) | `Opportunity[]` |
-| `fetch_attachment` | Hermes built-in (A9) | `{url}` | `{local_path, content_type, bytes}` |
-| `verify_source_page` | Hermes built-in (A9) | `{url, fields_to_verify}` | `{verified: bool, fields: {...}}` |
-| `parse_pdf` | Domain skill (A4) | `ParsePdfInput` (path) | `{chunks: [{page_number, text, doc_id}], unparseable: bool}` |
-| `extract_requirements` | Domain skill (A5) | `ExtractInput` (chunks, opportunity_id) | §10.1 RequirementExtractionOutput |
-| `score_fit` | Domain skill (A6) | `ScoreFitInput` (profile, requirements) | §10.2 FitScoreOutput |
-| `detect_risks` | Domain skill (A7) | `DetectRisksInput` (profile, requirements) | `RiskFlag[]` |
-| `generate_action_package` | Domain skill (A8) | `GenerateActionPackageInput` | §10.3 ActionPackageOutput |
-| `request_human_review` | Hermes built-in (A9) | `{question, context}` | event emission (no return) |
+This repo owns the **domain skills** (11) — purely deterministic
+mechanics or LLM-backed structured-output calls. Hermes built-ins
+(`verify_source_page`, `request_human_review`) are runtime-layer
+concerns and live with the orchestrator, not here.
+
+| Skill | LLM | Input schema | Output schema |
+|-------|-----|--------------|---------------|
+| `parse_goal` | yes | `ParseGoalInput` | `{naics_codes, keywords, due_window_days, …}` |
+| `search_sam` | no | `SearchSamInput` | `Opportunity[]` |
+| `load_seeded_opportunities` | no | `LoadSeededInput` (filters) | `Opportunity[]` |
+| `rank_opportunities` | no | `RankOpportunitiesInput` | sorted `Opportunity[]` |
+| `fetch_attachment` | no | `FetchAttachmentInput` (url, opportunity_id) | `{storage_path, content_type, bytes}` |
+| `parse_pdf` | no | `ParsePdfInput` (storage_path) | `{chunks: [{page_number, text, doc_id}], unparseable: bool}` |
+| `extract_requirements` | yes | `ExtractRequirementsInput` (chunks, opportunity_id) | §10.1 `RequirementExtractionOutput` |
+| `score_fit` | conditional | `ScoreFitInput` (profile, requirements) | §10.2 `FitScoreOutput` (§11.1 short-circuit can skip the LLM) |
+| `detect_risks` | yes | `DetectRisksInput` (profile, requirements) | `RiskFlag[]` |
+| `generate_action_package` | conditional | `GenerateActionPackageInput` | §10.3 `ActionPackageOutput` (`mode: "reject_summary"` skips LLM) |
+| `query_usaspending` | no | `QueryUsaspendingInput` (opportunity_id, naics, agency) | `CompetitorHistory[]` (Ledger writeback) |
 
 LLM-backed tools report `latency_ms` and `cost_usd` through
 `LLMMetrics`; deterministic short-circuits may report a synthetic
@@ -210,35 +216,56 @@ Michaela bench ownership:
 
 ## 6. API endpoints
 
-PRD §9 is canonical. Locked surface for v1:
+PRD §9 is canonical. Locked surface for v1 (53 routes total — the
+pack-side breakdown also lives in `devdocs/CURRENT_STATE.md` §7):
 
 ```
+# unauth
+GET    /healthz                           → { status: "ok" }
+POST   /waitlist                          → { status: "ok", already_registered: boolean }
+GET    /.well-known/agent.json            → MCP-style agent manifest
+GET    /.well-known/llms.txt              → plain-text agent description for LLM crawlers
+
+# user JWT (Supabase)
 POST   /company-profiles                  → CompanyProfile
 GET    /company-profiles                  → CompanyProfile[]
 GET    /company-profiles/:id              → CompanyProfile
 GET    /profiles/me                       → Profile
 POST   /profiles/me                       → Profile
-POST   /agent-runs                        → AgentRun request row (accepts inline profile or profile_id; does not start local runner)
+POST   /agent-runs                        → AgentRun request row (accepts inline profile or profile_id; does not start a runner)
 GET    /agent-runs/:id                    → AgentRun
-GET    /agent-runs/:id/stream             → SSE stream of TraceEvent
 GET    /agent-runs/:id/opportunities      → Opportunity[]
+GET    /agent-runs/:id/stream             → SSE stream of TraceEvent
 GET    /opportunities/:id                 → Opportunity
 GET    /opportunities/:id/requirements    → ExtractedRequirement[]
-POST   /opportunities/:id/requirements    → ExtractedRequirement (internal only)
 GET    /opportunities/:id/fit-score       → FitScore
-POST   /opportunities/:id/fit-score       → FitScore (internal only)
 GET    /opportunities/:id/risks           → RiskFlag[]
-POST   /opportunities/:id/risks           → RiskFlag (internal only)
+GET    /opportunities/:id/competitors     → CompetitorHistory[]
 GET    /action-packages/:id               → ActionPackage
-POST   /action-packages                   → ActionPackage (internal only)
-POST   /waitlist                          → { status: "ok", already_registered: boolean }
-GET    /healthz                           → { status: "ok" }
+GET    /api/keys                          → ApiKey[]            (caller's keys)
+POST   /api/keys                          → ApiKeyMint          (mint gck_… key — plaintext returned once)
+DELETE /api/keys/:id                      → 204 No Content      (revoke)
+
+# internal only — X-Internal-API-Key (writebacks from the orchestrator)
+POST   /opportunities/:id/requirements    → ExtractedRequirement
+POST   /opportunities/:id/fit-score       → FitScore
+POST   /opportunities/:id/risks           → RiskFlag
+POST   /opportunities/:id/competitors     → CompetitorHistory
+POST   /action-packages                   → ActionPackage
+POST   /tools/<name>                      → see §6 sub-table below (×11)
+
+# per-agent bearer (gck_…) — same surface mirrored under /api/v1
+POST   /api/v1/tools/<name>               → see §6 sub-table below (×11)
 ```
 
-Public: `GET /healthz`, `POST /waitlist`, landing page.
-Authenticated user: profile creation/read, agent-run creation/read, run outputs.
-Internal only: requirements, fit scores, risks, action packages, and tool
-calls through `X-Internal-API-Key`.
+Public: `GET /healthz`, `POST /waitlist`, the two `/.well-known/*` paths.
+Authenticated user (Supabase JWT): profile creation/read, agent-run
+creation/read, opportunity reads, action-package reads, API-key
+management.
+Internal only (X-Internal-API-Key): per-opportunity analysis writebacks,
+action-package creation, and the `/tools/<name>` skill surface.
+Per-agent bearer (gck_…): the public `/api/v1/tools/<name>` mirror,
+with rate limiting (60 rpm refilled at 1/s, fail-open on Redis loss).
 
 ### `POST /tools/<name>` — internal-only skill surface (Sprint B)
 
@@ -253,10 +280,11 @@ All routes require `X-Internal-API-Key`. Response envelope:
 | POST `/tools/score-fit` | `api.skills.score_fit` | conditional | §11.1 short-circuit skips LLM on eligibility blockers |
 | POST `/tools/detect-risks` | `api.skills.detect_risks` | yes | §5.8 taxonomy; silent-drops unknown categories |
 | POST `/tools/generate-action-package` | `api.skills.generate_action_package` | conditional | `mode: "reject_summary"` skips LLM |
-| POST `/tools/search-sam` | `api.skills.search_sam` | no | Reads `SAM_API_KEY`; degraded fallback on rate-limit/5xx |
+| POST `/tools/search-sam` | `api.skills.search_sam` | no | Reads `SAM_API_KEY`; sends required `award_type_codes`; degraded fallback on rate-limit/5xx |
 | POST `/tools/fetch-attachment` | `api.skills.fetch_attachment` | no | Writes to Supabase Storage `raw/<run_id>/<filename>` |
 | POST `/tools/rank-opportunities` | `api.skills.rank_opportunities` | no | Pure deterministic sort |
 | POST `/tools/load-seeded-opportunities` | `api.skills.load_seeded_opportunities` | no | Idempotent on slug |
+| POST `/tools/query-usaspending` | `api.skills.query_usaspending` | no | USASpending.gov prior-awards lookup (Ledger); persists `competitor_history` rows |
 
 Request schemas: `api/schemas/tool_requests.py`. Routes hold no business logic; each is a thin dispatch into the underlying skill function.
 

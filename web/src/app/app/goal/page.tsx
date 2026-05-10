@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/auth'
 import { api, ApiError } from '@/lib/api'
 import { Card } from '@/components/Card'
 import { EmptyState } from '@/components/EmptyState'
@@ -10,15 +10,8 @@ import { GoalForm } from './GoalForm'
 
 export const dynamic = 'force-dynamic'
 
-async function getToken(): Promise<string | null> {
-  const supabase = await createClient()
-  const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
-
 export default async function GoalPage() {
-  const token = await getToken()
-  if (!token) return null
+  const { token } = await requireUser()
 
   let profiles: CompanyProfile[] = []
   let loadError: string | null = null

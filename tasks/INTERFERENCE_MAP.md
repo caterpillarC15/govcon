@@ -43,7 +43,7 @@ File ownership, shared-file protocols, and conflict-resolution rules.
 | `/schemas/*.json` | Schema source. Changes need both-dev ack on the PR. Regenerate `/api/schemas/` with `make schemas` when Python models are affected. |
 | `/api/schemas/**` (generated) | Prefer regeneration via `make schemas`. Commit with the source schema change. |
 | `/.env.example` | Append-only. New var added here AND in `CONTRACTS.md §4` in the same PR. |
-| `/PRD.md` | Current product truth is v1.2.4. Any edit is a joint decision logged in `tasks/README.md` decision log + a PRD changelog entry. |
+| `/PRD.md` | Current product truth is v1.2.5. Any edit is a joint decision logged in `tasks/README.md` decision log + a PRD changelog entry. |
 | `/tasks/README.md` decision log | Append-only. Both devs add entries; never edit prior. |
 | `/Makefile` (top level) | Track A owns; B can request additions via standup. |
 

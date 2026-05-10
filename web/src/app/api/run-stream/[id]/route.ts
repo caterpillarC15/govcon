@@ -12,10 +12,19 @@ export async function GET(
 ) {
   const { id } = await context.params
   const supabase = await createClient()
+  // getUser validates against /auth/v1/user; getSession alone would
+  // accept a forged or expired JWT (only locally decodes).
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser()
+  if (userErr || !user) {
+    return new NextResponse('Unauthorized', { status: 401 })
+  }
   const {
     data: { session },
   } = await supabase.auth.getSession()
-  if (!session) {
+  if (!session?.access_token) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
