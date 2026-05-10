@@ -1,0 +1,14 @@
+[Unit]
+Description=GovCapture §5.14 weekly opportunity send — Monday 14:00 UTC
+Documentation=PRD §5.14
+
+[Timer]
+# Mondays 14:00 UTC. Roughly 9–10 AM ET / 7 AM PT — early in the US workday.
+# Decoupled from the picker so a failed Sunday pick never breaks the send;
+# the sender simply finds no pick row and exits clean.
+OnCalendar=Mon *-*-* 14:00:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

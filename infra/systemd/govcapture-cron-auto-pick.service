@@ -1,0 +1,31 @@
+[Unit]
+Description=GovCapture §5.14 weekly auto-picker (curl into FastAPI loopback)
+Documentation=PRD §5.14
+After=network-online.target govcapture-api.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=govcapture
+Group=govcapture
+WorkingDirectory=/opt/govcapture
+EnvironmentFile=/opt/govcapture/.env
+
+# 30s connect timeout, 5min total. The picker is LLM-bound on Sonnet so it
+# can take a while when the candidate set is large.
+ExecStart=/usr/bin/curl --silent --show-error --fail-with-body \
+  --connect-timeout 30 \
+  --max-time 300 \
+  --request POST \
+  --header "Authorization: Bearer ${INTERNAL_API_KEY}" \
+  --output - \
+  http://127.0.0.1:8000/internal/cron/auto-pick-weekly-opportunity
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=govcapture-cron-auto-pick

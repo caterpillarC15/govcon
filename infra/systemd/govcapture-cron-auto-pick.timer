@@ -1,0 +1,13 @@
+[Unit]
+Description=GovCapture §5.14 weekly auto-picker — Sunday 22:00 UTC
+Documentation=PRD §5.14
+
+[Timer]
+# Sundays 22:00 UTC. Picker runs ahead of the Monday 14:00 UTC sender so a
+# slow Sonnet pass still finishes before the recipients wake up.
+OnCalendar=Sun *-*-* 22:00:00 UTC
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

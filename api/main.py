@@ -11,6 +11,7 @@ from api.routes import (
     agent_runs,
     api_keys,
     company_profiles,
+    email_subscriptions,
     healthz,
     opportunities,
     profiles,
@@ -50,3 +51,4 @@ app.include_router(api_keys.router)
 app.include_router(tools.router)
 app.include_router(v1_tools.router)
 app.include_router(well_known.router)
+app.include_router(email_subscriptions.router)
