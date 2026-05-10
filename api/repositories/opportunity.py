@@ -45,6 +45,25 @@ class OpportunityRepository:
         )
         return cast("list[dict[str, Any]]", resp.data or [])
 
+    async def list_recent(
+        self, *, since_iso: str, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        """Return opportunities ingested at or after `since_iso`, newest first.
+
+        Used by the §5.14 weekly auto-picker to pull a candidate set
+        from the last N days of cached opportunities. The caller decides
+        what counts as "recent" by passing the cutoff timestamp.
+        """
+        resp = await (
+            self.client.table("opportunities")
+            .select("*")
+            .gte("created_at", since_iso)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return cast("list[dict[str, Any]]", resp.data or [])
+
     async def requirements(self, opp_id: uuid.UUID) -> list[dict[str, Any]]:
         resp = await (
             self.client.table("extracted_requirements")

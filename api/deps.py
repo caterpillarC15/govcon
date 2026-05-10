@@ -15,6 +15,12 @@ from api.repositories.competitor_history import CompetitorHistoryRepository
 from api.repositories.opportunity import OpportunityRepository
 from api.repositories.profile import ProfileRepository
 from api.repositories.waitlist import WaitlistRepository
+from api.repositories.weekly_opportunity_email_log import (
+    WeeklyOpportunityEmailLogRepository,
+)
+from api.repositories.weekly_opportunity_pick import (
+    WeeklyOpportunityPickRepository,
+)
 from api.storage_adapter import StorageAdapter
 
 
@@ -62,6 +68,18 @@ def get_competitor_history_repo(
     client: AsyncClient = Depends(get_supabase),
 ) -> CompetitorHistoryRepository:
     return CompetitorHistoryRepository(client)
+
+
+def get_weekly_pick_repo(
+    client: AsyncClient = Depends(get_supabase),
+) -> WeeklyOpportunityPickRepository:
+    return WeeklyOpportunityPickRepository(client)
+
+
+def get_weekly_email_log_repo(
+    client: AsyncClient = Depends(get_supabase),
+) -> WeeklyOpportunityEmailLogRepository:
+    return WeeklyOpportunityEmailLogRepository(client)
 
 
 @lru_cache
