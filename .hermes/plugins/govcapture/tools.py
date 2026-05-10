@@ -230,6 +230,11 @@ GOVCAPTURE_QUERY_USASPENDING_SCHEMA = {
             "naics": {"type": "string", "description": "NAICS code"},
             "agency": {"type": "string", "description": "Top-tier agency name"},
             "limit": {"type": "integer", "minimum": 1, "maximum": 100, "description": "Default 25."},
+            "award_type_codes": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "USASpending award type codes. Default: ['A','B','C','D'] (federal contracts: BPA Call, Purchase Order, Delivery Order, Definitive Contract). Override to query grants ['02','03','04','05'] etc.",
+            },
         },
     },
 }

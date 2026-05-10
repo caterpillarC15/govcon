@@ -226,14 +226,24 @@ def query_usaspending(
     naics: str | None = None,
     agency: str | None = None,
     limit: int = 25,
+    award_type_codes: list[str] | None = None,
 ) -> dict[str, Any]:
     """Query USASpending.gov for prior awards by NAICS and/or top-tier
     agency. Returns normalized awards, deduped incumbents, and
     total_obligated_usd. Degrades gracefully on rate-limit / 5xx /
-    network error."""
+    network error.
+
+    award_type_codes defaults server-side to ['A','B','C','D'] (federal
+    contracts: BPA Call, Purchase Order, Delivery Order, Definitive
+    Contract). Override to query grants (['02','03','04','05']) etc."""
     return _post(
         "query-usaspending",
-        {"naics": naics, "agency": agency, "limit": limit},
+        {
+            "naics": naics,
+            "agency": agency,
+            "limit": limit,
+            "award_type_codes": award_type_codes,
+        },
     )
 
 
