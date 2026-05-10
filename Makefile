@@ -61,6 +61,13 @@ schemas: ## Regenerate Pydantic models from /schemas/*.schema.json (and TS if /w
 	  echo "⚠ /web/ not present — skipping TS codegen (Dev 2 wires when /web exists)"; \
 	fi
 
+fixtures-validate: ## Validate every fixture manifest against schemas/fixture-manifest.schema.json
+	@uv run python -c "import json, jsonschema, glob; \
+schema = json.load(open('schemas/fixture-manifest.schema.json')); \
+[ (jsonschema.validate(json.load(open(f)), schema), print(f'OK {f}')) \
+  for f in sorted(glob.glob('fixtures/*/manifest.json')) \
+  if '/_template/' not in f ] or print('(no fixtures yet)')"
+
 migrate: ## Apply Alembic migrations
 	cd api && uv run alembic upgrade head
 
