@@ -82,10 +82,10 @@ async def parse_pdf_route(
 async def extract_requirements_route(
     payload: ExtractRequirementsRequest,
     _actor: AgentActor = Depends(require_agent_or_internal),
-    llm=Depends(get_llm),
 ) -> ToolResponse:
-    data, metrics = await extract_requirements(payload.to_skill_input(), llm=llm)
-    return ToolResponse(data=data.model_dump(), metrics=metrics)
+    # PRD v1.2.6: skill is deterministic. See tools.py for flow notes.
+    data = await extract_requirements(payload.to_skill_input())
+    return ToolResponse(data=data, metrics=None)
 
 
 @router.post("/score-fit", response_model=ToolResponse)

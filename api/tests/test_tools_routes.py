@@ -203,11 +203,9 @@ async def test_parse_pdf_rejects_empty_path(client) -> None:
 # ─── /tools/extract-requirements ───────────────────────────────────────────
 
 
-async def test_extract_requirements_unparseable_short_circuit(
-    client,
-    fake_llm_factory,
-) -> None:
-    fake_llm_factory({"requirements": [], "missing_fields": [], "conflicts": []})
+async def test_extract_requirements_unparseable_short_circuit(client) -> None:
+    """PRD v1.2.6: deterministic skill. Unparseable PDF returns
+    empty chunks + missing_fields=['all']; metrics is None."""
     payload = {
         "parsed": {
             "doc_id": "missing",
@@ -224,8 +222,10 @@ async def test_extract_requirements_unparseable_short_circuit(
     )
     assert r.status_code == 200, r.text
     body = r.json()
+    assert body["data"]["chunks"] == []
     assert body["data"]["missing_fields"] == ["all"]
-    assert body["metrics"]["attempts"] == 0
+    assert body["data"]["requirements"] == []
+    assert body["metrics"] is None
 
 
 # ─── /tools/score-fit ──────────────────────────────────────────────────────

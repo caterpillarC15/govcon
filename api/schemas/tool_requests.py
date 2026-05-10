@@ -36,6 +36,12 @@ class ExtractRequirementsRequest(_Strict):
     parsed: dict[str, Any]
     opportunity_metadata: dict[str, Any] = Field(default_factory=dict)
     doc_id: str | None = None
+    # PRD v1.2.6: optional agent-emitted requirements for §11 validation.
+    # First call (omit) returns chunks for the agent to consume.
+    # Second call (include) returns validated requirements.
+    requirements: list[dict[str, Any]] | None = None
+    missing_fields: list[str] = Field(default_factory=list)
+    conflicts: list[dict[str, Any]] = Field(default_factory=list)
 
     def to_skill_input(self) -> ExtractInput:
         return ExtractInput.model_validate(self.model_dump())

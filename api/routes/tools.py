@@ -93,10 +93,12 @@ async def parse_pdf_route(
 async def extract_requirements_route(
     payload: ExtractRequirementsRequest,
     _actor: InternalActor = Depends(require_internal_actor),
-    llm=Depends(get_llm),
 ) -> ToolResponse:
-    data, metrics = await extract_requirements(payload.to_skill_input(), llm=llm)
-    return ToolResponse(data=data.model_dump(), metrics=metrics)
+    # PRD v1.2.6: skill is deterministic. Two flows:
+    #  - omit `requirements` → returns chunks for Gate's agent context
+    #  - include `requirements` → returns §11-validated set
+    data = await extract_requirements(payload.to_skill_input())
+    return ToolResponse(data=data, metrics=None)
 
 
 @router.post("/score-fit", response_model=ToolResponse)

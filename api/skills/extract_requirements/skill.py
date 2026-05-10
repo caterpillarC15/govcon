@@ -1,39 +1,31 @@
-"""extract_requirements — convert parsed PDF chunks into structured §10.1 requirements.
+"""extract_requirements — chunks emitter + validator (PRD v1.2.6).
 
-LLM-backed (Anthropic). Output is constrained server-side via `output_config.format`
-(no parse-and-retry loop). After the call we apply post-validation:
+Per the operating rule (devdocs/MICHAELA_SYSTEM_MODEL.md line 175),
+the §10.1 ExtractedRequirement structuring is judgment work — Gate
+performs it in her agent context (in /root/michealaai). This skill
+holds the deterministic mechanics:
 
-    1. Page-number bounds: out-of-range page_numbers are nulled and confidence
-       is downgraded to "low".
-    2. Evidence binding: medium/high confidence requirements without an
-       evidence_snippet are downgraded to "low".
-    3. Fuzzy-match check: medium/high evidence_snippets that don't appear in
-       the parsed source text (similarity < 0.3) are downgraded to "low".
+1. Returning parsed PDF chunks with page metadata for Gate to consume.
+2. Enforcing PRD §11 evidence-binding rules on Gate-emitted
+   requirements: page-bound checks, snippet presence, fuzzy-match
+   against source text. Out-of-range pages are nulled; high/medium
+   confidence without a verifiable snippet is downgraded to "low".
 
-Per CONTRACTS.md §5, the skill returns its data plus latency/cost metrics.
-The trace bridge (A9) wraps this into a `tool_returned` event.
+Two flows:
+- requirements=None  → returns chunks only (Gate's first call).
+- requirements=[…]   → validates + returns downgraded set.
 """
 from __future__ import annotations
 
-import json
 import logging
 from difflib import SequenceMatcher
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from api.config import settings
-from api.llm import LLM, LLMError, LLMMetrics
 from api.skills.parse_pdf import ParsedChunk, ParsePdfOutput
 
 logger = logging.getLogger(__name__)
-
-PROMPT_PATH = __import__("pathlib").Path(__file__).parent / "prompt.txt"
-RAW_PROMPT = PROMPT_PATH.read_text()
-_SYSTEM_TAG = "### SYSTEM ###"
-_USER_TAG = "### USER ###"
-SYSTEM_PROMPT = RAW_PROMPT.split(_SYSTEM_TAG, 1)[1].split(_USER_TAG, 1)[0].strip()
-USER_TEMPLATE = RAW_PROMPT.split(_USER_TAG, 1)[1].strip()
 
 FUZZY_MATCH_MIN = 0.3
 """Below this snippet/source similarity, downgrade evidence-bearing
@@ -58,11 +50,13 @@ ConfidenceLevel = Literal["high", "medium", "low", "unknown"]
 
 
 class ExtractedRequirementLLM(BaseModel):
-    """The skill output's per-requirement shape — matches PRD §10.1.
+    """Per-requirement shape — matches PRD §10.1.
 
-    Server-set fields (id, opportunity_id, created_at) live on the persisted
-    `ExtractedRequirement` entity (api.schemas.extracted_requirement) and are
-    added by the repository layer when the skill output gets persisted.
+    Server-set fields (id, opportunity_id, created_at) live on the
+    persisted entity (api.schemas.extracted_requirement) and are added
+    by the repository layer. The "LLM" suffix on the class name is
+    historical (kept for back-compat); these are now agent-emitted,
+    not LLM-emitted-by-this-skill.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -98,20 +92,23 @@ class ExtractInput(BaseModel):
     parsed: ParsePdfOutput
     opportunity_metadata: dict[str, Any] = Field(default_factory=dict)
     doc_id: str | None = None
+    # Agent-emitted requirements to validate. None = first call (Gate
+    # gets chunks back, runs LLM in her context, calls again with
+    # requirements populated).
+    requirements: list[ExtractedRequirementLLM] | None = None
+    missing_fields: list[str] = Field(default_factory=list)
+    conflicts: list[RequirementConflict] = Field(default_factory=list)
 
 
-def _printable_ratio_okay(text: str) -> bool:
-    if not text:
-        return False
-    return sum(c.isprintable() for c in text) / max(1, len(text)) >= 0.8
+def _fuzzy_in_pages(
+    snippet: str, chunks: list[ParsedChunk], page_number: int | None
+) -> bool:
+    """Return True if the snippet appears (loosely) in the source.
 
-
-def _fuzzy_in_pages(snippet: str, chunks: list[ParsedChunk], page_number: int | None) -> bool:
-    """Return True if the snippet appears (loosely) in the source — start with the
-    requirement's reported page, then fall back to scanning all pages.
-
-    The fuzzy threshold is intentionally lenient because pypdf often inserts/drops
-    whitespace and reorders columns; we only flag clear hallucinations.
+    Start with the requirement's reported page, then fall back to
+    scanning all pages. The fuzzy threshold is intentionally lenient
+    because pypdf often inserts/drops whitespace and reorders
+    columns; we only flag clear hallucinations.
     """
     if not snippet:
         return False
@@ -137,17 +134,17 @@ def _fuzzy_in_pages(snippet: str, chunks: list[ParsedChunk], page_number: int | 
 
 
 def _post_validate(
-    output: RequirementExtractionOutput, parsed: ParsePdfOutput
-) -> RequirementExtractionOutput:
-    """Apply PRD §11 evidence-binding rules after the LLM returns.
+    requirements: list[ExtractedRequirementLLM], parsed: ParsePdfOutput
+) -> list[ExtractedRequirementLLM]:
+    """Apply PRD §11 evidence-binding rules.
 
-    Downgrades happen in place — a 'high' confidence requirement with a
-    fabricated page_number or unverifiable snippet drops to 'low'.
+    Downgrades happen in place — a 'high' confidence requirement with
+    a fabricated page_number or unverifiable snippet drops to 'low'.
     """
     page_numbers_seen = {c.page_number for c in parsed.chunks}
     cleaned: list[ExtractedRequirementLLM] = []
 
-    for req in output.requirements:
+    for req in requirements:
         update: dict[str, Any] = {}
 
         if req.page_number is not None and req.page_number not in page_numbers_seen:
@@ -174,23 +171,23 @@ def _post_validate(
 
         cleaned.append(req.model_copy(update=update) if update else req)
 
-    return output.model_copy(update={"requirements": cleaned})
+    return cleaned
 
 
 async def extract_requirements(
     payload: ExtractInput | dict[str, Any],
-    *,
-    llm: LLM | None = None,
-    model: str | None = None,
-) -> tuple[RequirementExtractionOutput, LLMMetrics]:
-    """Extract structured requirements from a parsed PDF.
+) -> dict[str, Any]:
+    """Return chunks (and validated requirements, if supplied).
 
-    Returns the validated §10.1 output plus the LLM metrics block (latency_ms,
-    cost_usd, token counts, attempts). Caller is responsible for emitting the
-    `tool_returned` trace event.
+    Two-flow contract per PRD v1.2.6:
+    - First call (requirements=None): caller (Gate's agent) needs the
+      chunks to feed her LLM context. Returns chunks + empty
+      requirements.
+    - Second call (requirements=[…]): caller hands back the
+      LLM-emitted requirements for §11 validation. Returns the
+      downgraded set + chunks (for traceability).
 
-    On unparseable input, returns an empty result with a synthetic `latency_ms=0`
-    metrics block — no LLM call is made.
+    Unparseable PDFs return empty chunks + missing_fields=["all"].
     """
     if isinstance(payload, dict):
         payload = ExtractInput.model_validate(payload)
@@ -198,53 +195,30 @@ async def extract_requirements(
     parsed = payload.parsed
     doc_id = payload.doc_id or parsed.doc_id
 
+    chunks_data = [
+        {
+            "page_number": c.page_number,
+            "text": c.text,
+            "doc_id": doc_id,
+        }
+        for c in parsed.chunks
+    ]
+
     if parsed.unparseable or not parsed.chunks:
         logger.info("extract_requirements: skipping unparseable doc %s", doc_id)
-        empty = RequirementExtractionOutput(
-            requirements=[],
-            missing_fields=["all"],
-            conflicts=[],
-        )
-        metrics = LLMMetrics(
-            model=model or settings.llm_dev_model,
-            latency_ms=0,
-            cost_usd=0.0,
-            attempts=0,
-        )
-        return empty, metrics
+        return {
+            "chunks": chunks_data,
+            "requirements": [],
+            "missing_fields": ["all"],
+            "conflicts": [],
+        }
 
-    chunks_text = "\n\n".join(
-        f"[page {c.page_number}]\n{c.text}" for c in parsed.chunks
-    )
-    user_prompt = USER_TEMPLATE.format(
-        opportunity_metadata=json.dumps(payload.opportunity_metadata, indent=2, sort_keys=True),
-        chunks=chunks_text,
-        doc_id=doc_id,
-    )
+    requirements_in = payload.requirements or []
+    validated = _post_validate(requirements_in, parsed)
 
-    llm = llm or LLM()
-    try:
-        raw, metrics = await llm.complete_structured(
-            system=SYSTEM_PROMPT,
-            user=user_prompt,
-            output_model=RequirementExtractionOutput,
-            model=model,
-        )
-    except LLMError as exc:
-        logger.error("extract_requirements: LLM failed for %s: %s", doc_id, exc)
-        # Degraded-but-valid output so the planner can recover (PRD §4.5).
-        return (
-            RequirementExtractionOutput(
-                requirements=[],
-                missing_fields=["all"],
-                conflicts=[],
-            ),
-            LLMMetrics(
-                model=model or settings.llm_dev_model,
-                latency_ms=0,
-                cost_usd=0.0,
-                attempts=1,
-            ),
-        )
-
-    return _post_validate(raw, parsed), metrics
+    return {
+        "chunks": chunks_data,
+        "requirements": [r.model_dump() for r in validated],
+        "missing_fields": payload.missing_fields,
+        "conflicts": [c.model_dump() for c in payload.conflicts],
+    }
