@@ -127,3 +127,22 @@ export type ActionPackage = {
   approval_required: string[]
   created_at: string
 }
+
+export type ApiKey = {
+  id: string
+  owner_profile_id: string
+  name: string
+  prefix: string
+  scopes: string[]
+  last_used_at?: string | null
+  revoked_at?: string | null
+  created_at: string
+}
+
+export type ApiKeyMint = {
+  id: string
+  name: string
+  prefix: string
+  plaintext_key: string
+  created_at: string
+}

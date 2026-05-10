@@ -39,6 +39,12 @@ export default async function AppLayout({
             >
               Profiles
             </Link>
+            <Link
+              href="/app/keys"
+              className="grid h-10 place-items-center rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              API keys
+            </Link>
             <form action={signOut}>
               <button
                 type="submit"

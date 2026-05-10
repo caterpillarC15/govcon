@@ -1,6 +1,8 @@
 import type {
   ActionPackage,
   AgentRun,
+  ApiKey,
+  ApiKeyMint,
   CompanyProfile,
   ExtractedRequirement,
   FitScore,
@@ -50,6 +52,9 @@ async function request<T>(
         : `Request failed (${response.status})`
     throw new ApiError(response.status, message, body)
   }
+  if (response.status === 204) {
+    return null as T
+  }
   return (await response.json()) as T
 }
 
@@ -88,4 +93,15 @@ export const api = {
 
   getActionPackage: (token: string, id: string) =>
     request<ActionPackage>(`/action-packages/${id}`, token),
+
+  listApiKeys: (token: string) => request<ApiKey[]>('/api/keys', token),
+
+  mintApiKey: (token: string, name: string) =>
+    request<ApiKeyMint>('/api/keys', token, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+
+  revokeApiKey: (token: string, id: string) =>
+    request<null>(`/api/keys/${id}`, token, { method: 'DELETE' }),
 }
