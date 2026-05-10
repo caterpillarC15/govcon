@@ -43,3 +43,18 @@ async def test_acquire_then_exhaust(monkeypatch) -> None:
     with pytest.raises(RateLimitError) as exc_info:
         await acquire("test:k1", capacity=3, refill_per_sec=0.001)
     assert exc_info.value.retry_after >= 1
+
+
+async def test_acquire_fails_open_on_redis_error(monkeypatch) -> None:
+    """When the Redis client raises a transport error, acquire returns
+    normally (does not raise RateLimitError)."""
+    import redis.exceptions
+    from api.rate_limit import acquire
+
+    class _BrokenRedis:
+        async def eval(self, *args, **kwargs):
+            raise redis.exceptions.ConnectionError("boom")
+
+    monkeypatch.setattr("api.rate_limit.redis_client", _BrokenRedis())
+    # Should NOT raise. Calls fail-open.
+    await acquire("test:k_broken", capacity=3, refill_per_sec=0.001)
