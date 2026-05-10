@@ -78,8 +78,8 @@ specialists, not managers:
 | Michaela | Orchestration, priorities, final user-facing answer |
 | Scot | SAM discovery and top-of-funnel scanning |
 | Lenny | Fit ranking and profile matching |
-| Ledger | Incumbents, awards, and competitive intelligence |
-| Gate | Eligibility and compliance blockers |
+| Lance | Incumbents, awards, and competitive intelligence |
+| Gabby | Eligibility and compliance blockers |
 | Happer | Execution, browser/files, repeat jobs, overflow work |
 | Roy | Packaging, emails, handoff artifacts |
 

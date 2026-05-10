@@ -208,11 +208,11 @@ orchestrator, not here.
 | `rank_opportunities` | Lenny | `RankOpportunitiesInput` | sorted `Opportunity[]` |
 | `fetch_attachment` | Happer | `FetchAttachmentInput` (url, opportunity_id) | `{storage_path, content_type, bytes}` |
 | `parse_pdf` | Happer | `ParsePdfInput` (storage_path) | `{chunks: [{page_number, text, doc_id}], unparseable: bool}` |
-| `extract_requirements` | Gate | `ExtractInput` (parsed, optional requirements) | `{chunks, requirements (validated), missing_fields, conflicts}` |
-| `score_fit` | Lenny + Gate | `ScoreFitInput` (profile, requirements, optional total_score) | §11.1 short-circuit + decision-band normalizer |
-| `detect_risks` | Gate | `DetectRisksInput` (profile, requirements, risks) | §5.8 taxonomy-validated risks |
+| `extract_requirements` | Gabby | `ExtractInput` (parsed, optional requirements) | `{chunks, requirements (validated), missing_fields, conflicts}` |
+| `score_fit` | Lenny + Gabby | `ScoreFitInput` (profile, requirements, optional total_score) | §11.1 short-circuit + decision-band normalizer |
+| `detect_risks` | Gabby | `DetectRisksInput` (profile, requirements, risks) | §5.8 taxonomy-validated risks |
 | `generate_action_package` | Roy | `GenerateActionPackageInput` (mode, content) | §10.3 ActionPackage (full or reject_summary) |
-| `query_usaspending` | Ledger | `QueryUsaspendingInput` (opportunity_id, naics, agency) | `CompetitorHistory[]` (writeback) |
+| `query_usaspending` | Lance | `QueryUsaspendingInput` (opportunity_id, naics, agency) | `CompetitorHistory[]` (writeback) |
 
 HTTP `POST /tools/<name>` wrappers return a uniform `{"data": ...}`
 envelope. PRD v1.2.6 dropped the `metrics` field — every skill is
@@ -226,8 +226,8 @@ Michaela bench ownership:
 | Michaela | Orchestration, final user-facing answer, `parse_goal`, `summarize_run`, delegation |
 | Scot | SAM.gov discovery and seeded fallback |
 | Lenny | Fit ranking / pursue-monitor-skip support |
-| Gate | Eligibility blocker checks and §11.1 reject gate |
-| Ledger | USASpending / incumbent / award-history intelligence |
+| Gabby | Eligibility blocker checks and §11.1 reject gate |
+| Lance | USASpending / incumbent / award-history intelligence |
 | Happer | Repeatable execution, attachment fetches, PDF parsing, file/status work |
 | Roy | Bid memo, capability statement, contracting-officer email, action package |
 
@@ -309,7 +309,7 @@ All routes require `X-Internal-API-Key`. Response envelope:
 | POST `/tools/fetch-attachment` | `api.skills.fetch_attachment` | no | Writes to Supabase Storage `raw/<run_id>/<filename>` |
 | POST `/tools/rank-opportunities` | `api.skills.rank_opportunities` | no | Pure deterministic sort |
 | POST `/tools/load-seeded-opportunities` | `api.skills.load_seeded_opportunities` | no | Idempotent on slug |
-| POST `/tools/query-usaspending` | `api.skills.query_usaspending` | no | USASpending.gov prior-awards lookup (Ledger); persists `competitor_history` rows |
+| POST `/tools/query-usaspending` | `api.skills.query_usaspending` | no | USASpending.gov prior-awards lookup (Lance); persists `competitor_history` rows |
 
 Request schemas: `api/schemas/tool_requests.py`. Routes hold no business logic; each is a thin dispatch into the underlying skill function.
 

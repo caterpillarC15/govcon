@@ -71,7 +71,7 @@ shell/tool harness around it. Anthropic/OpenRouter are provider transports, not
 the product architecture.
 
 The bench is **Michaela (CEO) + Scot (discovery) + Lenny (fit ranking) +
-Gate (eligibility) + Ledger (competitive intel) + Happer (execution runner) +
+Gabby (eligibility) + Lance (competitive intel) + Happer (execution runner) +
 Roy (packaging)**. See `devdocs/MICHAELA_SYSTEM_MODEL.md` for the
 canonical design.
 

@@ -1,7 +1,7 @@
 """detect_risks — risk validator (PRD v1.2.6).
 
 Per the operating rule (devdocs/MICHAELA_SYSTEM_MODEL.md line 175),
-emitting risks requires judgment — Gate produces them in her agent
+emitting risks requires judgment — Gabby produces them in her agent
 context (in /root/michealaai). This skill is the deterministic gate
 that enforces:
 
@@ -51,14 +51,14 @@ class DetectRisksInput(BaseModel):
     company_profile: dict[str, Any] = {}
     opportunity: dict[str, Any] = {}
     requirements: list[dict[str, Any]] = []
-    # Agent-emitted risks. Gate produces these in her LLM context.
+    # Agent-emitted risks. Gabby produces these in her LLM context.
     risks: list[_RiskFlag] = []
 
 
 async def detect_risks(
     payload: DetectRisksInput | dict[str, Any],
 ) -> dict[str, Any]:
-    """Validate Gate-emitted risks against the §5.8 taxonomy.
+    """Validate Gabby-emitted risks against the §5.8 taxonomy.
 
     - Drops any risk whose category isn't in _ALLOWED_CATEGORIES
       (silent — protects against agent hallucination).

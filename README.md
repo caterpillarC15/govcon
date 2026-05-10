@@ -4,7 +4,7 @@ GovCon Bid Desk is a capability pack: shared tools, a data layer, an
 HTTP API, and a direct-user product surface (`/web`) for AI agents
 operating government-contracting workflows. Michaela — the orchestrator
 that drives bid analyses end-to-end — and her worker bench (Scot, Lenny,
-Ledger, Gate, Happer, Roy) live in **/root/michealaai**, a separate
+Lance, Gabby, Happer, Roy) live in **/root/michealaai**, a separate
 TypeScript / Bun project. They consume this pack's tools either through
 HTTP or (planned) through a Hermes plugin.
 

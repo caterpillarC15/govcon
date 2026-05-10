@@ -19,6 +19,10 @@
 > - **Removed env vars:** `ANTHROPIC_API_KEY`, `LLM_DEV_MODEL`, `LLM_SYNTH_MODEL`, `RUN_BUDGET_USD`, `RUN_BUDGET_STEPS`, `RUN_BUDGET_SECONDS`. Budgets move to Michaela's environment in `/root/michealaai`.
 > - **Response envelope change:** `/tools/<name>` and `/api/v1/tools/<name>` now return `{"data": ...}` only — no `metrics` field. Cross-repo callers in `/root/michealaai` must stop reading `response.metrics`. Documented in `devdocs/CAPABILITY_PACK_INTEGRATION.md`.
 > - **Eval harness simplified** to byte-exact deterministic diff. `make eval` no longer requires Anthropic credits; goldens bootstrapped at 18 (4 fixtures × {parse_goal, score_fit, detect_risks, generate_action_package, extract_requirements} minus skipped combos).
+> - 2026-05-10 — Bench naming aligned with Michaela's runtime: Gate → Gabby
+>   (eligibility), Ledger → Lance (competitive intel). The other four
+>   workers (Scot, Lenny, Happer, Roy) and Michaela the orchestrator
+>   unchanged. Old names retained only in this changelog.
 >
 > **Changelog v1.2.4 → v1.2.5** (2026-05-09)
 > - **Repo boundary corrected.** This repo is now the GovCon Bid Desk
@@ -211,10 +215,10 @@ Each tool has a JSON-schema input and output, validated before invocation and af
 | `fetch_attachment` | Happer / FastAPI or Hermes HTTP toolset | Download solicitation attachments |
 | `verify_source_page` | Happer / Hermes browser or HTTP toolset | Confirm source metadata when API data is partial |
 | `parse_pdf` | Happer / FastAPI toolset | Extract page-level text + metadata from a PDF |
-| `extract_requirements` | Gate / AI + FastAPI toolset | Run requirement extraction over parsed chunks; returns structured requirements with evidence |
-| `score_fit` | Lenny + Gate / AI + FastAPI toolset | Apply §5.7 rubric and §11.1 hard eligibility short-circuit |
-| `detect_risks` | Gate / AI + FastAPI toolset | Apply §5.8 categories; returns risk flags with severity |
-| `query_usaspending` | Ledger / planned toolset | Find incumbents, prior awards, recompete history |
+| `extract_requirements` | Gabby / AI + FastAPI toolset | Run requirement extraction over parsed chunks; returns structured requirements with evidence |
+| `score_fit` | Lenny + Gabby / AI + FastAPI toolset | Apply §5.7 rubric and §11.1 hard eligibility short-circuit |
+| `detect_risks` | Gabby / AI + FastAPI toolset | Apply §5.8 categories; returns risk flags with severity |
+| `query_usaspending` | Lance / planned toolset | Find incumbents, prior awards, recompete history |
 | `generate_action_package` | Roy / AI + FastAPI toolset | Synthesize §5.11 package from extracted requirements + score + risks |
 | `request_human_review` | Michaela / FastAPI | Halt and surface a question to the user when confidence is below threshold |
 
@@ -906,8 +910,8 @@ Bench responsibilities:
 * Michaela: orchestration, priority setting, final user-facing answer
 * Scot: SAM.gov discovery / seeded fallback
 * Lenny: fit ranking and pursue/monitor/skip decision support
-* Gate: eligibility blocker checks and §11.1 hard reject gate
-* Ledger: USASpending / incumbent / award-history intelligence
+* Gabby: eligibility blocker checks and §11.1 hard reject gate
+* Lance: USASpending / incumbent / award-history intelligence
 * Happer: repeatable execution, attachment fetches, PDF parsing
 * Roy: bid memo, capability statement, CO email, action package
 

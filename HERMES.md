@@ -8,8 +8,8 @@ This file gives a Hermes runtime project-context when a developer points
 their `HERMES_HOME` at this repo's `.hermes/` to test the pack's tools in
 isolation. It is **NOT** loaded by FastAPI or by any production process.
 
-The orchestrator (Michaela) and her worker bench (Scot, Lenny, Ledger,
-Gate, Happer, Roy) live in **/root/michealaai**. This repo is the
+The orchestrator (Michaela) and her worker bench (Scot, Lenny, Lance,
+Gabby, Happer, Roy) live in **/root/michealaai**. This repo is the
 **GovCon Bid Desk capability pack**: shared tools, data layer, HTTP API,
 and the direct-user product surface (`/web`).
 

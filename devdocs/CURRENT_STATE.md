@@ -53,8 +53,8 @@ of nearly every misunderstanding before PRD v1.2.5.
 │ - Workers (judgment, depth-1 leaves):                               │
 │     Scot   — SAM discovery / top-of-funnel                          │
 │     Lenny  — fit ranking / profile matching                         │
-│     Ledger  — incumbents / awards / competitive intel                │
-│     Gate  — eligibility / compliance blockers (§11.1 owner)        │
+│     Lance  — incumbents / awards / competitive intel                │
+│     Gabby  — eligibility / compliance blockers (§11.1 owner)        │
 │     Happer — execution runner (browser, files, overflow work)       │
 │     Roy    — packaging / handoff (memo, email, capability statement)│
 │                                                                     │
@@ -135,7 +135,7 @@ share a table that we own — table names like `agent_runs` are ours;
 **Operating rule.** Mechanics belong in shared tools. Judgment belongs
 in agents. Contracts belong in schemas. Michaela owns the board. If
 this pack starts to grow "decide whether to bid" logic, that's a
-worker's job (Gate, Lenny) running in Michaela's Hermes — not ours.
+worker's job (Gabby, Lenny) running in Michaela's Hermes — not ours.
 
 ---
 
@@ -152,7 +152,7 @@ worker's job (Gate, Lenny) running in Michaela's Hermes — not ours.
 ## 4. What this repo IS NOT
 
 - Not the orchestrator. Michaela lives in `/root/michealaai`.
-- Not the worker bench. Scot, Lenny, Ledger, Gate, Happer, Roy live
+- Not the worker bench. Scot, Lenny, Lance, Gabby, Happer, Roy live
   in `/root/michealaai`.
 - Not a runtime. We do not host an LLM-loop. `POST /agent-runs`
   persists a row; Michaela picks it up out of band.
@@ -202,9 +202,9 @@ SQL lives in `supabase/migrations/`.
 | `company_profiles` | The buyer's company profile (one row per ICP entity) |
 | `opportunities` | A federal opportunity (denormalized list fields + FKs) |
 | `opportunity_contacts` | Junction: opportunity ↔ contact |
-| `extracted_requirements` | Per-opportunity requirements (Gate writes) |
-| `fit_scores` | Per-opportunity per-profile fit (Lenny + Gate write) |
-| `risk_flags` | Per-opportunity per-profile risks (Gate writes) |
+| `extracted_requirements` | Per-opportunity requirements (Gabby writes) |
+| `fit_scores` | Per-opportunity per-profile fit (Lenny + Gabby write) |
+| `risk_flags` | Per-opportunity per-profile risks (Gabby writes) |
 | `action_packages` | The §10.3 deliverable (Roy writes) |
 | `agent_runs` | One row per Michaela run; trace + ids |
 
@@ -246,8 +246,8 @@ next squash.
 | `GET  /opportunities/{id}`                   | JWT           | Read an opportunity                                      |
 | `GET  /opportunities/{id}/{requirements,fit-score,risks}` | JWT (owner-aware) | Per-opportunity analysis read paths       |
 | `POST /opportunities/{id}/{requirements,fit-score,risks}` | **InternalActor** (X-Internal-API-Key) | Sub-agent writebacks |
-| `GET  /opportunities/{id}/competitors`       | JWT (owner)   | Ledger competitive-intel list                            |
-| `POST /opportunities/{id}/competitors`       | **InternalActor** | Ledger writeback                                      |
+| `GET  /opportunities/{id}/competitors`       | JWT (owner)   | Lance competitive-intel list                             |
+| `POST /opportunities/{id}/competitors`       | **InternalActor** | Lance writeback                                       |
 | `GET  /action-packages/{id}`                 | JWT (owner)   | Read a Roy-produced package                              |
 | `POST /action-packages`                      | **InternalActor** | Roy writeback                                        |
 | `POST /tools/<name>` (×11)                   | **InternalActor** | Direct skill dispatch for non-Hermes callers      |
@@ -280,17 +280,17 @@ caller.
 |-------|----------------|--------|
 | `parse_goal` | Michaela | done |
 | `parse_pdf` | Happer | done |
-| `extract_requirements` | Gate | done |
-| `score_fit` (with §11.1 short-circuit) | Lenny + Gate | done |
-| `detect_risks` | Gate | done |
+| `extract_requirements` | Gabby | done |
+| `score_fit` (with §11.1 short-circuit) | Lenny + Gabby | done |
+| `detect_risks` | Gabby | done |
 | `generate_action_package` | Roy | done |
 | `search_sam` | Scot | done |
 | `fetch_attachment` | Happer | done |
 | `rank_opportunities` | Lenny | done |
 | `load_seeded_opportunities` | Scot (fixtures fallback) | done |
-| `query_usaspending` | Ledger | done |
+| `query_usaspending` | Lance | done |
 
-Ledger's competitive-intel outputs persist to the dedicated
+Lance's competitive-intel outputs persist to the dedicated
 `competitor_history` table (migration `20260510120100`) — the prior
 workaround of riding on `risk_flags` with `category="competitor_history"`
 was retired when the skill landed.
@@ -369,6 +369,7 @@ recipes — those live in `/root/michealaai`.
 | 20260510092040 | 20260510092040 | applied (action_package approval columns) |
 | 20260510120000 | 20260510120000 | applied (api_keys table) |
 | 20260510120100 | 20260510120100 | applied (competitor_history table) |
+| 20260510130000 | 20260510130000 | applied (§5.14 weekly-opportunity tables — pushed 2026-05-10) |
 
 Two timestamps (`20260510021500`, `20260510024000`) were applied to the
 linked Supabase project outside this repo (likely Studio edits). They

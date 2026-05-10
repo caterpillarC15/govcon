@@ -16,8 +16,8 @@ The previous session (where this handoff was written) finished the
 v1.2.4 → v1.2.5 repositioning: it removed in-repo orchestration code,
 slimmed the Hermes config to schema-correct dev-only, deleted misplaced
 orchestrator docs, archived the prior handoff, rewrote every live doc,
-and locked the canonical worker names as **Gate** (eligibility) and
-**Ledger** (competitive intel).
+and locked the canonical worker names as **Gabby** (eligibility) and
+**Lance** (competitive intel).
 
 Your job in this session:
 
@@ -124,8 +124,8 @@ before PRD v1.2.5. Memorize this diagram.
 │ - Workers (judgment, depth-1 leaves):                               │
 │     Scot   — SAM discovery / top-of-funnel                          │
 │     Lenny  — fit ranking / profile matching                         │
-│     Ledger — incumbents / awards / competitive intel                │
-│     Gate   — eligibility / compliance blockers (§11.1 owner)        │
+│     Lance  — incumbents / awards / competitive intel                │
+│     Gabby  — eligibility / compliance blockers (§11.1 owner)        │
 │     Happer — execution runner (browser, files, overflow work)       │
 │     Roy    — packaging / handoff (memo, email, capability statement)│
 │                                                                     │
@@ -178,7 +178,7 @@ before PRD v1.2.5. Memorize this diagram.
 
 If you find yourself building "judgment" inside this pack (e.g., a
 Python function that decides whether to bid), stop. That belongs to a
-worker (Gate, Lenny, etc.) running in Michaela's Hermes. This pack
+worker (Gabby, Lenny, etc.) running in Michaela's Hermes. This pack
 provides mechanics: parse this PDF, search SAM with these criteria,
 score these requirements against this profile. The decision belongs to
 the agent calling our tools.
@@ -196,16 +196,17 @@ exact names.
 | 0 | **Michaela** | CEO / orchestrator | "1 worth pursuing • 12 days left • 2 gaps • Bid memo ready" |
 | 1 | Scot   | Discovery / SAM bulk scan | "Found 81,031 → next 90 days 14,000 → matched 42" |
 | 2 | Lenny  | Fit ranking | "Pursue 2 • Monitor 6 • Skip 39 • Best fit: VA Cybersecurity Support" |
-| 3 | Gate   | Eligibility blocker check (§11.1 owner) | "Eligible? no • Blocker: missing clearance • Do not bid" |
-| 4 | Ledger | Competitive intel | "Incumbent: Tetra Tech • won 3× • difficulty: hard • prob 22%" |
+| 3 | Gabby  | Eligibility blocker check (§11.1 owner) | "Eligible? no • Blocker: missing clearance • Do not bid" |
+| 4 | Lance  | Competitive intel | "Incumbent: Tetra Tech • won 3× • difficulty: hard • prob 22%" |
 | 5 | Happer | Execution runner | "Job done • rows processed • files written • errors found" |
 | 6 | Roy    | Packaging / handoff | "Bid memo ready • capability statement drafted • email ready" |
 
-**Naming history (do not relitigate):** the previous handoff suggested
-renaming Gate and Ledger to legacy alternate labels. That direction is
-**wrong** — it was reverted mid-session. The canonical names are
-**Gate** and **Ledger**. The PRD v1.2.5 changelog explicitly deprecates
-the legacy labels.
+**Naming history (do not relitigate):** earlier handoffs locked the
+worker labels as **Gate** (eligibility) and **Ledger** (competitive
+intel). On 2026-05-10 the bench was renamed to **Gabby** and **Lance**
+respectively, aligning this repo with Michaela's runtime persona names.
+The other four workers (Scot, Lenny, Happer, Roy) and Michaela the
+orchestrator are unchanged. Old names survive only in PRD changelogs.
 
 ---
 
@@ -218,7 +219,7 @@ the legacy labels.
 | D4 | Auth: **Supabase JWT (`AuthenticatedUser`) for users + X-Internal-API-Key (`InternalActor`) for sub-agent writebacks**. RLS on every table. `owner_profile_id` on user-facing tables; `get_owned()` repo methods. | Done |
 | D5 | Hosting: **Vultr VX1 + nginx + systemd** (no Docker). Vercel for `/web` + `/landing`. Supabase manages DB/Auth/Storage. The Michaela orchestrator runs separately (its own deployment target). | Pending VX1 deploy |
 | D6 | Tooling: `uv` for Python deps; `bun` for michealaai TS; `make` targets canonical for common workflows. | Done |
-| D7 | Worker names: **Gate (eligibility), Ledger (competitive intel)**. Scot/Lenny/Happer/Roy/Michaela unchanged. NOTE: Michaela's runtime introduces these as Gabby and Lance respectively — bench-naming reconciliation is open work; see active plan Phase 2.1. | Locked PRD v1.2.5 |
+| D7 | Worker names: **Gabby (eligibility), Lance (competitive intel)**. Scot/Lenny/Happer/Roy/Michaela unchanged. Reconciled 2026-05-10 with Michaela's runtime persona names (was Gate/Ledger; see PRD v1.2.6 changelog). | Locked PRD v1.2.6 |
 | D8 | Fixtures: 4 sets — `strong-pursue`, `maybe-needs-partner`, `reject`, `adversarial-image-pdf`. PDFs + manifests committed. | Done |
 | D9 | This repo's identity: **GovCon Bid Desk capability pack**, NOT the orchestrator. Orchestrator lives in /root/michealaai. | PRD v1.2.5 |
 | D10 | In-repo orchestration removed: `api/agent/` is gone. `POST /agent-runs` only persists a row; the external orchestrator picks it up out of band. | PRD v1.2.5 |
@@ -320,7 +321,7 @@ match `api/config.py` keys exactly.
 │   │   ├── parse_goal/
 │   │   ├── rank_opportunities/
 │   │   ├── load_seeded_opportunities/
-│   │   └── query_usaspending/       ← Ledger competitive intel
+│   │   └── query_usaspending/       ← Lance competitive intel
 │   └── tests/
 ├── eval/                            ← fixture-driven LLM regression harness
 ├── mcp_server_govcapture/           ← MCP wrapper around /api/v1/tools/<name>
@@ -394,7 +395,7 @@ A and C.
 | ~~**B**~~ | ~~HTTP `POST /tools/<name>` parity for non-Hermes callers (TS, Codex, Cursor)~~ — **DONE 2026-05-09** (3c9a7de + 1b239c6 + Phase 4.x query_usaspending; 11 internal routes + 11 public `/api/v1/tools/<name>` mirror; 53 routes total; 183 tests). | 1–2 days | Any orchestrator that doesn't run Hermes | None |
 | ~~**C**~~ | ~~`/web` product UI build-out (profile create → goal entry → run timeline → opportunity detail → action-package review)~~ — **PHASES 0–6, 7.1, 7.2, 7.4, 8 DONE** (5628129 loading skeletons + error boundaries; 94120fd SSE upgrade + same-origin proxy; e8e2500 SEO + robots.txt; a63bf30 rate-limit fail-open). **Phases 1.3 mobile sweep, 1.4 a11y, 1.5 copy pass owed** (user-driven). | 3–5 days | Public demo; first-customer trial | A or B (something must produce real artifacts) |
 | **D** | Vultr VX1 production deploy | 4–8 hours | Public URL; hosted /healthz | A or B working locally |
-| ~~**E**~~ | ~~`query_usaspending` skill for Ledger (separate writeback table)~~ — **DONE 2026-05-10** (3b19e39; Ledger's competitive-intel skill + competitor_history schema + migrations b334c20 ec7eb5f). | 1–2 days | Real competitive-intel content (today rides on `risk_flags` w/ category convention) | Schema PR ack |
+| ~~**E**~~ | ~~`query_usaspending` skill for Lance (separate writeback table)~~ — **DONE 2026-05-10** (3b19e39; Lance's competitive-intel skill + competitor_history schema + migrations b334c20 ec7eb5f). | 1–2 days | Real competitive-intel content (today rides on `risk_flags` w/ category convention) | Schema PR ack |
 | ~~**F**~~ | ~~`eval/` harness — fixture-driven regression on LLM skills~~ — **SCAFFOLDING DONE** (b420fd5; runner + differs + golden structure). **Goldens bootstrap owed** (`make eval-bootstrap`; costs Anthropic tokens; user-driven). | 2–3 days | Confidence in cross-version model upgrades | None |
 | ~~G~~ | ~~Cross-repo coordination with `/root/michealaai` — emit-spec, run-row pickup contract, trace event format~~ — **SPEC DONE 2026-05-10** in `devdocs/CAPABILITY_PACK_INTEGRATION.md` (pickup contract, claim SQL, status state machine, INTERNAL_API_KEY provisioning, known-unknowns table). **End-to-end verification owed by `/root/michealaai`** (cross-repo). | 1–2 days | All of A/B/C in real end-to-end | michealaai's own status |
 

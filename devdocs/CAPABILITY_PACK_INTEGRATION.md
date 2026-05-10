@@ -188,11 +188,11 @@ for shape validation.
 | `rank_opportunities` | Lenny | deterministic decision-band sort |
 | `fetch_attachment` | Happer | URL → Supabase Storage |
 | `parse_pdf` | Happer | pypdf chunking + page metadata |
-| `extract_requirements` | Gate | chunks emitter + §11 evidence-binding validator |
-| `score_fit` | Lenny + Gate | §11.1 short-circuit + decision-band normalizer |
-| `detect_risks` | Gate | §5.8 taxonomy + cap-at-8 + critical-blocker carry-forward |
+| `extract_requirements` | Gabby | chunks emitter + §11 evidence-binding validator |
+| `score_fit` | Lenny + Gabby | §11.1 short-circuit + decision-band normalizer |
+| `detect_risks` | Gabby | §5.8 taxonomy + cap-at-8 + critical-blocker carry-forward |
 | `generate_action_package` | Roy | reject_summary mode + §5.13 enforcer |
-| `query_usaspending` | Ledger | USASpending HTTP query → `competitor_history` |
+| `query_usaspending` | Lance | USASpending HTTP query → `competitor_history` |
 
 No skill calls an LLM. `ANTHROPIC_API_KEY`, `LLM_DEV_MODEL`,
 `LLM_SYNTH_MODEL`, `RUN_BUDGET_*` env vars were dropped at v1.2.6 —
