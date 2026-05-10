@@ -100,16 +100,37 @@ of nearly every misunderstanding before PRD v1.2.5.
                              ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │ DATA + TRANSPORT                                                    │
-│ Supabase project (PostgREST + Auth + Storage).                      │
+│ Supabase project `vvyxjdoenjujkxwbnzyl` (PostgREST + Auth + Storage)│
 │ Bucket: govcapture-attachments (private).                           │
 │ Tables: company_profiles, opportunities, extracted_requirements,    │
 │   fit_scores, risk_flags, action_packages, agent_runs, profiles,    │
 │   waitlist_signups, opportunity_matches, documents, document_chunks,│
-│   run_events, dimension tables.                                     │
+│   run_events, dimension tables, plus §5.14 weekly-opportunity tables│
+│   and (cohabitating) persona_* tables for the public-presence       │
+│   project — see §6.5 below.                                         │
 │ R2 (planned): raw files. Today using Supabase Storage end-to-end.   │
 │ Redis: SSE pub/sub bridge (native; Supabase Realtime is deferred).  │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+### Three Supabase projects on Michaela's host — disambiguation
+
+Discovered 2026-05-10: there are three Supabase instances in use across
+this product family. Don't conflate them.
+
+| Project ref | Purpose | Who reads/writes | Schema source |
+|---|---|---|---|
+| `vvyxjdoenjujkxwbnzyl` | **This pack + persona/public-presence (shared project).** All our migrations live here. Bucket `govcapture-attachments` private; bucket `persona-assets` public (different namespace). | This repo's FastAPI; Michaela's orchestrator pickup loop. | `supabase/migrations/*.sql` here is canonical for the govcon-pack tables. Persona tables (`personas`, `persona_profiles`, `persona_assets`, …) come from a separate skill in `/root/michealaai`. |
+| `ktygrvbpugqhfyibzirr` | **Michaela's competitive-intel warehouse.** Tables: `agencies`, `contractors`, `contracts`, `psc_win_patterns`, `customer_profiles`. | Lance (competitive-intel worker) reads. Not used by this pack. | Owned by `/root/michealaai`. |
+| `pooler.supabase.com` (project ref unknown) | GBrain / knowledge-base. | `/root/gbrain`. | Wholly separate; documented for context only. |
+
+**Cohabitation risk to watch:** `vvyxjdoenjujkxwbnzyl` carries both this
+pack's private data (action packages, fit scores, run rows) AND the
+persona project's public-bucket assets (`persona-assets/michaela/profile/`).
+Confirm `govcapture-attachments` is bucket-public=`false` in Studio
+before any production send. The persona schema and our schema do not
+share a table that we own — table names like `agent_runs` are ours;
+`persona_*` are theirs.
 
 **Operating rule.** Mechanics belong in shared tools. Judgment belongs
 in agents. Contracts belong in schemas. Michaela owns the board. If

@@ -215,6 +215,36 @@ Raw files do not belong in Postgres.
 - Supabase Postgres: metadata, parsed chunks, analyses, matches, run rows
 - Future long-term memory: Michaela/GBrain layer outside this repo
 
+### Three Supabase projects (do not conflate)
+
+Discovered 2026-05-10 by walking Michaela's host. Three distinct
+Supabase instances are in play; the orchestrator's data fan-out
+needs to talk to two of them, the pack to one.
+
+| Project ref | Owner | This repo's relationship |
+|---|---|---|
+| **`vvyxjdoenjujkxwbnzyl`** | **This pack + persona/public-presence** (shared) | Canonical home for our 10 migrations. Michaela's `agent_runs` pickup loop polls here. `INTERNAL_API_KEY` writebacks land here. Bucket `govcapture-attachments` is ours (private); bucket `persona-assets` is the persona project's (public). |
+| `ktygrvbpugqhfyibzirr` | Michaela's competitive-intel warehouse | Holds `agencies`, `contractors`, `contracts`, `psc_win_patterns`, `customer_profiles`. Lance reads it for incumbent + award lookups. **Not** referenced by any code in this repo. Our `query_usaspending` skill calls the public USAspending API — different path. |
+| `pooler.supabase.com` (GBrain) | `/root/gbrain` | Knowledge-base pgvector store. Wholly unrelated; mentioned only because someone wiring Michaela might trip over the third project. |
+
+**Action item for `/root/michealaai`:** the `DATA-SOURCES.md` file in
+that repo describes "GovCon Supabase" as `ktygrvbpugqhfyibzirr` — that's
+correct for Lance's intel reads, but the **`agent_runs` pickup contract
+documented in this file lives on `vvyxjdoenjujkxwbnzyl`**, not on
+`ktygrvbpugqhfyibzirr`. Add an explicit second-row entry on the
+michealaai side so the orchestrator polls the right project. Without
+this, Michaela watching `ktygrvbpugqhfyibzirr.agent_runs` would never
+see the rows our `POST /agent-runs` writes.
+
+**Cohabitation note for the pack side:** the same project also hosts
+the persona/public-presence schema (`personas`, `persona_profiles`,
+`persona_assets`, …) and a public storage bucket `persona-assets`.
+Verify `govcapture-attachments` stays private in Studio. None of those
+persona tables share names with ours, so SQL collisions aren't a
+concern; the risk is purely operational (admin clicks into the wrong
+bucket, RLS misconfigured on a persona table by someone unfamiliar
+with our half).
+
 ## Model Provider Boundary
 
 **This repo no longer holds an LLM credential** (PRD v1.2.6). All

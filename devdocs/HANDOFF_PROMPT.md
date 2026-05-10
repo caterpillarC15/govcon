@@ -65,6 +65,7 @@ the finish-it-all execution session (`93e396b`, `0f03693`, `6827594`,
 | `ls devdocs/` | `CAPABILITY_PACK_INTEGRATION.md CAPABILITY_PACKS_CANVAS.md CURRENT_STATE.md HANDOFF_PROMPT.md MICHAELA_SYSTEM_MODEL.md V1_PRODUCT_ALIGNMENT.md` (no `_archive/`) |
 | `git check-ignore .env` | matches `.env` (real keys safely uncommitted) |
 | Bucket `govcapture-attachments` | created (private) |
+| Supabase project ref | `vvyxjdoenjujkxwbnzyl` — **shared with persona/public-presence**; Michaela's intel warehouse `ktygrvbpugqhfyibzirr` is a DIFFERENT project Lance reads. See `devdocs/CAPABILITY_PACK_INTEGRATION.md` "Three Supabase projects". |
 
 ### Schema state (Supabase) — all migrations applied
 
