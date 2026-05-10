@@ -19,9 +19,10 @@ The product truth is `PRD.md` v1.2.5. The layer model is
   reject short-circuit), `detect_risks`, `generate_action_package`,
   `search_sam`, `fetch_attachment`, `parse_goal`,
   `rank_opportunities`, `load_seeded_opportunities`.
-- **HTTP CRUD API** under `api/routes/` — health, profiles, company
+- **HTTP API** under `api/routes/` — health, profiles, company
   profiles, agent runs, opportunities, internal analysis writebacks,
-  action packages, waitlist.
+  action packages, waitlist, and internal `POST /tools/<name>` wrappers
+  for the shared GovCon skills.
 - **Data layer** — Supabase via `supabase-py` AsyncClient (PostgREST).
   Schema lives as versioned SQL under `supabase/migrations/`.
 - **Auth** — `AuthenticatedUser` (Supabase JWT) for user routes;
