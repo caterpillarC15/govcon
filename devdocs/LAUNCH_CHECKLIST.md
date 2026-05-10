@@ -19,46 +19,61 @@
 | `/landing` | SEO + a11y baseline shipped; brand strings aligned with `LANDING_BRIEF.md` |
 | Eval | 15 fixture × skill `eval_inputs` authored; goldens NOT yet bootstrapped |
 | MCP | `mcp-server-govcapture` package wraps `/api/v1/tools` |
-| Infra | `bootstrap.sh`/`deploy.sh`/systemd/nginx authored + bash-syntax-clean; never executed in prod |
+| Infra | `bootstrap.sh`/`deploy.sh`/systemd/nginx authored + bash-syntax-clean; **§5.14 cron timers added**; never executed in prod |
 | Email Channel A (auth) | Supabase default SMTP (4/hr cap); needs swap to Resend SMTP |
-| Email Channel B (§5.14 weekly opportunity) | PRD-spec'd; **zero code yet** |
+| Email Channel B (§5.14 weekly opportunity) | **shipped** — migration + auto-picker + send job + unsubscribe + curator override + 13 tests; behind `EMAIL_DRY_RUN=true` until production keys land |
 
 ---
 
-## 1 · Decision required up front
+## 1 · §5.14 Weekly Opportunity Email — SHIPPED
 
-**Is PRD §5.14 (Weekly Opportunity Email) in scope for v1.0.0, or v1.1.0?**
+PRD §5.14 (Weekly Opportunity Email) is **implemented and merged**. Behind
+`EMAIL_DRY_RUN=true` (the safe default) the send paths claim log slots
+and render emails but never call Resend — flipping to false is gated by
+the `api/config.py` `model_validator` which refuses to start unless
+`RESEND_API_KEY`, `EMAIL_UNSUBSCRIBE_SECRET`, and `EMAIL_LEGAL_FOOTER_ADDRESS`
+are all populated.
 
-PRD §5.14 introduces:
-- 3 new Supabase migrations (`waitlist_signups` columns + `weekly_opportunity_picks` + `weekly_opportunity_email_log`)
-- A Resend HTTP client + HMAC unsubscribe token system
-- An LLM auto-picker job (uses `score_fit` against a synthetic SMB profile)
-- A curator override script (`scripts/pick_weekly_opportunity.py`)
-- A Monday send job + systemd timer (`govcapture-cron-auto-pick.timer`)
-- A `/unsubscribe` HTTP route
-- 14 new env vars (already drafted in `.env.production.example`)
+What landed (commits `685a8b5`, `1910631`, `3a916a4`):
 
-**Effort:** ~3–5 working days of clean implementation.
+| Component | File |
+|---|---|
+| Schema | `supabase/migrations/20260510130000_weekly_opportunity_email.sql` |
+| Config + production guard | `api/config.py` (14 env vars + `model_validator`) |
+| HMAC token service | `api/services/unsubscribe_token.py` |
+| Resend HTTP client | `api/services/email_sender.py` |
+| Repositories | `api/repositories/weekly_opportunity_{pick,email_log}.py` |
+| Safety filters | `api/jobs/weekly_opportunity_safety.py` |
+| Auto-picker | `api/jobs/auto_pick_weekly_opportunity.py` |
+| Send job | `api/jobs/weekly_opportunity_email.py` |
+| Email rendering | `api/email/render.py` |
+| Routes | `api/routes/email_subscriptions.py` (3 routes) |
+| Tests | `api/tests/test_weekly_opportunity_email.py` (13 tests) |
+| systemd timers | `infra/systemd/govcapture-cron-{auto-pick,weekly}.{service,timer}` |
+| Curator override | `scripts/pick_weekly_opportunity.py` |
 
-| Path | What ships in v1.0.0 | What ships in v1.1.0 |
-|---|---|---|
-| **A — §5.14 IN v1.0.0** | Pack + auth + magic-link + ApprovalGate + Weekly Opportunity Email end-to-end | (incremental polish) |
-| **B — §5.14 OUT of v1.0.0** | Pack + auth + magic-link + ApprovalGate (no outbound marketing email) | §5.14 weekly opportunity email |
+What still needs to happen for §5.14 to actually send mail in production:
 
-**Recommendation:** Path B unless the weekly opportunity email is what makes v1.0.0 demoable to first customers. Path B gets to a tag faster; §5.14 then ships as v1.1.0 within a week.
-
-The rest of this doc assumes **Path B**. A `§5.14 addendum` section at the end shows the additional steps if you pick Path A.
+1. `[USER]` sign up for Resend, verify your sending domain (SPF + DKIM + DMARC)
+2. `[USER]` set `RESEND_API_KEY`, `EMAIL_UNSUBSCRIBE_SECRET` (`openssl rand -hex 32`), and `EMAIL_LEGAL_FOOTER_ADDRESS` on VX1 `.env`
+3. `[USER]` set `RESEND_FROM_EMAIL=GovCapture <noreply@<verified-domain>>` (the default is the Resend sandbox sender, which only delivers to the account owner)
+4. `[USER]` smoke-test with `EMAIL_DRY_RUN=true` first; review log rows in `weekly_opportunity_email_log` (status=`dry_run`)
+5. `[USER]` flip `EMAIL_DRY_RUN=false` and trigger a manual run via `POST /internal/cron/weekly-opportunity-email` from inside the VX1 with the bearer
+6. `[USER]` enable both timers: `sudo systemctl enable --now govcapture-cron-auto-pick.timer govcapture-cron-weekly.timer`
 
 ---
 
-## 2 · Order of operations (Path B)
+## 2 · Order of operations
 
 Each row is a phase. Dependencies are explicit. `[USER]` rows need credentials/access I don't have. `[ENG]` rows I can execute autonomously the moment the prerequisite clears.
 
 ```
 Phase 5 [USER]   Resend SMTP for Channel A magic-link (Studio config + DNS)
+        +        §1 production gates above (Channel B — same Resend account
+        +        if you want one bill, or a second sending key)
    ↓
-Phase 6 [USER]   Vultr VX1 production deploy
+Phase 6 [USER]   Vultr VX1 production deploy (now also runs the §5.14 timers
+        +        once they're enabled in Step 6 of §1 above)
    ↓
 Phase 7 [USER+ENG]  Sprint G cross-repo verification (or SSE-stub-only fallback)
    ↓
@@ -67,7 +82,7 @@ Phase 8 [USER+ENG]  Eval goldens bootstrap (real ANTHROPIC_API_KEY + ~$0.50)
 Phase 9 [ENG]    v1.0.0 tag + final state docs (gated on all above)
 ```
 
-Phases 5/6 are the slowest because each needs ≥1 third-party account + DNS propagation. Plan to do them on the same day; DNS records for both can propagate while other work continues.
+Phases 5/6 are the slowest because each needs ≥1 third-party account + DNS propagation. Plan to do them on the same day; DNS records for both can propagate while other work continues. With §5.14 already merged, Phase 5 now covers BOTH email channels (auth via SMTP + weekly opportunity via Resend HTTP).
 
 ---
 
@@ -169,6 +184,17 @@ RUN_BUDGET_USD           — 0.50
 RUN_BUDGET_STEPS         — 40
 RUN_BUDGET_SECONDS       — 360
 NEXT_PUBLIC_API_BASE     — https://api.<your-domain>   (for parity; only /web reads this)
+
+# §5.14 weekly opportunity email — keep EMAIL_DRY_RUN=true for first deploy.
+RESEND_API_KEY           — re_…  (sending-scope key)
+RESEND_FROM_EMAIL        — GovCapture <noreply@<verified-domain>>
+EMAIL_PUBLIC_BASE_URL    — https://api.<your-domain>
+EMAIL_UNSUBSCRIBE_SECRET — $(openssl rand -hex 32)  (DIFFERENT from any dev value)
+EMAIL_LEGAL_FOOTER_ADDRESS — "Acme Inc, 123 Main St, …"   (CAN-SPAM physical address)
+EMAIL_DRY_RUN            — true  (flip to false only after smoke test)
+EMAIL_AUTO_PICK_MIN_SCORE — 60
+EMAIL_AUTO_PICK_MAX_CANDIDATES — 20
+EMAIL_REQUIRE_DOUBLE_OPT_IN — false
 ```
 
 ### 6.4 Install deps + start systemd [USER]
@@ -363,44 +389,26 @@ Single list of everything you need to procure before resuming. Most are free.
 | 6 | Resend API key (sending scope) | resend.com → API Keys | free | Phase 5 |
 | 7 | Supabase Studio access | already have | free | Phase 5 |
 | 8 | Vercel project access for `/web` + `/landing` | already have | free | Phase 6.7 |
-| 9 | (if Path A) CAN-SPAM legal mailing address | your lawyer or company | free | §5.14 |
+| 9 | CAN-SPAM legal mailing address | your lawyer or company | free | §5.14 (`EMAIL_LEGAL_FOOTER_ADDRESS`) |
 | 10 | (if 7-real) `/root/michealaai` ready | your other repo | — | Phase 7 |
 
 ---
 
-## 9 · Path A addendum — if §5.14 is in v1.0.0 scope
+## 9 · §5.14 production-flip gates
 
-Adds Phase 5.5 between Phase 5 and Phase 6. Estimated +3–5 days.
+§5.14 is shipped behind `EMAIL_DRY_RUN=true`. Production sending starts when:
 
-### 5.5a · Implement §5.14 weekly opportunity email [ENG]
-
-I do these in order, with TDD per finish-it-all conventions. Each is its own commit.
-
-1. **Migration** — `supabase/migrations/<ts>_add_weekly_opportunity_email.sql`
-   - Adds to `waitlist_signups`: `weekly_opportunity_enabled BOOLEAN DEFAULT TRUE`, `unsubscribed_at TIMESTAMPTZ`, `unsubscribed_reason TEXT`, `bounced_at TIMESTAMPTZ`, `complained_at TIMESTAMPTZ`, `confirmed_at TIMESTAMPTZ`, `last_emailed_at TIMESTAMPTZ`
-   - Creates `weekly_opportunity_picks (week_key UNIQUE, opportunity_id, source, picker_audit JSONB, picked_at)`
-   - Creates `weekly_opportunity_email_log (id, email, week_key, email_type, status, resend_message_id, sent_at, UNIQUE(email, week_key, email_type))`
-   - RLS on all three; service role for the email job
-2. **Config** — extend `api/config.py` with the 14 new env vars from `.env.production.example`; add the production refuse-to-start guard (`EMAIL_DRY_RUN=false` + any of `RESEND_API_KEY`/`EMAIL_UNSUBSCRIBE_SECRET`/`EMAIL_LEGAL_FOOTER_ADDRESS` empty → fail at boot)
-3. **HMAC unsubscribe** — `api/services/unsubscribe_token.py` with `mint(email)` + `verify(token, email) -> bool` using `EMAIL_UNSUBSCRIBE_SECRET`
-4. **Resend HTTP client** — `api/services/resend_client.py` with one function: `send(to, subject, html, text, headers={List-Unsubscribe})`. Honors `EMAIL_DRY_RUN`
-5. **Curator override** — `scripts/pick_weekly_opportunity.py --week <key> --opportunity-id <uuid> [--allow-fixture]`
-6. **Auto-picker** — `api/jobs/auto_pick_weekly_opportunity.py` — pulls last-7-days candidates, applies safety filters (`no narrow set-asides`, `deadline ≥ 14 days`, `no clearance/CUI keywords`, `US performance`), ranks survivors via `score_fit` against synthetic SMB profile, picks above `EMAIL_AUTO_PICK_MIN_SCORE`
-7. **Send job** — `api/jobs/send_weekly_opportunity.py` — claims a slot atomically (`INSERT … ON CONFLICT DO NOTHING RETURNING id`), then `UPDATE … status='sent'` after Resend success
-8. **Unsubscribe route** — `GET /unsubscribe?email=…&token=…` → verifies HMAC → marks `unsubscribed_at` → confirmation page
-9. **systemd timers** — `infra/systemd/govcapture-cron-auto-pick.{service,timer}` (Sun 22:00 UTC), `govcapture-cron-send.{service,timer}` (Mon 14:00 UTC)
-10. **Tests** — happy path, dry-run path, idempotency (same week_key won't double-send), unsubscribe-token tampering, safety-filter rejections
-11. **Docs** — bump PRD changelog v1.2.5 → v1.2.6; update CURRENT_STATE §10
-
-### 5.5b · Production gates [USER]
-
-Before flipping `EMAIL_DRY_RUN=true → false`:
-
-- `RESEND_API_KEY` set on VX1
-- `EMAIL_UNSUBSCRIBE_SECRET` set on VX1 (different value from any dev secret)
-- `EMAIL_LEGAL_FOOTER_ADDRESS` set on VX1 (CAN-SPAM physical address)
-- `RESEND_FROM_EMAIL` points at a verified domain (NOT `onboarding@resend.dev` — that only delivers to the Resend account owner)
-- A verified-domain test send to your own inbox via the dry-run-disabled job lands cleanly
+- `RESEND_API_KEY` set on VX1 — sending-scope key from a verified-domain Resend account
+- `EMAIL_UNSUBSCRIBE_SECRET` set on VX1 — `openssl rand -hex 32`, DIFFERENT from any dev value
+- `EMAIL_LEGAL_FOOTER_ADDRESS` set on VX1 — CAN-SPAM physical mailing address
+- `RESEND_FROM_EMAIL` points at a verified domain — NOT `onboarding@resend.dev` (sandbox only delivers to the Resend account owner)
+- Smoke-test sequence:
+  1. With `EMAIL_DRY_RUN=true`, trigger `POST /internal/cron/auto-pick-weekly-opportunity` — verify a `weekly_opportunity_picks` row appears with `picker_audit.pick.opportunity_id` populated
+  2. Trigger `POST /internal/cron/weekly-opportunity-email` — verify `weekly_opportunity_email_log` rows appear with `status='dry_run'`
+  3. Flip `EMAIL_DRY_RUN=false`, restart `govcapture-api.service`
+  4. Send to your own inbox first: pick yourself as the sole eligible subscriber (`update waitlist_signups set unsubscribed_at = now() where email != 'you@…'`), trigger send, verify Gmail/Outlook delivery + List-Unsubscribe header + footer address
+  5. Re-enable other subscribers (clear the temporary unsubscribed_at), enable the systemd timers:
+     `sudo systemctl enable --now govcapture-cron-auto-pick.timer govcapture-cron-weekly.timer`
 
 ---
 
@@ -430,8 +438,8 @@ When any blocker clears, drop me a one-liner. Suggested phrasing:
 | Resend SMTP configured in Studio | "Verify Phase 5 done" — I run a magic-link smoke test |
 | VX1 reachable + .env in place | "VX1 at <IP>, domain <domain>" — I walk through 6.4–6.8 |
 | `/root/michealaai` orchestrator ready | "michealaai is on commit <sha>" — I run Phase 7-real |
-| §5.14 decision made | "Path A" or "Path B" — I start the corresponding phase |
-| All four above | "Tag v1.0.0" — I run §9.1 verification + tag + push |
+| §5.14 ready to flip out of dry-run | "Resend keys are in VX1 .env" — I run the §9 smoke-test sequence |
+| All four above | "Tag v1.0.0" — I run §7.1 verification + tag + push |
 
 ---
 

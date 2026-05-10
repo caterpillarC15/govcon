@@ -319,15 +319,18 @@ recipes — those live in `/root/michealaai`.
 - SSE polish: RunTimeline memoize + dedupe + partial badge (commit `0f03693`)
 - Auth hardening: `getSession`→`getUser` via `requireUser` helper across 9 web routes + middleware (commit `6827594`)
 - `make schemas` idempotent + scoped to generated-only files; 6 hand-written modules preserved (commit `c74a9ce`)
-- 186 passing tests (baseline 113 + 70 new across phases 1–5 + Hermes-plugin / MCP-server award_type_codes fixes + 3 approval tests)
+- **PRD §5.14 weekly opportunity email — shipped end-to-end, behind `EMAIL_DRY_RUN=true`** (commits `685a8b5`, `1910631`, `3a916a4`):
+  schema (`waitlist_signups` columns + `weekly_opportunity_picks` + `weekly_opportunity_email_log`), 14 new env vars + production refuse-to-start guard, HMAC unsubscribe token service, Resend HTTP client, deterministic safety filters (set-aside, deadline, US PoP, clearance keywords, NAICS allowlist, attachments), LLM auto-picker against synthetic SMB profile, Monday send job with two-phase claim, public `/email-subscriptions/unsubscribe` (GET HTML + RFC 8058 POST one-click), two internal `/internal/cron/*` routes (Bearer `INTERNAL_API_KEY`), `scripts/pick_weekly_opportunity.py` curator override, two systemd timers (`govcapture-cron-auto-pick.timer` Sun 22:00 UTC + `govcapture-cron-weekly.timer` Mon 14:00 UTC).
+- 199 passing tests (186 prior + 13 §5.14: safety×4, unsubscribe HMAC×2, render×1, cron auth×3, production guard×2, week-key format×1)
 
 **Next (this repo's queue) — all gated on external action:**
 
-- Phase 5: Resend SMTP production email (Resend account + DNS records + Supabase Studio access)
-- Phase 6: Vultr VX1 production deploy (Vultr account + DNS + Vercel env)
-- Phase 7: Sprint G cross-repo e2e (coordination with `/root/michealaai`)
-- Phase 8.2–8.4: Run `make eval-bootstrap` (real ANTHROPIC_API_KEY in `.env` + ~$0.40–$0.60 budget) → hand-review goldens → lock as regression gate
-- Phase 9: v1.0.0 git tag (gated on 5/6/7/8 above)
+- Phase 5: Resend account + DNS + Supabase Studio SMTP (Channel A magic-link); also unblocks `RESEND_API_KEY` for Channel B (§5.14 weekly opportunity email).
+- Phase 6: Vultr VX1 production deploy (Vultr account + DNS + Vercel env). Once deployed, enable §5.14 cron timers via `systemctl enable --now govcapture-cron-auto-pick.timer govcapture-cron-weekly.timer`.
+- Phase 7: Sprint G cross-repo e2e (coordination with `/root/michealaai`).
+- Phase 8.2–8.4: Run `make eval-bootstrap` (real `ANTHROPIC_API_KEY` in `.env` + ~$0.40–$0.60 budget) → hand-review goldens → lock as regression gate.
+- §5.14 production-flip: see `devdocs/LAUNCH_CHECKLIST.md` §9. Sequence is dry-run smoke test → flip `EMAIL_DRY_RUN=false` → self-test send → enable timers.
+- Phase 9: v1.0.0 git tag (gated on 5/6/7/8 above).
 
 **Schema state (verified 2026-05-10 via `supabase migration list` — all applied):**
 
