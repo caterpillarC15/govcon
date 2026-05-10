@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { signIn, signInWithGoogle } from './actions'
+import { signIn, signInAsDev, signInWithGoogle } from './actions'
 import { SubmitButton } from './SubmitButton'
 import { GoogleButton } from './GoogleButton'
 import { Mark } from '@/components/Mark'
@@ -19,6 +19,11 @@ export default async function LoginPage({
   const params = await searchParams
   const next = params.next && params.next.startsWith('/') ? params.next : '/app'
   const sent = params.sent === '1'
+  // ALLOW_DEV_LOGIN is server-only (no NEXT_PUBLIC_ prefix). Reading it
+  // here in a Server Component keeps the dev-button render decision on
+  // the server — even if the .env leaks to a build, the variable name
+  // never enters the client bundle.
+  const showDevLogin = process.env.ALLOW_DEV_LOGIN === 'true'
 
   return (
     <main className="relative min-h-screen w-full">
@@ -97,6 +102,29 @@ export default async function LoginPage({
                   No password — we&apos;ll email you a one-time link.
                 </p>
               </form>
+
+              {showDevLogin ? (
+                <div className="mt-5 space-y-2 rounded-2xl border border-dashed border-[var(--color-paper-line)] bg-amber-50/60 px-4 py-3">
+                  <p className="text-[11.5px] font-semibold uppercase tracking-[0.12em] text-amber-900">
+                    Dev only
+                  </p>
+                  <form action={signInAsDev}>
+                    <button
+                      type="submit"
+                      className="w-full rounded-full border border-amber-300 bg-white px-4 py-2 text-[13px] font-medium text-amber-900 transition hover:bg-amber-50"
+                    >
+                      Sign in as dev (skip email)
+                    </button>
+                  </form>
+                  <p className="text-[11px] leading-[1.5] text-amber-900/80">
+                    Idempotently creates {process.env.DEV_USER_EMAIL || 'dev@local.test'}{' '}
+                    via service-role + signs in with password. Gated by{' '}
+                    <code className="rounded bg-white/60 px-1">ALLOW_DEV_LOGIN=true</code>{' '}
+                    in <code className="rounded bg-white/60 px-1">.env</code>; will
+                    no-op in production.
+                  </p>
+                </div>
+              ) : null}
             </>
           )}
 

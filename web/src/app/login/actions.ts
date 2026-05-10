@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { z } from 'zod'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 
 function safeNext(value: FormDataEntryValue | null) {
@@ -101,6 +102,60 @@ export async function signInWithGoogle(formData: FormData) {
   }
 
   redirect(data.url)
+}
+
+// Dev-only: skip the magic-link round-trip entirely. Idempotently
+// ensures a dev user exists with a known password, then signInWithPassword
+// to drop a session cookie. Two server-side gates (env var ALLOW_DEV_LOGIN
+// must be 'true', and SUPABASE_SERVICE_ROLE_KEY must be present) plus the
+// page-level conditional render mean this can't be triggered in prod
+// even if the form data leaks.
+export async function signInAsDev() {
+  if (process.env.ALLOW_DEV_LOGIN !== 'true') {
+    redirect('/login?error=Dev+login+is+disabled')
+  }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceKey) {
+    redirect('/login?error=SUPABASE_SERVICE_ROLE_KEY+missing+for+dev+login')
+  }
+
+  const email = process.env.DEV_USER_EMAIL || 'dev@local.test'
+  const password = process.env.DEV_USER_PASSWORD || 'devonly-not-for-prod'
+
+  // Service-role admin client — server-only, no session cookies.
+  const admin = createServiceClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+
+  // Idempotent user creation. Ignore "already exists" / "already registered"
+  // — anything else surfaces as a redirect with the error.
+  const { error: createErr } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { dev_account: true },
+  })
+  if (
+    createErr &&
+    !/already (registered|exists|been registered)/i.test(createErr.message)
+  ) {
+    redirect(
+      `/login?error=${encodeURIComponent(`Dev user create failed: ${createErr.message}`)}`,
+    )
+  }
+
+  // Now sign in with password using the user-facing (anon-key) client so
+  // session cookies land on the response.
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) {
+    redirect(
+      `/login?error=${encodeURIComponent(`Dev sign-in failed: ${error.message}`)}`,
+    )
+  }
+
+  redirect('/app')
 }
 
 export async function signOut() {
