@@ -1,0 +1,16 @@
+name: govcapture
+version: 0.1.0
+description: "GovCon Bid Desk capability pack — 10 tools delegating to the pack's POST /tools/<name> HTTP surface (Sprint B). Pack URL via GOVCAPTURE_API_BASE; auth via INTERNAL_API_KEY."
+author: govcapture
+kind: backend
+provides_tools:
+  - govcapture_parse_goal
+  - govcapture_parse_pdf
+  - govcapture_extract_requirements
+  - govcapture_score_fit
+  - govcapture_detect_risks
+  - govcapture_generate_action_package
+  - govcapture_search_sam
+  - govcapture_fetch_attachment
+  - govcapture_rank_opportunities
+  - govcapture_load_seeded_opportunities
