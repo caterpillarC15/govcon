@@ -1,6 +1,16 @@
 # Interference Map
 
-How to keep two devs from stepping on each other. File ownership, shared-file protocols, sync checkpoints, and conflict-resolution rules.
+> **2026-05-09 update.** The two-track Dev 1 / Dev 2 layout is retired.
+> Active development happens on `main` with per-feature branches. The
+> file-ownership table below is preserved as a useful map of what file
+> lives where; treat "Track A" / "Track B" as historical metadata.
+>
+> Recent additions to the boundary:
+> - `supabase/migrations/*.sql` — schema source of truth (PRD v1.2.4).
+> - `api/auth.py` — JWT + InternalActor verification.
+> - `api/repositories/{profile,waitlist}.py` — new resources (2026-05-09).
+
+File ownership, shared-file protocols, and conflict-resolution rules.
 
 ---
 
@@ -12,28 +22,23 @@ How to keep two devs from stepping on each other. File ownership, shared-file pr
 |------|-------|
 | `/api/**` (except `/api/schemas/` generated files) | Track A |
 | `/api/skills/**` | Track A |
-| `/api/storage.py` (Supabase Storage wrapper, PRD v1.2.3) | Track A |
+| `/api/storage.py` (Supabase Storage wrapper, PRD v1.2.4) | Track A |
 | `/infra/**` | Track A |
-| `/eval/runner/**`, `/eval/Makefile.eval` | Track A |
 | `Makefile` (top-level) | Track A |
-| `/web/**` (except `/web/lib/schemas/` generated files) | Track B |
-| `/fixtures/<slug>/opportunity.json` | Track B |
-| `/fixtures/<slug>/attachments/*.pdf` | Track B |
-| `/fixtures/<slug>/expected.json` | Track B |
-| `/eval/goldens/**` | Track B (paired with A12 runner) |
+| `/web/**` | Track B |
+| `/fixtures/<slug>/manifest.json` | Shared |
+| `/fixtures/<slug>/attachments/*.pdf` | Shared |
 | `/web/public/demo/**` (recorded demo assets) | Track B |
 
 **Shared files — require care:**
 
 | Path | Protocol |
 |------|----------|
-| `/schemas/*.json` | Locked in P0.2. Changes need both-dev ack on the PR. Always regenerate `/api/schemas/` and `/web/lib/schemas/` in the same PR. |
-| `/api/schemas/**` (generated) | Never hand-edit. Regenerate via `make schemas`. Commit with the source schema change. |
-| `/web/lib/schemas/**` (generated) | Same as above. |
+| `/schemas/*.json` | Schema source. Changes need both-dev ack on the PR. Regenerate `/api/schemas/` with `make schemas` when Python models are affected. |
+| `/api/schemas/**` (generated) | Prefer regeneration via `make schemas`. Commit with the source schema change. |
 | `/.env.example` | Append-only. New var added here AND in `CONTRACTS.md §4` in the same PR. |
-| `/PRD.md` | Frozen at v1.2.1. Any edit is a joint decision logged in `README.md` decision log + a PRD changelog entry. |
+| `/PRD.md` | Current product truth is v1.2.4. Any edit is a joint decision logged in `tasks/README.md` decision log + a PRD changelog entry. |
 | `/tasks/README.md` decision log | Append-only. Both devs add entries; never edit prior. |
-| `/tasks/STANDUP.md` | Append-only. |
 | `/Makefile` (top level) | Track A owns; B can request additions via standup. |
 
 ---
@@ -43,8 +48,10 @@ How to keep two devs from stepping on each other. File ownership, shared-file pr
 ### Schema change protocol
 
 1. Author edits `/schemas/<name>.schema.json`.
-2. Author runs `make schemas`. This regenerates `/api/schemas/` and `/web/lib/schemas/`.
-3. Author runs `make typecheck` (A: `mypy`, B: `tsc --noEmit`) and confirms both halves still build.
+2. Author runs `make schemas`. This regenerates `/api/schemas/`; TypeScript
+   schema codegen is not currently wired.
+3. Author runs `make typecheck` and the relevant npm typecheck target, then
+   confirms both halves still build.
 4. Author opens a PR with all three sets of files in one commit.
 5. Other dev acks within ~30 min (use Slack/standup if longer). Merge after ack.
 6. After merge, both devs `git pull` and rebuild locally.
@@ -53,15 +60,18 @@ If a schema change breaks the other side's build, the author owns the fix or rev
 
 ### Fixture authoring protocol (B → A)
 
-1. B authors `/fixtures/<slug>/opportunity.json`, attachments, and `expected.json`.
-2. B runs `make eval-fixture FIXTURE=<slug>` (provided by A12) to confirm A's pipeline accepts the fixture and produces output that matches the golden.
-3. If A's pipeline mis-extracts, B and A discuss in standup whether the issue is the fixture (B owns) or the prompt/parser (A owns). Track which.
+1. Author edits `/fixtures/<slug>/manifest.json` and attachments.
+2. Author runs `make fixtures-validate` and the relevant skill tests to confirm
+   the pipeline accepts the fixture.
+3. If extraction fails, log the diagnosis in `tasks/README.md` decision log:
+   fixture issue, prompt/parser issue, or expected-behavior change.
 4. B never edits the schema to fit a fixture. If a fixture needs a field the schema doesn't support, raise it as a schema change.
 
 ### Env var protocol
 
 - New var → add to `.env.example` AND `CONTRACTS.md §4` in the same PR.
-- Never read env outside `/api/config.py` or `/web/lib/env.ts`.
+- Never read env outside `/api/config.py` or `/web/src/lib/supabase/env.ts`
+  and middleware code that imports that helper.
 - Don't commit `.env`. `gitignore` enforces.
 
 ### PRD change protocol
@@ -76,11 +86,11 @@ These are the moments where both halves of the system meet. Calendar them.
 
 | # | Trigger | Goal | Time | Output |
 |---|---------|------|------|--------|
-| S1 | End of Phase 0 | Contracts locked, mock API up, schemas generating | ~30 min | Both ack in STANDUP.md |
+| S1 | End of Phase 0 | Contracts locked, mock API up, schemas generating | ~30 min | Both ack in `tasks/README.md` |
 | S2 | A3 merges (real CRUD endpoints) | B drops mock client, points at real `/api` | ~10 min | B's UI fetches real data; smoke-test happy paths |
 | S3 | A9 merges (agent loop end-to-end) | First localhost dry-run of full §13.1 demo | ~30 min | Recorded screen capture; bug list |
 | S4 | A13 merges (VX1 deployed) | Cutover to VX1 URL; B records backup demo video | ~30 min | Stable URL; backup .mp4 in `/web/public/demo/` |
-| S5 | T-2h before stage | Full dress rehearsal; `make eval` green | ~30 min | Stage-ready |
+| S5 | T-2h before stage | Full dress rehearsal; `make fixtures-validate` + tests green | ~30 min | Stage-ready |
 
 Skipped checkpoints become integration debt that surfaces during the demo. Don't skip.
 

@@ -10,15 +10,12 @@ This document is the single source of truth for everything that both tracks must
 /api          — FastAPI proxy + Hermes integration + domain skills              [Track A]
 /api/skills   — Hermes skills: parse_pdf, extract_requirements, score_fit, ...  [Track A]
 /infra        — bootstrap.sh, systemd units, nginx.conf, certbot setup          [Track A]
-/eval         — eval harness runner                                             [Track A owns runner]
-              └─ goldens/ — expected.json per fixture                           [Track B owns goldens]
 /web          — Next.js frontend, Tailwind, shadcn/ui                           [Track B]
-/fixtures     — seeded opportunities + PDFs                                     [Track B owns content]
-              └─ <slug>/opportunity.json                                        [B authors]
-              └─ <slug>/attachments/*.pdf                                       [B authors]
-              └─ <slug>/expected.json                                           [B authors]
+/fixtures     — seeded opportunity manifests + PDFs                             [Shared]
+              └─ <slug>/manifest.json
+              └─ <slug>/attachments/*.pdf
 /schemas      — JSON Schema source of truth for ALL data structures             [Shared, locked in P0]
-PRD.md        — product spec, frozen at v1.2.1                                  [Joint edit only]
+PRD.md        — product spec, current v1.2.4                                    [Joint edit only]
 Makefile      — top-level targets (schemas, eval, dev, services-up, deploy)     [Shared]
 .env.example  — env var contract                                                [Joint, append-only]
 tasks/        — this folder; build plan + standups                              [Joint]
@@ -32,9 +29,12 @@ tasks/        — this folder; build plan + standups                            
 
 **Codegen targets:**
 - Python (Pydantic v2): `/api/schemas/*.py` via `datamodel-code-generator`
-- TypeScript (zod + types): `/web/lib/schemas/*.ts` via `json-schema-to-zod`
+- TypeScript (zod + types): planned for `/web`, but not currently wired or
+  consumed by the scaffolded product shell.
 
-**Build target:** `make schemas` runs both generators. Both devs run this after pulling any schema change.
+**Build target:** `make schemas` currently regenerates Python models only and
+prints a warning for the unwired TypeScript side. Both devs run it after
+pulling any schema change that touches Python API contracts.
 
 **Files to author in P0.2:**
 
@@ -75,7 +75,7 @@ The agent emits these events via SSE on `GET /agent-runs/:id/stream`. B's timeli
 
 // tool calls within a step
 { "type": "tool_called", "run_id": "uuid", "step_id": "uuid",
-  "tool": "search_sam_opportunities | load_seeded_opportunities | fetch_attachment | verify_source_page | parse_pdf | extract_requirements | score_fit | detect_risks | generate_action_package | request_human_review",
+  "tool": "parse_goal | search_sam_opportunities | load_seeded_opportunities | rank_opportunities | fetch_attachment | verify_source_page | parse_pdf | extract_requirements | score_fit | detect_risks | generate_action_package | request_human_review",
   "input": { /* tool-specific */ },
   "rationale": "string (planner one-sentence)",
   "ts": "..." }
@@ -104,41 +104,31 @@ The agent emits these events via SSE on `GET /agent-runs/:id/stream`. B's timeli
 
 ```bash
 # Supabase (browser-safe vs server-only)
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_URL=https://<your-project-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_ANON_KEY=
+SUPABASE_STORAGE_BUCKET=govcapture-attachments
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_API_BASE=http://localhost:8000
 
 # LLM — Anthropic (required for Hermes defaults in P0)
 ANTHROPIC_API_KEY=
 LLM_DEV_MODEL=claude-haiku-4-5-20251001
 LLM_SYNTH_MODEL=claude-sonnet-4-6
 
-# LLM — OpenAI (optional: embeddings, routing, GPT tools)
-OPENAI_API_KEY=
-OPENAI_ROUTER_MODEL=gpt-4.1-mini
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-
 # External APIs
 SAM_API_KEY=
-
-# Postgres — Supabase in dev/prod (PRD v1.2.3 §7.5).
-# Use the Direct Connection URL (port 5432), NOT the pgBouncer pooler (6543).
-# asyncpg uses prepared statements, which transaction-mode pooling rejects.
-# Example: postgresql+asyncpg://postgres:<pw>@db.<ref>.supabase.co:5432/postgres
-# Local-dev fallback: postgresql+asyncpg://govcon@localhost:5432/govcon
-DATABASE_URL=
 
 # SSE pub/sub bridge — native Redis on VX1 in prod, Homebrew/apt local in dev.
 REDIS_URL=redis://localhost:6379/0
 
-# Supabase project (PRD v1.2.3 §7.5)
-SUPABASE_URL=https://<your-project-ref>.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=   # server-side only; bypasses RLS; NEVER ship to web
-SUPABASE_ANON_KEY=           # safe for the web client (public)
-SUPABASE_STORAGE_BUCKET=govcapture-attachments
+# API security / CORS
+INTERNAL_API_KEY=
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:5173
 
-# Hermes runtime (configured via `hermes model` CLI; HOME holds skills + memory)
-HERMES_HOME=/var/lib/hermes
+# Hermes runtime. Project-isolated; do not depend on a user's global ~/.hermes.
+HERMES_HOME=.hermes
 HERMES_MODEL=claude-sonnet-4-6
 
 # Agent budgets (PRD §4.5, §17 Q1)
@@ -146,24 +136,28 @@ RUN_BUDGET_USD=0.50
 RUN_BUDGET_STEPS=40
 RUN_BUDGET_SECONDS=360
 
-# Frontend → backend (B)
-NEXT_PUBLIC_API_BASE=http://localhost:8000
-NEXT_PUBLIC_APP_NAME=GovCapture Agent
-
 # Demo mode flags
 DEMO_USE_SEEDED_ONLY=false   # true forces planner to skip live SAM and Hermes browser tools
+DEMO_REPLAY_TRACE=false      # true enables canned trace replay; never present as a real Hermes run
 ```
 
 **Rules:**
 - `.env.example` is append-only. New vars get added here AND in this contract section.
-- Never read `os.environ` outside `/api/config.py` or `/web/lib/env.ts`. Centralized so one file owns the truth.
-- `SUPABASE_SERVICE_ROLE_KEY` is server-only. It MUST NOT be inlined into Vercel env or the Next.js client bundle. Frontend uses `SUPABASE_ANON_KEY` (Public/RLS-protected) only; for v1.2.3 Auth is deferred (§17 Q5), so the FastAPI proxy mediates all DB/Storage access via the service role.
+- Never read `os.environ` outside `/api/config.py`,
+  `/web/src/lib/supabase/env.ts`, or the middleware path that imports that
+  helper. Centralized so one file owns the truth.
+- `SUPABASE_SERVICE_ROLE_KEY` is server-only. It MUST NOT be inlined into
+  Vercel env or any Next.js client bundle. Frontend uses
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`; FastAPI uses the service role for server
+  persistence and verifies browser JWTs before protected reads/writes.
+- `INTERNAL_API_KEY` is only for Hermes/tool-write paths. Public users cannot
+  POST analysis artifacts directly.
 
 ---
 
 ## 5. Skill registry (under Hermes)
 
-Mirrors PRD §4.5 (v1.2.2). All skills run inside the Hermes runtime. Each skill's input/output is a Pydantic model on the API side and a zod schema on the web side. All inputs validated before the call; all outputs validated after. See `HERMES.md` for runtime details.
+Mirrors PRD §4.5 (v1.2.4). All skills run inside the Hermes runtime. Each skill's input/output is a Pydantic model on the API side and a zod schema on the web side. All inputs validated before the call; all outputs validated after. See `HERMES.md` and `tasks/HERMES.md` for runtime details.
 
 | Skill | Owner | Input schema | Output schema |
 |-------|-------|--------------|---------------|
@@ -180,6 +174,18 @@ Mirrors PRD §4.5 (v1.2.2). All skills run inside the Hermes runtime. Each skill
 
 Each tool also reports `latency_ms` and `cost_usd` (0 for non-LLM tools). The planner uses these for budget tracking.
 
+Michaela bench ownership:
+
+| Agent | Owns |
+|-------|------|
+| Michaela | Orchestration, final user-facing answer, `parse_goal`, `summarize_run`, delegation |
+| Scot | SAM.gov discovery and seeded fallback |
+| Lenny | Fit ranking / pursue-monitor-skip support |
+| Gabby | Eligibility blocker checks and §11.1 reject gate |
+| Lance | USASpending / incumbent / award-history intelligence |
+| Happer | Repeatable execution, attachment fetches, PDF parsing, file/status work |
+| Roy | Bid memo, capability statement, contracting-officer email, action package |
+
 ---
 
 ## 6. API endpoints
@@ -188,20 +194,31 @@ PRD §9 is canonical. Locked surface for v1:
 
 ```
 POST   /company-profiles                  → CompanyProfile
+GET    /company-profiles                  → CompanyProfile[]
 GET    /company-profiles/:id              → CompanyProfile
+GET    /profiles/me                       → Profile
+POST   /profiles/me                       → Profile
 POST   /agent-runs                        → AgentRun (accepts inline profile or profile_id)
 GET    /agent-runs/:id                    → AgentRun
 GET    /agent-runs/:id/stream             → SSE stream of TraceEvent
 GET    /agent-runs/:id/opportunities      → Opportunity[]
 GET    /opportunities/:id                 → Opportunity
 GET    /opportunities/:id/requirements    → ExtractedRequirement[]
+POST   /opportunities/:id/requirements    → ExtractedRequirement (internal only)
 GET    /opportunities/:id/fit-score       → FitScore
+POST   /opportunities/:id/fit-score       → FitScore (internal only)
 GET    /opportunities/:id/risks           → RiskFlag[]
+POST   /opportunities/:id/risks           → RiskFlag (internal only)
 GET    /action-packages/:id               → ActionPackage
+POST   /action-packages                   → ActionPackage (internal only)
+POST   /waitlist                          → { status: "ok", already_registered: boolean }
 GET    /healthz                           → { status: "ok" }
 ```
 
-The mock server (P0.6) implements all of the above against canned fixtures so B is unblocked.
+Public: `GET /healthz`, `POST /waitlist`, landing page.
+Authenticated user: profile creation/read, agent-run creation/read, run outputs.
+Internal only: requirements, fit scores, risks, action packages writes through
+`X-Internal-API-Key`.
 
 ---
 
@@ -211,4 +228,5 @@ The mock server (P0.6) implements all of the above against canned fixtures so B 
 - Schemas are not versioned independently for v1; breaking schema changes require a joint decision (logged in `tasks/README.md`).
 - Tool registry is locked at v1; adding a new tool requires updating §5 above and the planner prompt simultaneously.
 
-If you find yourself wanting to break a contract: stop, log the question in `STANDUP.md`, get the other dev's ack, then change.
+If you find yourself wanting to break a contract: stop, log the question in
+`tasks/README.md` decision log, get the other dev's ack, then change.

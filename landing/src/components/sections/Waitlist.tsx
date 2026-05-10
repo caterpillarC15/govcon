@@ -4,20 +4,54 @@ import { useState, type FormEvent } from 'react'
 import { ArrowRight, Check } from 'lucide-react'
 import { Button, GlassCard } from '../ui/Primitives'
 
-/**
- * Final CTA. The MVP has no waitlist endpoint wired (PRD §6 non-goals
- * list "Real email sending"), so submission is acknowledged locally —
- * replace with a POST when one exists. Kept compact so the page does
- * not have two hero-sized CTAs.
- */
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8000').replace(
+  /\/$/,
+  '',
+)
+
 export default function Waitlist() {
   const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(
+    'idle',
+  )
+  const [message, setMessage] = useState('')
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!email || !email.includes('@')) return
-    setSubmitted(true)
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail || !normalizedEmail.includes('@')) return
+
+    setStatus('loading')
+    setMessage('')
+
+    try {
+      const response = await fetch(`${API_BASE}/waitlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          source: 'landing',
+        }),
+      })
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null)
+        const detail =
+          typeof body?.detail === 'string' ? body.detail : 'Could not save that email.'
+        throw new Error(detail)
+      }
+
+      const body = (await response.json()) as { already_registered?: boolean }
+      setStatus('success')
+      setMessage(
+        body.already_registered
+          ? "You're already on the private beta list."
+          : "You're on the private beta list.",
+      )
+    } catch (error) {
+      setStatus('error')
+      setMessage(error instanceof Error ? error.message : 'Could not save that email.')
+    }
   }
 
   return (
@@ -47,20 +81,24 @@ export default function Waitlist() {
               .
             </h2>
             <p className="mt-1.5 text-[12.5px] text-[var(--color-ink-subtle)]">
-              Profile data stays in your tenant. No CUI / classified material.
+              We&apos;ll follow up before any profile or solicitation review. No CUI /
+              classified material.
             </p>
           </div>
 
-          {submitted ? (
-            <div className="inline-flex items-center justify-center gap-2 glass rounded-full px-4 py-2 text-[13.5px] text-[var(--color-ink)] shrink-0">
+          {status === 'success' ? (
+            <div
+              className="inline-flex items-center justify-center gap-2 glass rounded-full px-4 py-2 text-[13.5px] text-[var(--color-ink)] shrink-0"
+              role="status"
+            >
               <Check size={14} className="text-[var(--color-decision-strong)]" aria-hidden />
-              You’re on the list.
+              {message}
             </div>
           ) : (
             <form
               onSubmit={onSubmit}
               className="flex flex-col sm:flex-row gap-2 md:shrink-0 md:w-[380px]"
-              aria-describedby="waitlist-help"
+              aria-describedby="waitlist-help waitlist-status"
             >
               <label htmlFor="waitlist-email" className="sr-only">
                 Work email
@@ -72,15 +110,29 @@ export default function Waitlist() {
                 placeholder="you@yourcompany.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={status === 'loading'}
                 className="flex-1 h-11 px-4 rounded-full glass-subtle text-[14px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-subtle)] outline-none focus:ring-2 focus:ring-[var(--color-accent)]/40 focus:bg-white/85"
               />
-              <Button type="submit" variant="primary" size="md">
-                Request access
+              <Button type="submit" variant="primary" size="md" disabled={status === 'loading'}>
+                {status === 'loading' ? 'Saving...' : 'Request access'}
                 <ArrowRight size={14} strokeWidth={2} aria-hidden />
               </Button>
               <span id="waitlist-help" className="sr-only">
                 We'll email when private beta opens. No spam.
               </span>
+              <span
+                id="waitlist-status"
+                className="sr-only"
+                role={status === 'error' ? 'alert' : 'status'}
+                aria-live="polite"
+              >
+                {message}
+              </span>
+              {status === 'error' && (
+                <p className="sm:col-span-2 text-center sm:text-left text-[12.5px] text-[var(--color-decision-reject)]">
+                  {message}
+                </p>
+              )}
             </form>
           )}
         </GlassCard>

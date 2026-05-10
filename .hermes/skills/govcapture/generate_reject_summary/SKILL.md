@@ -1,6 +1,6 @@
 ---
 name: generate_reject_summary
-description: Proposal Strategist procedure for producing a slim, deterministic action package when fit_score.decision == "reject". No LLM call; the package's purpose is to document the blocker, not prepare a proposal.
+description: Roy procedure for producing a slim, deterministic action package when fit_score.decision == "reject". No LLM call; the package's purpose is to document the blocker, not prepare a proposal.
 version: 1.0.0
 metadata:
   hermes:
@@ -11,13 +11,13 @@ metadata:
 
 # Generate Reject Summary
 
-The Proposal Strategist's procedure for **reject decisions only.** Slim shape; deterministic; no LLM call. The package's purpose is to **document the blocker** so the user can verify the decision and remember the constraint for future opportunities.
+Roy's procedure for **reject decisions only.** Slim shape; deterministic; no LLM call. The package's purpose is to **document the blocker** so the user can verify the decision and remember the constraint for future opportunities.
 
 **For non-reject decisions, use `generate_full_action_package`** instead.
 
 ## When to Use
 
-- You are the Proposal Strategist (leaf agent).
+- You are Roy.
 - The fit_score.decision is `reject`.
 - Your delegate context includes `mode="reject_summary"`.
 
@@ -74,7 +74,7 @@ This procedure is deterministic — `generate_action_package` with `mode="reject
 
 - **Tempted to "write something useful" anyway.** Don't. The user needs to see clearly: "We rejected this. Here's why. Don't pursue." Empty arrays for proposal_checklist, timeline, partner_suggestions, and outreach are intentional.
 - **Approval gate absent.** Even reject packages must show approval-required messages — specifically the "do not pursue without overriding" warning. The wrapper enforces this.
-- **Mode confusion.** If you somehow get called with `mode="full"` on a reject decision, refuse. The Capture Analyst should never produce that combination; if it does, that's a §11.1 violation upstream.
+- **Mode confusion.** If you somehow get called with `mode="full"` on a reject decision, refuse. Michaela should never produce that combination; if it does, that's a §11.1 violation upstream.
 - **Soft-pedaling the blocker.** "Can be addressed via teaming" is wrong here. The decision is final; teaming arrangements don't grant clearance, citizenship, or set-aside certification within reasonable timeframes.
 
 ## Verification
@@ -90,9 +90,9 @@ This procedure is deterministic — `generate_action_package` with `mode="reject
 
 ## Cross-skill note
 
-This skill is invoked by the Capture Analyst's branch in `analyze_opportunity_e2e`. The §11.1 chain depends on:
-1. Compliance Officer correctly returning `decision = "reject"` (via `score_fit_with_eligibility_check`).
-2. Capture Analyst correctly branching on the reject and calling THIS skill (not `generate_full_action_package`).
+This skill is invoked by Michaela's branch in `analyze_opportunity_e2e`. The §11.1 chain depends on:
+1. Gabby correctly returning `decision = "reject"` (via `score_fit_with_eligibility_check`).
+2. Michaela correctly branching on the reject and calling THIS skill (not `generate_full_action_package`).
 3. This skill returning the slim shape without re-running the LLM (which might be tempted to pad with optimistic prose).
 
 Every link in the chain is enforced; the eval harness (A12) catches regressions.

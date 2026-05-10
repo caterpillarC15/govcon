@@ -1,6 +1,6 @@
 ---
 name: score_fit_with_eligibility_check
-description: Compliance Officer procedure for scoring fit against the §5.7 rubric WITH the §11.1 eligibility short-circuit. Capability strengths CANNOT override hard eligibility blockers. This is the highest-stakes skill in the system; the deterministic short-circuit is non-negotiable.
+description: Gabby procedure for scoring fit against the §5.7 rubric WITH the §11.1 eligibility short-circuit. Capability strengths CANNOT override hard eligibility blockers. This is the highest-stakes skill in the system; the deterministic short-circuit is non-negotiable.
 version: 1.0.0
 metadata:
   hermes:
@@ -15,7 +15,7 @@ metadata:
 
 ## When to Use
 
-- You are the Compliance Officer.
+- You are Gabby.
 - You've completed `extract_requirements_with_evidence` and have a `RequirementExtractionOutput`.
 - You need to produce a §10.2 `FitScoreOutput` with decision band and (potentially) reject short-circuit.
 
@@ -114,7 +114,7 @@ These rules are encoded at multiple layers. Memorize them.
 ## Pitfalls
 
 - **Letting Phase B (LLM rationale) override Phase A (math).** Never. Phase A is the source of truth for `decision`. Phase B explains; it doesn't decide.
-- **Ignoring `is_blocker: true` flags from extraction.** The Compliance Officer's previous step (`extract_requirements_with_evidence`) marks blockers. Honor them in the eligibility scoring.
+- **Ignoring `is_blocker: true` flags from extraction.** Gabby's previous step (`extract_requirements_with_evidence`) marks blockers. Honor them in the eligibility scoring.
 - **Off-by-one on weights.** Sum the breakdown — assert it equals the maximum possible (100). Catch in tests.
 - **Soft penalty for "maybe eligible".** Banned. If eligibility is uncertain, score is 0 + critical blocker + reject. There's no review path for v1.
 - **Over-rewarding partial NAICS matches.** Match codes by full string equality. Partial-prefix matching (e.g., 5415 ≈ 541512) is a stretch and not in v1.
@@ -143,4 +143,4 @@ These rules are encoded at multiple layers. Memorize them.
 
 ## Cross-skill note
 
-This skill returns to the Compliance Officer's exit. The Compliance Officer then returns `{requirements, fit_score}` to the Capture Analyst, which branches on `fit_score.decision`. If reject, the Capture Analyst skips the Risk Analyst entirely and calls Proposal Strategist with `mode="reject_summary"`. **The §11.1 enforcement chain depends on every link respecting the verdict produced here.**
+This skill returns to Gabby's exit. Gabby then returns `{requirements, fit_score}` to Michaela's opportunity branch, which branches on `fit_score.decision`. If reject, Michaela skips full packaging and calls Roy with `mode="reject_summary"`. **The §11.1 enforcement chain depends on every link respecting the verdict produced here.**

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/profile.schema.json",
+  "title": "Profile",
+  "description": "One public profile row per Supabase Auth user.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "created_at", "updated_at"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "email": { "type": ["string", "null"], "maxLength": 320 },
+    "full_name": { "type": ["string", "null"], "maxLength": 255 },
+    "company_name": { "type": ["string", "null"], "maxLength": 255 },
+    "role": {
+      "type": "string",
+      "enum": ["owner", "consultant", "admin"],
+      "default": "owner"
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,80 +1,108 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from api.db.models import ExtractedRequirement, FitScore, Opportunity, RiskFlag
+from supabase import AsyncClient
 
 
 class OpportunityRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self.session = session
+    def __init__(self, client: AsyncClient) -> None:
+        self.client = client
 
-    async def get(self, opp_id: uuid.UUID) -> Opportunity | None:
-        return await self.session.get(Opportunity, opp_id)
+    async def create(self, data: dict[str, Any]) -> dict[str, Any]:
+        resp = await self.client.table("opportunities").insert(data).execute()
+        return cast(dict[str, Any], resp.data[0])
 
-    async def list_by_ids(self, ids: list[uuid.UUID]) -> list[Opportunity]:
+    async def get(self, opp_id: uuid.UUID) -> dict[str, Any] | None:
+        resp = await (
+            self.client.table("opportunities")
+            .select("*")
+            .eq("id", str(opp_id))
+            .maybe_single()
+            .execute()
+        )
+        return cast("dict[str, Any] | None", resp.data) if resp else None
+
+    async def get_by_slug(self, slug: str) -> dict[str, Any] | None:
+        resp = await (
+            self.client.table("opportunities")
+            .select("*")
+            .eq("slug", slug)
+            .maybe_single()
+            .execute()
+        )
+        return cast("dict[str, Any] | None", resp.data) if resp else None
+
+    async def list_by_ids(self, ids: list[uuid.UUID]) -> list[dict[str, Any]]:
         if not ids:
             return []
-        result = await self.session.execute(
-            select(Opportunity).where(Opportunity.id.in_(ids))
+        resp = await (
+            self.client.table("opportunities")
+            .select("*")
+            .in_("id", [str(i) for i in ids])
+            .execute()
         )
-        return list(result.scalars().all())
+        return cast("list[dict[str, Any]]", resp.data or [])
 
-    async def requirements(self, opp_id: uuid.UUID) -> list[ExtractedRequirement]:
-        result = await self.session.execute(
-            select(ExtractedRequirement)
-            .where(ExtractedRequirement.opportunity_id == opp_id)
-            .order_by(ExtractedRequirement.created_at)
+    async def requirements(self, opp_id: uuid.UUID) -> list[dict[str, Any]]:
+        resp = await (
+            self.client.table("extracted_requirements")
+            .select("*")
+            .eq("opportunity_id", str(opp_id))
+            .order("created_at")
+            .execute()
         )
-        return list(result.scalars().all())
+        return cast("list[dict[str, Any]]", resp.data or [])
 
-    async def latest_fit_score(self, opp_id: uuid.UUID) -> FitScore | None:
-        result = await self.session.execute(
-            select(FitScore)
-            .where(FitScore.opportunity_id == opp_id)
-            .order_by(FitScore.created_at.desc())
+    async def latest_fit_score(self, opp_id: uuid.UUID) -> dict[str, Any] | None:
+        resp = await (
+            self.client.table("fit_scores")
+            .select("*")
+            .eq("opportunity_id", str(opp_id))
+            .order("created_at", desc=True)
             .limit(1)
+            .execute()
         )
-        return result.scalar_one_or_none()
+        rows = cast("list[dict[str, Any]]", resp.data or [])
+        return rows[0] if rows else None
 
-    async def risks(self, opp_id: uuid.UUID) -> list[RiskFlag]:
-        result = await self.session.execute(
-            select(RiskFlag)
-            .where(RiskFlag.opportunity_id == opp_id)
-            .order_by(RiskFlag.created_at)
+    async def risks(self, opp_id: uuid.UUID) -> list[dict[str, Any]]:
+        resp = await (
+            self.client.table("risk_flags")
+            .select("*")
+            .eq("opportunity_id", str(opp_id))
+            .order("created_at")
+            .execute()
         )
-        return list(result.scalars().all())
+        return cast("list[dict[str, Any]]", resp.data or [])
 
     async def create_requirement(
         self, opp_id: uuid.UUID, data: dict[str, Any]
-    ) -> ExtractedRequirement:
-        row = ExtractedRequirement(opportunity_id=opp_id, **data)
-        self.session.add(row)
-        await self.session.flush()
-        await self.session.commit()
-        await self.session.refresh(row)
-        return row
+    ) -> dict[str, Any]:
+        resp = await (
+            self.client.table("extracted_requirements")
+            .insert({**data, "opportunity_id": str(opp_id)})
+            .execute()
+        )
+        return cast(dict[str, Any], resp.data[0])
 
     async def create_fit_score(
         self, opp_id: uuid.UUID, data: dict[str, Any]
-    ) -> FitScore:
-        row = FitScore(opportunity_id=opp_id, **data)
-        self.session.add(row)
-        await self.session.flush()
-        await self.session.commit()
-        await self.session.refresh(row)
-        return row
+    ) -> dict[str, Any]:
+        resp = await (
+            self.client.table("fit_scores")
+            .insert({**data, "opportunity_id": str(opp_id)})
+            .execute()
+        )
+        return cast(dict[str, Any], resp.data[0])
 
     async def create_risk(
         self, opp_id: uuid.UUID, data: dict[str, Any]
-    ) -> RiskFlag:
-        row = RiskFlag(opportunity_id=opp_id, **data)
-        self.session.add(row)
-        await self.session.flush()
-        await self.session.commit()
-        await self.session.refresh(row)
-        return row
+    ) -> dict[str, Any]:
+        resp = await (
+            self.client.table("risk_flags")
+            .insert({**data, "opportunity_id": str(opp_id)})
+            .execute()
+        )
+        return cast(dict[str, Any], resp.data[0])

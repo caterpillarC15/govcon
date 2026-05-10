@@ -39,7 +39,18 @@
         "description": { "type": ["string", "null"] },
         "attachments": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["filename"],
+            "properties": {
+              "filename": { "type": "string" },
+              "url": { "type": ["string", "null"] },
+              "local_path": { "type": ["string", "null"] },
+              "content_type": { "type": ["string", "null"] },
+              "bytes": { "type": ["integer", "null"] }
+            }
+          }
         },
         "raw_payload": { "type": "object" }
       }

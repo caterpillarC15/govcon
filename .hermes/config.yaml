@@ -1,59 +1,57 @@
-# Hermes Agent runtime configuration for GovCapture project.
+# Hermes Agent runtime configuration for the project-isolated Michaela runtime.
 #
-# This file is the project's recommended Hermes config. During P0 setup
-# (PHASE_0.md §P0.6), copy or symlink to ~/.hermes/config.yaml so Hermes
-# picks it up:
+# Layer boundary:
+#   Michaela = product/application workloop.
+#   Hermes = runtime shell, skill/tool harness, memory, provider config.
+#   Anthropic/OpenRouter = model transport only.
 #
-#   ln -sf "$(pwd)/.hermes/config.yaml" ~/.hermes/config.yaml
-#
-# OR for project-isolated runs, set HERMES_HOME to the repo's .hermes/:
+# Run this project with an isolated Hermes home so it does not depend on a
+# developer's personal/global ~/.hermes config or credentials:
 #
 #   export HERMES_HOME="$(pwd)/.hermes"
 
 # ─── Delegation ─────────────────────────────────────────────────────────────
-# Our 5-agent architecture (tasks/AGENT_ARCHITECTURE.md) requires depth-2
-# delegation: Capture Lead (orchestrator, depth 0) → Capture Analyst
-# (orchestrator, depth 1) → Specialists (leaves, depth 2). Without
-# max_spawn_depth: 2, Capture Analysts cannot spawn specialists.
+# The Michaela bench (tasks/AGENT_ARCHITECTURE.md) uses one root orchestrator
+# with bounded specialist workers. Named workers are peers, not a management
+# chain.
 delegation:
-  max_concurrent_children: 3            # 3 Capture Analysts in parallel (one per top-ranked opportunity)
-  max_spawn_depth: 2                    # REQUIRED — Lead → Analyst → Specialist chain
+  max_concurrent_children: 3            # Top-ranked opportunity branches in parallel
+  max_spawn_depth: 2                    # REQUIRED: Michaela -> specialist/branch only
   orchestrator_enabled: true            # Global kill-switch; must be true for our design
   max_iterations: 50                    # Per-child turn cap (Hermes default)
 
   # Optional: per-delegation model override.
   # We keep delegation model inheritance from parent by default (commented),
-  # then override per delegate_task call in /api/agents/<role>.py for cost
-  # optimization (e.g., Risk Analyst on Haiku, Compliance Officer on Sonnet).
+  # then override per delegate_task call in the Hermes bridge for cost
+  # optimization (e.g., Gabby on Sonnet, Lance/Lenny on Haiku).
   # model: "claude-sonnet-4-6"
   # provider: "anthropic"
 
 # ─── Models ─────────────────────────────────────────────────────────────────
-# Configured via `hermes model` CLI on first run. Defaults below are the
-# recommended split. Per-role overrides happen in delegate_task calls.
+# Project default: direct Anthropic. Keep OpenRouter for personal/global Hermes
+# or future routing experiments unless a product reason requires it.
 models:
   default_synthesis: "claude-sonnet-4-6"
   default_cheap: "claude-haiku-4-5-20251001"
 
 providers:
   anthropic:
+    api_key: null
     api_key_env: ANTHROPIC_API_KEY
 
 # ─── Skills ─────────────────────────────────────────────────────────────────
-# Hermes auto-discovers skills in ~/.hermes/skills/. Project-local skills
-# live in <repo>/.hermes/skills/govcapture/ — symlink during setup:
-#
-#   ln -sf "$(pwd)/.hermes/skills/govcapture" ~/.hermes/skills/govcapture
+# With HERMES_HOME set to this directory, Hermes reads project-local skills from
+# .hermes/skills/ without consulting ~/.hermes.
 #
 # Skills loaded:
-#   - operate_bid_desk              (Root direct-chat operator)
-#   - discover_opportunities          (Capture Lead)
-#   - analyze_opportunity_e2e         (Capture Analyst)
-#   - extract_requirements_with_evidence  (Compliance Officer)
-#   - score_fit_with_eligibility_check    (Compliance Officer; §11.1 enforcement)
-#   - detect_risks_calibrated         (Risk Analyst)
-#   - generate_full_action_package    (Proposal Strategist)
-#   - generate_reject_summary         (Proposal Strategist; deterministic)
+#   - operate_bid_desk                   (Michaela)
+#   - discover_opportunities             (Scot)
+#   - analyze_opportunity_e2e            (Michaela per-opportunity recipe)
+#   - extract_requirements_with_evidence (Gabby)
+#   - score_fit_with_eligibility_check   (Lenny + Gabby; §11.1 enforcement)
+#   - detect_risks_calibrated            (Gabby)
+#   - generate_full_action_package       (Roy)
+#   - generate_reject_summary            (Roy; deterministic)
 
 # ─── Memory ─────────────────────────────────────────────────────────────────
 # V1 product mode: cross-run memory is part of the "clone me into the org"

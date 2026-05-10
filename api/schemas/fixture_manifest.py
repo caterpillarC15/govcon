@@ -9,6 +9,14 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
+class OpportunityAttachment(BaseModel):
+    filename: str
+    url: str | None = None
+    local_path: str | None = None
+    content_type: str | None = None
+    bytes: int | None = None
+
+
 class Opportunity(BaseModel):
     """
     Opportunity payload passed to load_seeded_opportunities; mirrors the canonical opportunity.schema.json input shape.
@@ -23,7 +31,7 @@ class Opportunity(BaseModel):
     set_aside: str
     place_of_performance: str | None = None
     description: str | None = None
-    attachments: list[str] | None = None
+    attachments: list[OpportunityAttachment] | None = None
     raw_payload: dict[str, Any] | None = None
 
 

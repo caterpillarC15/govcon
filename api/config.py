@@ -7,17 +7,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    anthropic_api_key: str = Field(..., alias="ANTHROPIC_API_KEY")
+    anthropic_api_key: str = Field("", alias="ANTHROPIC_API_KEY")
     sam_api_key: str = Field("", alias="SAM_API_KEY")
 
-    # Postgres connection. PRD v1.2.3 §7.5 — Supabase Direct Connection URL in prod
-    # (port 5432, not the pooler). Local-dev fallback also supported; the engine
-    # adds SSL only for non-localhost hosts (see api/db/__init__.py).
-    database_url: str = Field(..., alias="DATABASE_URL")
+    redis_url: str = Field("redis://localhost:6379/0", alias="REDIS_URL")
 
-    redis_url: str = Field(..., alias="REDIS_URL")
-
-    # Supabase project (PRD v1.2.3 §7.5).
+    # Supabase project (PRD v1.2.4 §7.5).
     supabase_url: str = Field("", alias="SUPABASE_URL")
     supabase_service_role_key: str = Field("", alias="SUPABASE_SERVICE_ROLE_KEY")
     supabase_anon_key: str = Field("", alias="SUPABASE_ANON_KEY")
@@ -25,7 +20,7 @@ class Settings(BaseSettings):
         "govcapture-attachments", alias="SUPABASE_STORAGE_BUCKET"
     )
 
-    hermes_home: str = Field("~/.hermes", alias="HERMES_HOME")
+    hermes_home: str = Field(".hermes", alias="HERMES_HOME")
     hermes_model: str = Field("claude-sonnet-4-6", alias="HERMES_MODEL")
 
     llm_dev_model: str = Field("claude-haiku-4-5-20251001", alias="LLM_DEV_MODEL")
@@ -36,6 +31,21 @@ class Settings(BaseSettings):
     run_budget_seconds: int = Field(360, alias="RUN_BUDGET_SECONDS")
 
     demo_use_seeded_only: bool = Field(False, alias="DEMO_USE_SEEDED_ONLY")
+    demo_replay_trace: bool = Field(False, alias="DEMO_REPLAY_TRACE")
+
+    internal_api_key: str = Field("", alias="INTERNAL_API_KEY")
+    cors_allowed_origins: str = Field(
+        "http://localhost:3000,http://localhost:3001,http://localhost:5173",
+        alias="CORS_ALLOWED_ORIGINS",
+    )
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [
+            origin.strip()
+            for origin in self.cors_allowed_origins.split(",")
+            if origin.strip()
+        ]
 
 
 @lru_cache

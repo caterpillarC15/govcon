@@ -1,6 +1,7 @@
 # V1 Product Alignment
 
-This doc is the product filter for every Hermes prompt, skill, UI surface, and demo decision.
+This doc is the product filter for every Michaela prompt, Hermes skill, UI
+surface, and demo decision.
 
 ## One-Line V1
 
@@ -55,11 +56,21 @@ The value is:
 
 ## Architecture Stance
 
-Hermes is the agent brain, memory, and orchestration layer.
+Michaela is the agent workloop and product architecture. Hermes is the runtime
+shell/tool harness around it. Anthropic/OpenRouter are provider transports, not
+the product architecture.
 
-OpenClaw is a channel/tool substrate when useful: browser work, web chat, WhatsApp, Slack, or other customer surfaces. It is not a second peer brain for V1.
+The bench is **Michaela (CEO) + Scot (discovery) + Lenny (fit ranking) +
+Gabby (eligibility) + Lance (competitive intel) + Happer (execution runner) +
+Roy (packaging)**. See `tasks/AGENT_ARCHITECTURE.md` and
+`devdocs/MICHAELA_SYSTEM_MODEL.md` for the canonical design.
 
-The customer experiences one named worker, not two frameworks.
+OpenClaw is a channel/tool substrate when useful: browser work, web chat,
+WhatsApp, Slack, or other customer surfaces. It is not a second peer brain
+for V1.
+
+The customer experiences one named worker (Michaela). The other six are
+sub-agents she delegates to and never surfaces directly to the user.
 
 ## Public Terms
 

@@ -3,10 +3,19 @@
 ## Product Requirements Document
 
 **Product name:** GovCapture Agent
-**Document status:** MVP PRD v1.2.3
+**Document status:** MVP PRD v1.2.4
 **Primary track:** Agents Track
 **Primary objective:** Build an autonomous AI capture agent that turns a small business profile and government contracting goal into a useful federal opportunity analysis package by searching opportunities, parsing solicitation documents, extracting requirements, scoring fit, detecting blockers, and producing actionable next steps with human approval gates.
 
+> **Changelog v1.2.3 → v1.2.4** (2026-05-09)
+> - **Postgres tooling removed.** SQLAlchemy 2.0, asyncpg, and Alembic are gone from `pyproject.toml` and from the codebase. The data layer is now `supabase-py`'s `AsyncClient` talking to Supabase **PostgREST**. Schemas live as versioned SQL under `supabase/migrations/` and are applied with `supabase db push`. `DATABASE_URL` is no longer an env var.
+> - **Auth + ownership added.** Two auth roles: `AuthenticatedUser` (Supabase JWT verified through `/auth/v1/user`) for user-facing routes; `InternalActor` (X-Internal-API-Key header) for sub-agent writebacks. New `INTERNAL_API_KEY` env var. New `owner_profile_id` column on user-facing tables; `get_owned()` repository methods scope reads by JWT identity. RLS enabled on every table.
+> - **New resources:** `/profiles` (one row per Supabase Auth user; FK into `auth.users`), `/waitlist` (marketing capture), and the Michaela-layer tables (`opportunity_matches`, `documents`, `document_chunks`, `run_events`).
+> - **Michaela 7-agent bench named.** The Michaela system uses a CEO + 6 worker agents: Michaela (orchestrator), Scot (discovery), Lenny (fit ranking), Gabby (eligibility), Lance (competitive intel), Happer (execution runner), Roy (packaging). Hermes is the runtime shell around this bench, not the product architecture. Replaces the prior 5-agent design (Capture Lead / Analyst / Compliance Officer / Risk Analyst / Proposal Strategist). The §11.1 chain, source-binding, no-fabrication, and approval-gate rules carry over unchanged. See `tasks/AGENT_ARCHITECTURE.md`.
+> - §7.5 simplified: "Supabase project provisioned via the Supabase CLI; SQL migrations in `supabase/migrations/`." No mention of asyncpg or Direct Connection URL — irrelevant now.
+> - §9 endpoints: writeback POSTs (`/opportunities/{id}/{requirements,fit-score,risks}`, `/action-packages`) require `InternalActor`; everything else requires `AuthenticatedUser`. Healthz, waitlist signup are public.
+> - Deferred items still deferred: Supabase Realtime (Redis stays for SSE pub/sub), cross-run agent memory.
+>
 > **Changelog v1.2.2 → v1.2.3**
 > - **Adopted Supabase for managed Postgres + object storage.** §7.5 promotes Supabase from "recommended" to chosen. Postgres moves off the VX1 box and onto a Supabase project (asyncpg connects over SSL); raw and parsed solicitation files move from `/var/lib/govcapture/{raw,parsed}` into a Supabase Storage bucket. **Redis stays native on VX1** (powers the SSE pub/sub bridge — switching to Supabase Realtime mid-build is rework, not speed).
 > - §7.6 updated: VX1 service-allocation table no longer lists Postgres or pg_dump backups (Supabase handles both). VX1 still hosts FastAPI + Hermes + Redis + nginx natively. Bootstrap script shrinks ~40%.
@@ -18,14 +27,14 @@
 > - Internal docs may continue to use "capture" because it is precise govcon operating language.
 > - Publicly, the product should be framed as a **GovCon Bid Desk Operator**: a hired AI worker that finds contracts worth bidding, tells the team whether to pursue, and creates the action plan.
 > - Compliance and requirement extraction are internal mechanisms, not the sales headline.
-> - Hermes is the brain/memory/orchestrator. OpenClaw may be used as a channel/tool substrate, but customers experience one agent.
+> - Michaela is the product/workloop and owns orchestration. Hermes is the runtime shell/tool harness. Anthropic/OpenRouter are model transport choices only. OpenClaw may be used as a channel/tool substrate, but customers experience one agent.
 >
 > **Changelog v1.2.1 → v1.2.2**
 > - Adopted **hermes-agent** (Nous Research, https://github.com/nousresearch/hermes-agent) as the agent runtime. Hermes provides the planner loop, tool/skill registry, long-term memory, multi-backend execution (local / Docker / SSH / Modal / Vercel Sandbox), and is model-agnostic. We register domain skills (`parse_pdf`, `extract_requirements`, `score_fit`, `detect_risks`, `generate_action_package`, `search_sam`, `load_seeded_opportunities`) inside Hermes; FastAPI becomes a thin proxy with a trace-event bridge that preserves the CONTRACTS.md §3 SSE shape so the frontend never has to know Hermes exists.
 > - §4.5 updated: planner loop, tool registry, and budgeting now reference Hermes' built-ins. Our additions are the domain skills, the §11.1 enforcement (which lives inside `score_fit` and `generate_action_package`), and the trace bridge. The decision-policy and error-recovery semantics are unchanged contractually.
-> - §7.3 updated: OpenClaw is no longer a peer agent brain. Hermes owns planning, memory, and orchestration. OpenClaw may still serve as a bounded channel/tool substrate for browser-bound work, web chat, WhatsApp, or Slack when that accelerates the V1 bid-desk worker.
+> - §7.3 updated: OpenClaw is no longer a peer agent brain. Michaela owns the product workloop; Hermes provides runtime memory, skills/tools, provider config, and delegation support. OpenClaw may still serve as a bounded channel/tool substrate for browser-bound work, web chat, WhatsApp, or Slack when that accelerates the V1 bid-desk worker.
 > - Model defaults remain Claude Sonnet 4.6 (synthesis) and Haiku 4.5 (cheap passes), configured via `hermes model`. Hermes' model-agnosticism means we can swap providers later without code changes.
-> - See `tasks/HERMES.md` for the full integration spec, skill manifest, trace-bridge sketch, and open questions.
+> - See `HERMES.md` (repo root) and `tasks/AGENT_ARCHITECTURE.md` for the integration spec, agent bench, toolset map, and §11.1 enforcement chain.
 >
 > **Changelog v1.2 → v1.2.1**
 > - Added §7.6 Deployment Target — locks in Vultr VX1 (16 vCPU / 64 GB RAM / 960 GB NVMe / Ubuntu 24.04 LTS) as the single-box MVP host with a concrete service allocation table, sizing notes, and operational hygiene checklist.
@@ -164,18 +173,25 @@ Each tool has a JSON-schema input and output, validated before invocation and af
 
 | Tool | Owner | Purpose |
 |------|-------|---------|
-| `search_sam_opportunities` | FastAPI | Query SAM.gov v2 search API by keywords/NAICS/set-aside/place-of-performance |
-| `load_seeded_opportunities` | FastAPI | Load hand-curated fixture set (demo-stable fallback, see §5.4) |
-| `fetch_attachment` | OpenClaw | Download a solicitation attachment (handles portals that require session/cookies) |
-| `verify_source_page` | OpenClaw | Visit a SAM.gov opportunity page to confirm metadata that the API returned partial |
-| `parse_pdf` | FastAPI | Extract page-level text + metadata from a PDF (returns chunks with page numbers) |
-| `extract_requirements` | AI layer | Run requirement-extraction prompt over parsed chunks; returns structured requirements with evidence |
-| `score_fit` | AI layer + FastAPI | Apply §5.7 rubric against company profile; returns score + breakdown + blockers |
-| `detect_risks` | AI layer | Apply §5.8 categories; returns risk flags with severity |
-| `generate_action_package` | AI layer | Synthesize §5.11 package from extracted requirements + score + risks |
-| `request_human_review` | FastAPI | Halt and surface a question to the user when confidence is below threshold |
+| `parse_goal` | Michaela / FastAPI toolset | NL goal → structured search criteria |
+| `search_sam_opportunities` | Scot / FastAPI toolset | Query SAM.gov v2 search API by keywords/NAICS/set-aside/place-of-performance |
+| `load_seeded_opportunities` | Scot / FastAPI toolset | Load hand-curated fixture set (demo-stable fallback, see §5.4) |
+| `rank_opportunities` | Lenny / FastAPI toolset | Deterministically sort candidates by fit signals |
+| `fetch_attachment` | Happer / FastAPI or Hermes HTTP toolset | Download solicitation attachments |
+| `verify_source_page` | Happer / Hermes browser or HTTP toolset | Confirm source metadata when API data is partial |
+| `parse_pdf` | Happer / FastAPI toolset | Extract page-level text + metadata from a PDF |
+| `extract_requirements` | Gabby / AI + FastAPI toolset | Run requirement extraction over parsed chunks; returns structured requirements with evidence |
+| `score_fit` | Lenny + Gabby / AI + FastAPI toolset | Apply §5.7 rubric and §11.1 hard eligibility short-circuit |
+| `detect_risks` | Gabby / AI + FastAPI toolset | Apply §5.8 categories; returns risk flags with severity |
+| `query_usaspending` | Lance / planned toolset | Find incumbents, prior awards, recompete history |
+| `generate_action_package` | Roy / AI + FastAPI toolset | Synthesize §5.11 package from extracted requirements + score + risks |
+| `request_human_review` | Michaela / FastAPI | Halt and surface a question to the user when confidence is below threshold |
 
-OpenClaw owns browser-bound tools because portal interaction, cookie handling, and source-page verification benefit from its skills/automation runtime. FastAPI owns deterministic local tools (PDF parsing, scoring math, schema validation) because they need to be fast and testable. The AI layer owns LLM-backed tools and runs all structured outputs through schema validation before returning to the planner.
+Michaela owns the product workloop and board-level orchestration. Hermes
+provides runtime memory, skill/tool discovery, provider configuration, and
+delegation support. FastAPI owns deterministic domain tools, schema validation,
+persistence, and the API surface. OpenClaw is optional channel/browser
+substrate only; it is not a peer agent brain.
 
 ### Decision policy
 
@@ -191,7 +207,7 @@ OpenClaw owns browser-bound tools because portal interaction, cookie handling, a
 |---------|----------|
 | SAM.gov 429 / 5xx | Fall back to cached → seeded; mark step `degraded` in timeline |
 | PDF unparseable (image-only, encrypted) | Mark document `unparseable`; surface to user; continue with available text |
-| Attachment fetch fails | Retry once with backoff via OpenClaw; then mark missing and continue |
+| Attachment fetch fails | Retry once with backoff via Happer; then mark missing and continue |
 | LLM returns invalid JSON | Retry with stricter prompt + schema reminder; on second failure, mark step `failed` and continue with degraded output |
 | Extraction confidence collapse (all `low`/`unknown`) | Re-chunk smaller; if still bad, escalate to `request_human_review` |
 | Planner exceeds step / time / cost budget | Summarize progress, emit partial action package, flag incompleteness in the timeline |
@@ -751,30 +767,32 @@ Backend responsibilities:
 
 ## 7.3 Agent / Automation Layer
 
-Recommended:
+Chosen:
 
 ```txt
-OpenClaw
-Playwright
+Michaela system on Hermes runtime
+Project-local .hermes bench: Michaela, Scot, Lenny, Gabby, Lance, Happer, Roy
+Optional browser/channel substrate when needed
 ```
 
-OpenClaw (openclaw.ai) is an open-source local AI assistant with a skills/tools runtime, browser control, and bounded shell/file access. We use it as the execution layer for browser-bound agent tools; FastAPI handles deterministic local tools (PDF parsing, scoring, schema validation, persistence).
+Michaela owns the board and product workloop. Hermes is the runtime shell that
+loads project-local context, skills, memory, provider config, and worker
+delegation. The project-local `.hermes/` folder defines the seven named agents
+and their SKILL.md procedures. FastAPI owns deterministic domain tools, schema
+validation, persistence, and the public API surface.
 
-OpenClaw responsibilities:
+Bench responsibilities:
 
-* Controlled browser/tool execution for the tools registered in §4.5
-* Opportunity page inspection when SAM.gov API metadata is incomplete
-* Attachment retrieval, including from portals that need session/cookies
-* Source page verification (confirm a deadline or set-aside on the live page)
-* Tool action logging back to the agent run trace
+* Michaela: orchestration, priority setting, final user-facing answer
+* Scot: SAM.gov discovery / seeded fallback
+* Lenny: fit ranking and pursue/monitor/skip decision support
+* Gabby: eligibility blocker checks and §11.1 hard reject gate
+* Lance: USASpending / incumbent / award-history intelligence
+* Happer: repeatable execution, attachment fetches, PDF parsing
+* Roy: bid memo, capability statement, CO email, action package
 
-FastAPI responsibilities (delegated from §7.2 for clarity):
-
-* Agent run state, tool registry, planner orchestration
-* Deterministic tools: `parse_pdf`, `score_fit` math, schema validators
-* Persistence and API surface
-
-The backend owns state. OpenClaw performs bounded tool actions and reports results back into the agent trace.
+OpenClaw may still be used as a bounded channel/browser substrate for portal
+work, web chat, WhatsApp, or Slack, but it is not a second agent brain.
 
 ---
 
@@ -803,15 +821,18 @@ All structured model outputs must be validated before display.
 
 ## 7.5 Data Storage
 
-Chosen (v1.2.3):
+Chosen (v1.2.4):
 
 ```txt
 Supabase Postgres        — structured data (PRD §8 tables)
 Supabase Storage         — raw and parsed solicitation files
 Redis on VX1             — SSE pub/sub bridge for the agent run trace
+Supabase Auth            — email auth / JWT identity for user routes
 ```
 
-The FastAPI app connects to Supabase Postgres over SSL using the **direct connection URL** (port 5432, not the pgBouncer pooler at 6543) — asyncpg uses prepared statements, which transaction-mode pooling breaks. A few uvicorn workers don't approach Supabase's direct-connection cap.
+The FastAPI app uses `supabase-py`'s async client against Supabase PostgREST
+with the server-only service role key. SQLAlchemy, asyncpg, Alembic, and
+`DATABASE_URL` are not part of v1.2.4 runtime or migrations.
 
 Storage layout:
 
@@ -843,7 +864,7 @@ VX1 hosts the application stack natively; **Postgres and object storage are exte
 | Next.js (built, served by Node or behind nginx) | Frontend | Could also be deployed to Vercel; keep both options open |
 | FastAPI (uvicorn + gunicorn workers, under systemd) | Backend / agent orchestration | 4–8 workers; scale with vCPU |
 | Redis (apt-installed, native systemd unit) | SSE pub/sub bridge for the agent run trace | Single instance, persistence on |
-| Hermes runtime (subprocess of FastAPI) | Browser-bound agent tools (§7.3) | Hermes built-in browser/HTTP tools replace OpenClaw |
+| Hermes runtime (subprocess of FastAPI) | Michaela bench orchestration (§7.3) | Planner, memory, delegation, skill procedures |
 | nginx | TLS termination + reverse proxy | Let's Encrypt via certbot |
 | systemd | Service supervision | One unit per long-running process (`govcapture-api`, `redis-server`, `nginx`); no Docker, no compose |
 | **Supabase Postgres** (external) | Structured data (§8) | Connected over SSL; managed backups; no on-box pg install |
@@ -987,6 +1008,7 @@ created_at
 
 ```txt
 id
+profile_id
 goal
 company_profile_id
 status
@@ -1007,6 +1029,8 @@ completed_at
 ```txt
 POST /company-profiles
 GET  /company-profiles/:id
+GET  /profiles/me
+POST /profiles/me
 POST /agent-runs
 GET  /agent-runs/:id
 GET  /agent-runs/:id/opportunities
@@ -1015,9 +1039,15 @@ GET  /opportunities/:id/requirements
 GET  /opportunities/:id/fit-score
 GET  /opportunities/:id/risks
 GET  /action-packages/:id
+POST /waitlist
 ```
 
 For MVP speed, the company profile may also be included directly when creating an agent run.
+
+Public endpoints: `GET /healthz`, `POST /waitlist`, landing page.
+Authenticated endpoints require a Supabase bearer JWT. Internal writeback
+POSTs for requirements, fit scores, risks, and action packages require
+`X-Internal-API-Key` so public users cannot forge analysis artifacts.
 
 ---
 
@@ -1501,9 +1531,15 @@ The three §5.4 demo fixtures (strong-pursue / maybe / reject) plus the adversar
 
 ## Run
 
-* `make eval` runs the suite locally against the seeded fixtures with no live SAM.gov calls.
-* Output: pass/fail summary plus a JSON diff of any drift from golden.
-* Run before any prompt or tool change ships. Run as a pre-demo smoke test.
+* Current repo validation: `make fixtures-validate` plus the seeded-skill tests
+  (`test_load_seeded`, `test_score_fit`, `test_detect_risks`,
+  `test_generate_action_package`) run locally against seeded fixtures with no
+  live SAM.gov calls.
+* Planned full eval harness: pass/fail summary plus JSON diff of any drift from
+  golden outputs.
+* Run the current validation before any prompt or tool change ships. Treat the
+  full golden diff harness as a launch-hardening task, not something already
+  present in the repo.
 
 ## Adversarial cases (stretch)
 

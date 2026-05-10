@@ -42,5 +42,10 @@ Thumbs.db
 # Supabase CLI — linked-project cache (connection hints; do not commit)
 supabase/.temp/
 
+# Claude Code worktrees (each is its own embedded repo on a feature branch;
+# never commit them into main — they would land as broken submodule pointers
+# at best, or duplicate the entire tree at worst).
+.claude/worktrees/
+
 # NOTE: PDF fixtures live under /fixtures/<slug>/attachments/*.pdf and are CONTENT.
 # Do NOT add a global *.pdf ignore.

@@ -21,6 +21,7 @@
   ],
   "properties": {
     "id": { "type": "string", "format": "uuid" },
+    "owner_profile_id": { "type": ["string", "null"], "format": "uuid" },
     "name": { "type": "string", "minLength": 1, "maxLength": 255 },
     "website": { "type": ["string", "null"], "maxLength": 512 },
     "description": { "type": ["string", "null"] },

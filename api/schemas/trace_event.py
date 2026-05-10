@@ -61,8 +61,10 @@ class ToolCalled(BaseModel):
     run_id: UUID
     step_id: UUID
     tool: Literal[
+        'parse_goal',
         'search_sam_opportunities',
         'load_seeded_opportunities',
+        'rank_opportunities',
         'fetch_attachment',
         'verify_source_page',
         'parse_pdf',

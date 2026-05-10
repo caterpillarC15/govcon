@@ -81,15 +81,16 @@ systemctl daemon-reload
 cat <<EOF
 
 ================================================================
-Bootstrap complete (v1.2.3 — Supabase Postgres + Storage, no on-box pg).
+Bootstrap complete (v1.2.4 — Supabase Postgres/Storage/Auth, no on-box pg).
 
 Next (see infra/RUNBOOK.md for full detail):
 
   1. Create a Supabase project at https://supabase.com and capture:
-       - Direct Connection URL (Settings → Database, port 5432)
        - Service Role key (Settings → API; server-only, bypasses RLS)
        - Anon key (Settings → API; safe for the web client)
-     Create a Storage bucket named 'govcapture-attachments' (private).
+     Create a Storage bucket named 'govcapture-attachments' (private), then:
+       supabase link --project-ref <ref>
+       supabase db push
 
   2. Clone the repo into ${REPO_DIR}:
        sudo -u ${APP_USER} git clone https://github.com/caterpillarC15/govcon.git ${REPO_DIR}
@@ -97,11 +98,11 @@ Next (see infra/RUNBOOK.md for full detail):
   3. Drop a production .env into ${REPO_DIR}/.env with the Supabase values:
        sudo -u ${APP_USER} install -m 0600 /dev/null ${REPO_DIR}/.env
        sudo -u ${APP_USER} editor ${REPO_DIR}/.env
-       # Use the Direct Connection URL (port 5432), NOT the pooler (6543).
+       # Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+       # SUPABASE_ANON_KEY, INTERNAL_API_KEY, REDIS_URL, ANTHROPIC_API_KEY.
 
-  4. Install deps + run migrations against Supabase + start the API:
+  4. Install deps + start the API:
        sudo -u ${APP_USER} bash -lc 'cd ${REPO_DIR} && \$HOME/.local/bin/uv sync'
-       sudo -u ${APP_USER} bash -lc 'cd ${REPO_DIR} && \$HOME/.local/bin/uv run alembic -c api/alembic.ini upgrade head'
        sudo systemctl enable --now govcapture-api.service
 
   5. Wire nginx + TLS (after DNS points to this box):

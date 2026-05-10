@@ -1,34 +1,23 @@
-.PHONY: dev services-up services-down logs schemas migrate test typecheck lint format help
+.PHONY: dev services-up services-down schemas db-push db-new db-pull migrate fixtures-validate test typecheck lint format help
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?##"}; {printf "  %-18s %s\n", $$1, $$2}'
 
-dev: ## Run the FastAPI app with --reload (assumes services up)
+dev: ## Run the FastAPI app with --reload (assumes Redis up + Supabase configured)
 	uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
-services-up: ## Start Redis (PRD v1.2.3 — Postgres is Supabase). Pass PG=1 to also start a local Postgres dev fallback.
+services-up: ## Start Redis. Postgres lives in Supabase — managed externally.
 	@if command -v brew >/dev/null 2>&1; then \
 	  brew services start redis; \
-	  [ "$(PG)" = "1" ] && brew services start postgresql@16 || true; \
 	else \
 	  sudo systemctl start redis-server; \
-	  [ "$(PG)" = "1" ] && sudo systemctl start postgresql || true; \
 	fi
 
-services-down: ## Stop Redis (and local Postgres dev fallback if started with PG=1).
+services-down: ## Stop Redis.
 	@if command -v brew >/dev/null 2>&1; then \
 	  brew services stop redis; \
-	  brew services stop postgresql@16 2>/dev/null || true; \
 	else \
 	  sudo systemctl stop redis-server; \
-	  sudo systemctl stop postgresql 2>/dev/null || true; \
-	fi
-
-logs: ## Tail local Postgres logs (only useful when running PG=1 fallback; Supabase logs live in the dashboard).
-	@if command -v brew >/dev/null 2>&1; then \
-	  tail -F "$$(brew --prefix)/var/log/postgresql@16.log"; \
-	else \
-	  journalctl -u postgresql -f; \
 	fi
 
 schemas: ## Regenerate Pydantic models from /schemas/*.schema.json (and TS if /web exists)
@@ -56,7 +45,7 @@ schemas: ## Regenerate Pydantic models from /schemas/*.schema.json (and TS if /w
 	@touch api/schemas/__init__.py
 	@echo "✓ Pydantic models generated in api/schemas/"
 	@if [ -d web ]; then \
-	  echo "⚠ TS codegen for /web is Dev 2's wire-up — see CONTRACTS.md §2"; \
+	  echo "⚠ TS schema codegen for /web is not currently wired or consumed — see CONTRACTS.md §2"; \
 	else \
 	  echo "⚠ /web/ not present — skipping TS codegen (Dev 2 wires when /web exists)"; \
 	fi
@@ -68,14 +57,16 @@ schema = json.load(open('schemas/fixture-manifest.schema.json')); \
   for f in sorted(glob.glob('fixtures/*/manifest.json')) \
   if '/_template/' not in f ] or print('(no fixtures yet)')"
 
-migrate: ## Apply Alembic migrations
-	cd api && uv run alembic upgrade head
+db-push: ## Apply Supabase SQL migrations to the linked Supabase project
+	supabase db push
 
-migrate-down: ## Roll back one Alembic migration
-	cd api && uv run alembic downgrade -1
+db-new: ## Create a Supabase SQL migration. Usage: make db-new NAME=add_table
+	supabase migration new "$(NAME)"
 
-migration: ## Create a new Alembic revision (autogenerate). Usage: make migration MSG="describe change"
-	cd api && uv run alembic revision --autogenerate -m "$(MSG)"
+db-pull: ## Pull remote Supabase schema into supabase/migrations
+	supabase db pull
+
+migrate: db-push ## Backward-compatible alias for Supabase migrations
 
 test: ## Run the test suite
 	uv run pytest -v api/tests

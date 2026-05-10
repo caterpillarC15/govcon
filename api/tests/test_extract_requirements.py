@@ -8,7 +8,6 @@ The LLM is replaced with a fake that returns canned JSON. Tests verify:
 """
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 from pydantic import BaseModel

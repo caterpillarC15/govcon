@@ -29,6 +29,7 @@ class CompanyProfile(BaseModel):
         extra='forbid',
     )
     id: UUID
+    owner_profile_id: UUID | None = None
     name: str = Field(..., max_length=255, min_length=1)
     website: str | None = Field(None, max_length=512)
     description: str | None = None

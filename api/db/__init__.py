@@ -1,44 +1,40 @@
-from typing import Any
-from urllib.parse import urlparse
+"""Supabase async client factory.
 
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
+Tables are managed by `supabase/migrations/*.sql`. The FastAPI service talks to
+them through Supabase PostgREST with a server-only service-role key.
+"""
+from __future__ import annotations
+
+from supabase import AsyncClient, acreate_client
 
 from api.config import settings
 
-
-class Base(DeclarativeBase):
-    pass
+_client: AsyncClient | None = None
 
 
-def _engine_kwargs(url: str) -> dict[str, Any]:
-    """SQLAlchemy engine config that honors Supabase's SSL requirement transparently.
+async def get_client() -> AsyncClient:
+    """Return a process-wide singleton AsyncClient.
 
-    Supabase Postgres requires SSL (rejects plaintext). Local Postgres on
-    `localhost` doesn't have a cert and would fail with `ssl=require`. We detect
-    by hostname and turn SSL on for everything that isn't a loopback address.
+    SUPABASE_SERVICE_ROLE_KEY bypasses RLS — server-only. The browser must
+    use the anon key (NEXT_PUBLIC_*).
     """
-    kwargs: dict[str, Any] = {"echo": False, "pool_pre_ping": True}
-    host = (urlparse(url).hostname or "").lower()
-    if host not in ("localhost", "127.0.0.1", "::1", ""):
-        kwargs["connect_args"] = {"ssl": "require"}
-    return kwargs
+    global _client
+    if _client is None:
+        if not settings.supabase_url or not settings.supabase_service_role_key:
+            raise RuntimeError(
+                "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set"
+            )
+        _client = await acreate_client(
+            settings.supabase_url,
+            settings.supabase_service_role_key,
+        )
+    return _client
 
 
-engine: AsyncEngine = create_async_engine(
-    settings.database_url, **_engine_kwargs(settings.database_url)
-)
-SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+async def close_client() -> None:
+    """Best-effort shutdown hook — supabase-py manages the underlying httpx pool."""
+    global _client
+    _client = None
 
 
-async def init_db() -> None:
-    async with engine.connect() as conn:
-        await conn.execute(text("select 1"))
-
-
-async def close_db() -> None:
-    await engine.dispose()
-
-
-__all__ = ["Base", "engine", "SessionLocal", "init_db", "close_db"]
+__all__ = ["AsyncClient", "get_client", "close_client"]

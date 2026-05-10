@@ -1,7 +1,7 @@
 [Unit]
 Description=GovCapture FastAPI (gunicorn + UvicornWorker)
 Documentation=https://github.com/caterpillarC15/govcon
-# v1.2.3: Postgres is now Supabase (off-box), so no postgresql.service dependency.
+# v1.2.4: Postgres/Auth/Storage are Supabase-hosted, so no postgresql.service dependency.
 After=network-online.target redis-server.service
 Wants=network-online.target redis-server.service
 
@@ -11,6 +11,7 @@ User=govcapture
 Group=govcapture
 WorkingDirectory=/opt/govcapture
 EnvironmentFile=/opt/govcapture/.env
+Environment=HERMES_HOME=/opt/govcapture/.hermes
 # uv is installed under ~govcapture/.local/bin (see bootstrap.sh).
 Environment=PATH=/home/govcapture/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -36,7 +37,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
-# v1.2.3: no /var/lib/govcapture (PDFs and parsed text live in Supabase Storage).
+# v1.2.4: no /var/lib/govcapture (PDFs and parsed text live in Supabase Storage).
 ReadWritePaths=/opt/govcapture
 ProtectKernelTunables=true
 ProtectKernelModules=true

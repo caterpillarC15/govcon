@@ -1,30 +1,66 @@
 from __future__ import annotations
 
+import builtins
 import uuid
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from api.db.models import CompanyProfile
+from supabase import AsyncClient
 
 
 class CompanyProfileRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self.session = session
+    def __init__(self, client: AsyncClient) -> None:
+        self.client = client
 
-    async def create(self, payload: dict[str, Any]) -> CompanyProfile:
-        row = CompanyProfile(**payload)
-        self.session.add(row)
-        await self.session.commit()
-        await self.session.refresh(row)
-        return row
+    async def create(self, payload: dict[str, Any]) -> dict[str, Any]:
+        resp = await self.client.table("company_profiles").insert(payload).execute()
+        return cast(dict[str, Any], resp.data[0])
 
-    async def get(self, profile_id: uuid.UUID) -> CompanyProfile | None:
-        return await self.session.get(CompanyProfile, profile_id)
-
-    async def list(self, limit: int = 100) -> list[CompanyProfile]:
-        result = await self.session.execute(
-            select(CompanyProfile).order_by(CompanyProfile.created_at.desc()).limit(limit)
+    async def get(self, profile_id: uuid.UUID) -> dict[str, Any] | None:
+        resp = await (
+            self.client.table("company_profiles")
+            .select("*")
+            .eq("id", str(profile_id))
+            .maybe_single()
+            .execute()
         )
-        return list(result.scalars().all())
+        return cast("dict[str, Any] | None", resp.data) if resp else None
+
+    async def get_owned(
+        self,
+        profile_id: uuid.UUID,
+        owner_profile_id: uuid.UUID,
+    ) -> dict[str, Any] | None:
+        resp = await (
+            self.client.table("company_profiles")
+            .select("*")
+            .eq("id", str(profile_id))
+            .eq("owner_profile_id", str(owner_profile_id))
+            .maybe_single()
+            .execute()
+        )
+        return cast("dict[str, Any] | None", resp.data) if resp else None
+
+    async def list(self, limit: int = 100) -> builtins.list[dict[str, Any]]:
+        resp = await (
+            self.client.table("company_profiles")
+            .select("*")
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return cast("builtins.list[dict[str, Any]]", resp.data or [])
+
+    async def list_owned(
+        self,
+        owner_profile_id: uuid.UUID,
+        limit: int = 100,
+    ) -> builtins.list[dict[str, Any]]:
+        resp = await (
+            self.client.table("company_profiles")
+            .select("*")
+            .eq("owner_profile_id", str(owner_profile_id))
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return cast("builtins.list[dict[str, Any]]", resp.data or [])

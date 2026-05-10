@@ -9,12 +9,12 @@ Canonical hackathon demo. Source: PRD §13.1, expanded with practical stage dire
 ## Pre-stage checklist (T-30 min)
 
 - [ ] VX1 deployed, `https://<demo-host>/healthz` returns 200.
-- [ ] `make eval` passes locally and on VX1.
-- [ ] Demo company profile (B13) seeded in the prod DB.
-- [ ] All four fixtures (B9–B12) loaded; `load_seeded_opportunities` returns the 3 demo fixtures.
-- [ ] Backup demo video (`/web/public/demo/backup-run.mp4`) exists and plays.
-- [ ] Browser tab open to the deployed URL.
-- [ ] Profile entry page pre-filled with B13's data (or a saved-profile flow tested).
+- [ ] `make fixtures-validate` and the backend skill/API tests pass locally and on VX1.
+- [ ] Demo company profile seeded through Supabase/API if the run UI is being shown.
+- [ ] All four fixtures loaded; `load_seeded_opportunities` returns strong-pursue, maybe, reject, and adversarial-image-pdf.
+- [ ] Backup demo video exists and plays, if a video fallback has been produced.
+- [ ] Browser tab open to the deployed landing or authenticated `/web` shell.
+- [ ] Real run UI is only shown after the seeded runner/bridge has been verified against prod Supabase.
 - [ ] Phone WiFi tethered as a backup network.
 - [ ] LLM cost dashboard checked; budget remaining for ~10 demo runs.
 - [ ] `DEMO_USE_SEEDED_ONLY=true` set on VX1 to force seeded path (no SAM live calls during stage).
@@ -129,7 +129,7 @@ Should never happen with seeded fixtures (they're cheap). If it does, the planne
 - [ ] Run the full 3-minute script end-to-end on stage hardware.
 - [ ] Time it. If over 3:30, cut the talking-track in 1:00–2:00 segment.
 - [ ] Have the second dev sit in the audience and identify any UI element that doesn't read clearly from 30 feet (font size, contrast).
-- [ ] Try one intentional failure (kill OpenClaw mid-run) to confirm the recovery narrative works.
+- [ ] Try one intentional failure (kill the Hermes/FastAPI bridge mid-run) to confirm the recovery narrative works once the bridge exists.
 - [ ] Confirm backup video plays from a fresh browser tab (no cached-only).
 - [ ] Charge the laptop. Plug it in. Don't trust battery.
 - [ ] HDMI / display adapter tested on the actual stage projector if possible.
@@ -149,6 +149,6 @@ Should never happen with seeded fixtures (they're cheap). If it does, the planne
 
 - **"How does it handle edge cases?"** → Show the §19 eval harness output. Mention the adversarial image-only PDF fixture and the recovery path.
 - **"What's the cost?"** → "Under 50 cents per run with the current model mix — Sonnet for synthesis, Haiku for cheap passes."
-- **"Where does the data live?"** → "Single Vultr box, Postgres, no third-party data sharing beyond the LLM API call. PRD §18 covers it."
+- **"Where does the data live?"** → "Supabase hosts Postgres, Auth, and Storage. The Vultr box hosts FastAPI, Hermes, Redis, and nginx. PRD §18 covers handling rules."
 - **"What about Texas data?"** → "Optional layer. We can pull state and local procurement from `data.austintexas.gov` and friends as a stretch. Federal SAM.gov is the v1 focus."
 - **"Will this submit proposals?"** → "No. Hard line. Human approval is required before any external action. PRD §5.13."

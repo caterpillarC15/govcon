@@ -1,0 +1,30 @@
+{
+  "slug": "maybe",
+  "expected_decision_band": "maybe",
+  "expected_critical_blockers": [],
+  "expected_partner_suggestion": true,
+  "opportunity": {
+    "id": "a1b2c3d4-0000-4000-8000-000000000002",
+    "slug": "va-siem-2026-118",
+    "title": "Enterprise SIEM Deployment and Managed Detection Services",
+    "agency": "Department of Veterans Affairs",
+    "solicitation_number": "VA-SIEM-2026-118",
+    "source_url": "https://sam.gov/opp/example-maybe",
+    "due_date": "2026-07-30",
+    "naics": "541512",
+    "set_aside": "Total Small Business Set-Aside",
+    "place_of_performance": "Multiple VA Medical Centers (CONUS)",
+    "description": "Deployment and 24/7 managed operation of enterprise SIEM across 170+ VA medical facilities. Requires demonstrated past performance at scale ($25M+ similar engagements).",
+    "opportunity_status": "open",
+    "resource_links": [],
+    "attachments": [
+      { "filename": "RFP-002.pdf" }
+    ],
+    "raw_payload": {},
+    "created_at": "2026-04-15T00:00:00Z",
+    "updated_at": "2026-04-15T00:00:00Z"
+  },
+  "attachments": [
+    { "filename": "RFP-002.pdf", "kind": "solicitation" }
+  ]
+}

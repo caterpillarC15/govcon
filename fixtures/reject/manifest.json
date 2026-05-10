@@ -1,0 +1,32 @@
+{
+  "slug": "reject",
+  "expected_decision_band": "reject",
+  "expected_critical_blockers": [
+    "Requires Top Secret clearance — company has no clearance"
+  ],
+  "expected_partner_suggestion": false,
+  "opportunity": {
+    "id": "a1b2c3d4-0000-4000-8000-000000000003",
+    "slug": "dod-cndo-2026-044",
+    "title": "Classified Network Defense Operations Support",
+    "agency": "Department of Defense",
+    "solicitation_number": "DOD-CNDO-2026-044",
+    "source_url": "https://sam.gov/opp/example-reject",
+    "due_date": "2026-08-01",
+    "naics": "541512",
+    "set_aside": "8(a) Set-Aside",
+    "place_of_performance": "Fort Meade, MD (SCIF)",
+    "description": "Network defense operations within classified DOD enclaves. Requires cleared personnel and 8(a) certification.",
+    "opportunity_status": "open",
+    "resource_links": [],
+    "attachments": [
+      { "filename": "RFP-003.pdf" }
+    ],
+    "raw_payload": {},
+    "created_at": "2026-05-01T00:00:00Z",
+    "updated_at": "2026-05-01T00:00:00Z"
+  },
+  "attachments": [
+    { "filename": "RFP-003.pdf", "kind": "solicitation" }
+  ]
+}

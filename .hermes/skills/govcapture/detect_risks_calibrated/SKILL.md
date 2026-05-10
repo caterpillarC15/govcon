@@ -1,25 +1,25 @@
 ---
 name: detect_risks_calibrated
-description: Risk Analyst procedure for identifying risks across the 12 PRD §5.8 categories with calibrated severity. Cross-checks Compliance Officer blockers; caps output at 8 actionable risks. Skipped for reject decisions.
+description: Gabby procedure for identifying risks across the 12 PRD §5.8 categories with calibrated severity. Cross-checks eligibility blockers; caps output at 8 actionable risks. Skipped for reject decisions.
 version: 1.0.0
 metadata:
   hermes:
-    tags: [govcapture, risk, risk-analyst]
+    tags: [govcapture, risk, gabby]
     category: gov
     requires_toolsets: [gov_risks]
 ---
 
 # Detect Risks (Calibrated Severity)
 
-The Risk Analyst's only procedure. Take profile + requirements + fit_score → produce calibrated `RiskFlag[]`.
+Gabby's risk-calibration procedure. Take profile + requirements + fit_score → produce calibrated `RiskFlag[]`.
 
-**Skipped for reject decisions** by the Capture Analyst's branching logic (see `analyze_opportunity_e2e` SKILL §4). You only run when decision ∈ {strong_pursue, pursue, maybe}.
+**Skipped for reject decisions** by Michaela's branching logic (see `analyze_opportunity_e2e` SKILL §4). You only run when decision ∈ {strong_pursue, pursue, maybe}.
 
 ## When to Use
 
-- You are the Risk Analyst (leaf agent, depth 2).
+- You are Gabby.
 - You've been delegated with `(profile, requirements, fit_score)` context.
-- The opportunity is NOT a reject — the Capture Analyst already filtered.
+- The opportunity is NOT a reject — Michaela already filtered.
 
 ## Procedure
 
@@ -29,7 +29,7 @@ The Risk Analyst's only procedure. Take profile + requirements + fit_score → p
    ```
    Returns up to 8 `RiskFlag` items. The skill enforces the cap; if the LLM produced more, the wrapper truncates by severity priority.
 
-2. **Cross-check Compliance Officer's blockers (the wrapper handles this; verify):**
+2. **Cross-check Gabby's blockers (the wrapper handles this; verify):**
    - For each entry in `fit_score.blockers[]`, ensure a corresponding `RiskFlag` with `severity == "critical_blocker"` exists.
    - If the LLM missed one, the wrapper deterministically appends it. Verify post-call.
 
@@ -82,16 +82,16 @@ Use these definitions, not your gut:
 
 - **Over-flagging.** Models tend to surface every conceivable risk. The cap-at-8 rule and post-truncation handle this, but you should produce relevant risks, not exhaustive ones.
 - **Severity inflation.** "Major" for things that are "moderate." Use the calibration table.
-- **Forgetting the cross-check.** If a Compliance Officer blocker doesn't appear here as a critical_blocker risk, the wrapper adds it. Don't rely on the wrapper as a crutch — produce them yourself.
+- **Forgetting the cross-check.** If a Gabby blocker doesn't appear here as a critical_blocker risk, the wrapper adds it. Don't rely on the wrapper as a crutch — produce them yourself.
 - **Mitigation hallucination.** Mitigations like "obtain SCIF facility" are obvious; don't invent specific government processes.
-- **Running on a reject opportunity.** You shouldn't be running. If your context says decision == reject, return `[]` with a log message — the Capture Analyst should not have delegated to you.
+- **Running on a reject opportunity.** You shouldn't be running. If your context says decision == reject, return `[]` with a log message — Michaela should not have delegated risk calibration to you.
 
 ## Verification
 
 - Output is `RiskFlag[]` with at most 8 items.
 - For strong-pursue fixture: 0 critical_blockers; possibly some moderate/minor.
 - For maybe-needs-partner fixture: 1+ major risk for past-performance weakness; 0 critical.
-- For reject fixture (if you somehow run on it): 1+ critical_blocker matching the eligibility issue. But the Capture Analyst SHOULD NOT have delegated; flag this in standup if it happens.
+- For reject fixture (if you somehow run on it): 1+ critical_blocker matching the eligibility issue. But Michaela SHOULD NOT have delegated; flag this in standup if it happens.
 - Every critical_blocker has `requires_human_review: true`.
 - Every risk has a non-empty `mitigation` field.
-- Every Compliance Officer blocker appears as a critical_blocker risk in your output.
+- Every Gabby blocker appears as a critical_blocker risk in your output.

@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens — derived from tasks/dev2-frontend/DESIGN.md.
- * Light theme only (DESIGN.md is canonical: "No dark theme for v1.").
+ * Design tokens for the current one-page GovCapture landing direction.
+ * Light theme only for v1.
  * Liquid-glass material — translucent surfaces over a warm-paper
  * atmosphere with two soft light fields (warm + cool) so the glass
  * has something to refract.

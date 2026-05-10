@@ -47,7 +47,7 @@ Do not lead with "capture" or "compliance." Those are internal mechanisms. Lead 
 
 4. **Pick the workflow.**
    - For `find_opportunities`, use `discover_opportunities`, then delegate the top candidates to `analyze_opportunity_e2e`.
-   - For `analyze_solicitation`, ingest/fetch/parse the source, then delegate requirements and scoring to the Compliance Officer path.
+   - For `analyze_solicitation`, ingest/fetch/parse the source, then delegate requirements and scoring to Gabby.
    - For `build_bid_plan`, use the available fit score, risks, and requirements to call the proposal package path.
    - For `memory_update`, summarize the new company fact and store or request storage through the available memory mechanism.
 

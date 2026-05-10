@@ -245,13 +245,12 @@ If you change the company profile, re-verify all three fixtures still hit their 
 After authoring, run:
 
 ```bash
-make eval-fixture FIXTURE=strong-pursue
-make eval-fixture FIXTURE=maybe-needs-partner
-make eval-fixture FIXTURE=reject
-make eval-fixture FIXTURE=adversarial-image-pdf
-make eval  # runs all four
+make fixtures-validate
+uv run pytest -q api/tests/test_load_seeded.py api/tests/test_score_fit.py api/tests/test_detect_risks.py api/tests/test_generate_action_package.py
 ```
 
 All must pass before §13.1 demo rehearsal (S5).
 
-If a fixture fails: discuss in standup whether the issue is the fixture (B owns) or the prompt/tool (A owns). Track the diagnosis in `STANDUP.md` so we don't keep relitigating.
+If a fixture fails: document whether the issue is fixture content, prompt/tool
+behavior, or expected-output drift in `tasks/README.md` so it does not get
+relitigated.

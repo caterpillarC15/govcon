@@ -15,6 +15,7 @@
   ],
   "properties": {
     "id": { "type": "string", "format": "uuid" },
+    "profile_id": { "type": ["string", "null"], "format": "uuid" },
     "goal": { "type": "string", "minLength": 1 },
     "company_profile_id": { "type": ["string", "null"], "format": "uuid" },
     "status": {

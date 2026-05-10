@@ -30,6 +30,16 @@
       "maxLength": 128,
       "description": "SAM.gov notice id when ingested — canonical external key alongside raw_payload."
     },
+    "source": {
+      "type": "string",
+      "default": "sam.gov",
+      "description": "Origin of the row: sam.gov, manual, or seed."
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Direct mirror of the source active flag where available."
+    },
     "title": { "type": "string", "minLength": 1 },
     "agency": { "type": "string" },
     "solicitation_number": { "type": "string" },

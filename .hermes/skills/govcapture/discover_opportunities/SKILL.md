@@ -1,6 +1,6 @@
 ---
 name: discover_opportunities
-description: Capture Lead procedure for finding candidate federal opportunities. Parses goal into criteria, searches SAM.gov live, falls back to cached then seeded fixtures per PRD §5.4. Used exactly once per agent run.
+description: Scot procedure for finding candidate federal opportunities. Parses goal into criteria, searches SAM.gov live, falls back to cached then seeded fixtures per PRD §5.4. Used exactly once per agent run.
 version: 1.0.0
 metadata:
   hermes:
@@ -11,11 +11,11 @@ metadata:
 
 # Discover Opportunities
 
-Capture Lead procedure for finding and ranking candidate federal contracting opportunities.
+Scot's procedure for finding candidate federal contracting opportunities.
 
 ## When to Use
 
-- The Capture Lead has a parsed user profile and goal.
+- Scot has a parsed user profile and goal from Michaela.
 - You need to identify which opportunities exist that match the goal.
 - Use **once per agent run.** Do not re-search.
 

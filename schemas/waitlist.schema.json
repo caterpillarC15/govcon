@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.dev/schemas/waitlist.schema.json",
+  "title": "WaitlistSignup",
+  "description": "Public beta waitlist signup payload and persisted row.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["email"],
+  "properties": {
+    "email": { "type": "string", "minLength": 3, "maxLength": 320 },
+    "company": { "type": ["string", "null"], "maxLength": 255 },
+    "role": { "type": ["string", "null"], "maxLength": 120 },
+    "source": { "type": ["string", "null"], "maxLength": 80, "default": "landing" }
+  }
+}

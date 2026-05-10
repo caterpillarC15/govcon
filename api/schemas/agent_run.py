@@ -18,6 +18,7 @@ class AgentRun(BaseModel):
         extra='forbid',
     )
     id: UUID
+    profile_id: UUID | None = None
     goal: str = Field(..., min_length=1)
     company_profile_id: UUID | None = None
     status: Literal['pending', 'running', 'complete', 'partial', 'failed']

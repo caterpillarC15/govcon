@@ -41,6 +41,8 @@ class Opportunity(BaseModel):
         description='SAM.gov notice id when ingested — canonical external key alongside raw_payload.',
         max_length=128,
     )
+    source: str = Field("sam.gov", description="Origin of the row: sam.gov, manual, or seed.")
+    active: bool = True
     title: str = Field(..., min_length=1)
     agency: str
     solicitation_number: str

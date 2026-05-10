@@ -4,12 +4,13 @@ import asyncio
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
+from api.agent.hermes_runner import run_michaela
 from api.agent.replay import replay_example_run
+from api.auth import AuthenticatedUser, require_user
 from api.config import settings
 from api.deps import (
     get_agent_run_repo,
@@ -32,30 +33,39 @@ router = APIRouter(prefix="/agent-runs", tags=["agent-runs"])
 @router.post("", response_model=AgentRun, status_code=201)
 async def create_agent_run(
     payload: AgentRunCreate,
+    user: AuthenticatedUser = Depends(require_user),
     run_repo: AgentRunRepository = Depends(get_agent_run_repo),
     profile_repo: CompanyProfileRepository = Depends(get_company_profile_repo),
 ) -> AgentRun:
     profile_id: uuid.UUID | None = payload.profile_id
     if profile_id is None and payload.profile is not None:
-        created = await profile_repo.create(payload.profile.model_dump(exclude_none=True))
-        profile_id = created.id
+        data = payload.profile.model_dump(exclude_none=True)
+        data["owner_profile_id"] = str(user.id)
+        created = await profile_repo.create(data)
+        profile_id = uuid.UUID(created["id"])
     elif profile_id is not None:
-        existing = await profile_repo.get(profile_id)
+        existing = await profile_repo.get_owned(profile_id, user.id)
         if existing is None:
             raise HTTPException(400, f"profile_id {profile_id} not found")
 
-    row = await run_repo.create(goal=payload.goal, company_profile_id=profile_id)
+    row = await run_repo.create(
+        goal=payload.goal,
+        profile_id=user.id,
+        company_profile_id=profile_id,
+    )
 
-    # Kick off the pre-A9 replay so the SSE stream has events to forward.
-    # Replaced by Hermes bridge in A9.
-    asyncio.create_task(_kick_off_run(row.id))
+    asyncio.create_task(_kick_off_run(uuid.UUID(row["id"]), run_repo.client))
 
-    return AgentRun.model_validate(row, from_attributes=True)
+    return AgentRun.model_validate(row)
 
 
-async def _kick_off_run(run_id: uuid.UUID) -> None:
+async def _kick_off_run(run_id: uuid.UUID, client) -> None:
     try:
-        await replay_example_run(redis_client, run_id)
+        await asyncio.sleep(0.25)
+        if settings.demo_replay_trace:
+            await replay_example_run(redis_client, run_id)
+        else:
+            await run_michaela(redis=redis_client, client=client, run_id=run_id)
     except Exception:  # noqa: BLE001
         logger.exception("agent.run kickoff failed: %s", run_id)
 
@@ -63,12 +73,13 @@ async def _kick_off_run(run_id: uuid.UUID) -> None:
 @router.get("/{run_id}", response_model=AgentRun)
 async def get_agent_run(
     run_id: uuid.UUID,
+    user: AuthenticatedUser = Depends(require_user),
     repo: AgentRunRepository = Depends(get_agent_run_repo),
 ) -> AgentRun:
-    row = await repo.get(run_id)
+    row = await repo.get_owned(run_id, user.id)
     if row is None:
         raise HTTPException(404, "Agent run not found")
-    return AgentRun.model_validate(row, from_attributes=True)
+    return AgentRun.model_validate(row)
 
 
 @router.get(
@@ -77,24 +88,33 @@ async def get_agent_run(
 )
 async def list_run_opportunities(
     run_id: uuid.UUID,
+    user: AuthenticatedUser = Depends(require_user),
     run_repo: AgentRunRepository = Depends(get_agent_run_repo),
     opp_repo: OpportunityRepository = Depends(get_opportunity_repo),
 ) -> list[Opportunity]:
-    run = await run_repo.get(run_id)
+    run = await run_repo.get_owned(run_id, user.id)
     if run is None:
         raise HTTPException(404, "Agent run not found")
-    ids = [uuid.UUID(s) for s in (run.opportunities or [])]
+    ids = [uuid.UUID(s) for s in (run.get("opportunities") or [])]
     rows = await opp_repo.list_by_ids(ids)
-    return [Opportunity.model_validate(r, from_attributes=True) for r in rows]
+    return [Opportunity.model_validate(r) for r in rows]
 
 
 @router.get("/{run_id}/stream")
-async def stream_agent_run(run_id: uuid.UUID) -> StreamingResponse:
+async def stream_agent_run(
+    run_id: uuid.UUID,
+    user: AuthenticatedUser = Depends(require_user),
+    repo: AgentRunRepository = Depends(get_agent_run_repo),
+) -> StreamingResponse:
     """SSE forwarder. Subscribes to `agent-run:{run_id}` and yields events.
 
     Sends `:keepalive\\n\\n` every 15s of silence so proxies (nginx) don't drop the
     connection. Closes cleanly on `run_completed`.
     """
+    run = await repo.get_owned(run_id, user.id)
+    if run is None:
+        raise HTTPException(404, "Agent run not found")
+
     pubsub = redis_client.pubsub()
     await pubsub.subscribe(f"agent-run:{run_id}")
 

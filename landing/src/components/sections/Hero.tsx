@@ -9,18 +9,10 @@ export default function Hero() {
         <GlassPill dot="live">{HERO.pill}</GlassPill>
 
         <h1
-          className="mt-7 sm:mt-8 text-[var(--color-ink)] mx-auto"
+          className="mt-7 sm:mt-8 text-[44px] sm:text-[72px] lg:text-[104px] text-[var(--color-ink)] mx-auto"
           style={{
-            /* Defensive sizing: vw scales with viewport, but the third
-             * `min` term caps the title at the available content width
-             * (viewport minus horizontal padding) so the single-word
-             * "GovCapture" can never overflow. Calibrated against
-             * Geist Sans at weight 600 / letter-spacing −0.04em — width
-             * is ~4.5x font-size, so we divide by 4.6 for headroom. */
-            fontSize:
-              'min(clamp(34px, 12vw, 152px), calc((100vw - 56px) / 4.6))',
             lineHeight: 0.92,
-            letterSpacing: '-0.04em',
+            letterSpacing: 0,
             fontWeight: 600,
             maxWidth: '100%',
           }}
@@ -33,7 +25,7 @@ export default function Hero() {
           style={{
             fontSize: 'clamp(18px, 2.4vw, 22px)',
             lineHeight: 1.4,
-            letterSpacing: '-0.012em',
+            letterSpacing: 0,
             fontWeight: 500,
           }}
         >

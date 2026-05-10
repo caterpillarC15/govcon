@@ -1,42 +1,53 @@
 """FastAPI dependency providers."""
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from supabase import AsyncClient
 
-from api.db import SessionLocal
+from api.db import get_client
 from api.repositories.action_package import ActionPackageRepository
 from api.repositories.agent_run import AgentRunRepository
 from api.repositories.company_profile import CompanyProfileRepository
 from api.repositories.opportunity import OpportunityRepository
+from api.repositories.profile import ProfileRepository
+from api.repositories.waitlist import WaitlistRepository
 
 
-async def get_session() -> AsyncIterator[AsyncSession]:
-    async with SessionLocal() as session:
-        yield session
+async def get_supabase() -> AsyncClient:
+    return await get_client()
 
 
 def get_company_profile_repo(
-    session: AsyncSession = Depends(get_session),
+    client: AsyncClient = Depends(get_supabase),
 ) -> CompanyProfileRepository:
-    return CompanyProfileRepository(session)
+    return CompanyProfileRepository(client)
 
 
 def get_agent_run_repo(
-    session: AsyncSession = Depends(get_session),
+    client: AsyncClient = Depends(get_supabase),
 ) -> AgentRunRepository:
-    return AgentRunRepository(session)
+    return AgentRunRepository(client)
 
 
 def get_opportunity_repo(
-    session: AsyncSession = Depends(get_session),
+    client: AsyncClient = Depends(get_supabase),
 ) -> OpportunityRepository:
-    return OpportunityRepository(session)
+    return OpportunityRepository(client)
 
 
 def get_action_package_repo(
-    session: AsyncSession = Depends(get_session),
+    client: AsyncClient = Depends(get_supabase),
 ) -> ActionPackageRepository:
-    return ActionPackageRepository(session)
+    return ActionPackageRepository(client)
+
+
+def get_profile_repo(
+    client: AsyncClient = Depends(get_supabase),
+) -> ProfileRepository:
+    return ProfileRepository(client)
+
+
+def get_waitlist_repo(
+    client: AsyncClient = Depends(get_supabase),
+) -> WaitlistRepository:
+    return WaitlistRepository(client)

@@ -79,8 +79,10 @@
         "tool": {
           "type": "string",
           "enum": [
+            "parse_goal",
             "search_sam_opportunities",
             "load_seeded_opportunities",
+            "rank_opportunities",
             "fetch_attachment",
             "verify_source_page",
             "parse_pdf",
