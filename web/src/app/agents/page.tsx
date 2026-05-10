@@ -27,6 +27,29 @@ export default function AgentsPage() {
           </p>
         </header>
 
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              name: 'GovCon Bid Desk',
+              applicationCategory: 'BusinessApplication',
+              description:
+                'Federal contracting capability pack for AI agents. Ten typed tools for SAM search, requirement extraction, fit scoring, risk detection, and bid memo synthesis.',
+              offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+              url: 'https://app.govcapture.example/agents',
+              operatingSystem: 'Web',
+              featureList: [
+                'parse-goal', 'parse-pdf', 'extract-requirements',
+                'score-fit', 'detect-risks', 'generate-action-package',
+                'search-sam', 'fetch-attachment', 'rank-opportunities',
+                'load-seeded-opportunities',
+              ],
+            }),
+          }}
+        />
+
         <section className="grid gap-4 sm:grid-cols-2">
           <DiscoveryCard
             icon={<FileJson size={20} />}
