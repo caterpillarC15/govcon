@@ -7,14 +7,18 @@
   ],
   "scripts": {
     "dev": "npm -w landing run dev --",
-    "build": "npm -w landing run build",
-    "start": "npm -w landing run start",
-    "lint": "npm -w landing run lint",
-    "typecheck": "npm -w landing run typecheck",
     "dev:landing": "npm -w landing run dev --",
     "dev:web": "npm -w web run dev --",
+    "build": "npm run build:landing && npm run build:web",
+    "build:landing": "npm -w landing run build",
     "build:web": "npm -w web run build",
+    "start:landing": "npm -w landing run start",
+    "start:web": "npm -w web run start",
+    "lint": "npm run lint:landing && npm run lint:web",
+    "lint:landing": "npm -w landing run lint",
+    "lint:web": "npm -w web run lint",
+    "typecheck": "npm run typecheck:landing && npm run typecheck:web",
+    "typecheck:landing": "npm -w landing run typecheck",
     "typecheck:web": "npm -w web run typecheck"
   }
 }
-

@@ -1,5 +1,50 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens for the /web product UI.
+ * Mirrors landing/src/app/globals.css color/typography/radii subset
+ * so both apps share the same brand vocabulary in Tailwind v4
+ * utilities. Atmosphere/glass effects are landing-only and not
+ * ported here.
+ */
+@theme {
+  --color-ink: #0f172a;
+  --color-ink-muted: #475569;
+  --color-ink-subtle: #94a3b8;
+
+  --color-canvas: #ffffff;
+  --color-canvas-subtle: #f6f7fb;
+  --color-canvas-sunken: #eef0f6;
+  --color-canvas-border: #e2e8f0;
+
+  --color-accent: #1e3a8a;
+  --color-accent-hover: #1e40af;
+  --color-accent-subtle: #dbeafe;
+
+  --color-decision-strong: #15803d;
+  --color-decision-pursue: #1e40af;
+  --color-decision-maybe: #b45309;
+  --color-decision-reject: #b91c1c;
+
+  --color-severity-critical: #b91c1c;
+  --color-severity-major: #c2410c;
+  --color-severity-moderate: #b45309;
+  --color-severity-minor: #475569;
+
+  --color-status-met: #15803d;
+  --color-status-missing: #b91c1c;
+  --color-status-unclear: #b45309;
+  --color-status-na: #94a3b8;
+
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --radius-card: 14px;
+  --radius-tile: 8px;
+  --radius-pill: 9999px;
+}
+
 html,
 body {
   min-height: 100%;
@@ -7,14 +52,13 @@ body {
 
 body {
   margin: 0;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  background: #f7f8fb;
+  background: var(--color-canvas-subtle);
+  color: var(--color-ink);
 }
 
 :focus-visible {
-  outline: 2px solid #1e3a8a;
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }

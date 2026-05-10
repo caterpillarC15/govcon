@@ -100,6 +100,7 @@ export default function StoryCards() {
         <div className="grid grid-cols-1 md:grid-cols-3 md:items-stretch gap-5 sm:gap-6">
           {STORY_CARDS.map((card, i) => {
             const Preview = PREVIEWS[i]
+            if (!Preview) return null
             return (
               <GlassCard
                 key={card.n}
