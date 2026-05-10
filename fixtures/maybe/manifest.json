@@ -26,5 +26,152 @@
   },
   "attachments": [
     { "filename": "RFP-002.pdf", "kind": "solicitation" }
-  ]
+  ],
+  "eval_inputs": {
+    "parse_goal": {
+      "goal": "Find SIEM/SOC managed-services RFPs in the next 90 days for a small 541512 firm — open to teaming for past-performance scale.",
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": ["CMMC L2"],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["SIEM deployment", "SOC operations"]
+      }
+    },
+    "extract_requirements": {
+      "pdf_path": "attachments/RFP-002.pdf",
+      "opportunity_id": "a1b2c3d4-0000-4000-8000-000000000002"
+    },
+    "score_fit": {
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": ["CMMC L2"],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["SIEM deployment", "SOC operations"],
+        "past_performance_max_value_usd": 4000000
+      },
+      "requirements": [
+        {
+          "type": "technical",
+          "title": "Enterprise SIEM at scale",
+          "value": "Deploy and operate SIEM across 170+ medical facilities",
+          "description": "Vendor must deploy and operate SIEM across 170+ VA medical facilities CONUS.",
+          "confidence": "high",
+          "evidence_snippet": "Deploy and operate enterprise SIEM across 170+ VA medical facilities",
+          "source_document": "RFP-002.pdf",
+          "page_number": 2,
+          "is_blocker": false
+        },
+        {
+          "type": "past_performance",
+          "title": "$25M+ similar engagement",
+          "value": "Demonstrated past performance at $25M+ similar engagements",
+          "description": "Past performance with at least one similar SIEM engagement of $25M+ value.",
+          "confidence": "high",
+          "evidence_snippet": "demonstrated past performance at scale ($25M+ similar engagements)",
+          "source_document": "RFP-002.pdf",
+          "page_number": 6,
+          "is_blocker": false
+        },
+        {
+          "type": "eligibility",
+          "title": "Total Small Business Set-Aside",
+          "value": "Total Small Business Set-Aside",
+          "confidence": "high",
+          "evidence_snippet": "Total Small Business Set-Aside",
+          "source_document": "RFP-002.pdf",
+          "page_number": 1,
+          "is_blocker": false
+        }
+      ]
+    },
+    "detect_risks": {
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": ["CMMC L2"],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["SIEM deployment", "SOC operations"],
+        "past_performance_max_value_usd": 4000000
+      },
+      "opportunity": {
+        "id": "a1b2c3d4-0000-4000-8000-000000000002",
+        "title": "Enterprise SIEM Deployment and Managed Detection Services",
+        "agency": "Department of Veterans Affairs",
+        "due_date": "2026-07-30",
+        "naics": "541512",
+        "set_aside": "Total Small Business Set-Aside"
+      },
+      "requirements": [
+        {
+          "type": "past_performance",
+          "title": "$25M+ similar engagement",
+          "value": "Demonstrated past performance at $25M+ similar engagements",
+          "confidence": "high",
+          "evidence_snippet": "demonstrated past performance at scale ($25M+ similar engagements)",
+          "source_document": "RFP-002.pdf",
+          "page_number": 6,
+          "is_blocker": false
+        }
+      ]
+    },
+    "generate_action_package": {
+      "mode": "full",
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": ["CMMC L2"],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["SIEM deployment", "SOC operations"],
+        "past_performance_max_value_usd": 4000000
+      },
+      "opportunity": {
+        "id": "a1b2c3d4-0000-4000-8000-000000000002",
+        "title": "Enterprise SIEM Deployment and Managed Detection Services",
+        "agency": "Department of Veterans Affairs",
+        "solicitation_number": "VA-SIEM-2026-118",
+        "due_date": "2026-07-30",
+        "naics": "541512",
+        "set_aside": "Total Small Business Set-Aside",
+        "place_of_performance": "Multiple VA Medical Centers (CONUS)"
+      },
+      "requirements": [
+        {
+          "type": "past_performance",
+          "title": "$25M+ similar engagement",
+          "value": "Demonstrated past performance at $25M+ similar engagements",
+          "confidence": "high",
+          "is_blocker": false
+        }
+      ],
+      "fit_score": {
+        "total_score": 60,
+        "decision": "maybe",
+        "confidence": "medium",
+        "score_breakdown": {
+          "capability": 14, "eligibility": 12, "naics": 12, "past_performance": 4,
+          "certification": 8, "insurance_bonding": 3, "deadline": 5, "complexity": 1, "geography": 1
+        },
+        "strengths": ["NAICS match", "SIEM capability", "Small business set-aside qualified"],
+        "weaknesses": ["Past performance below $25M scale threshold"],
+        "blockers": [],
+        "missing_information": [],
+        "recommended_next_action": "Pursue with a teaming partner for past-performance scale."
+      },
+      "risks": [
+        {
+          "category": "past_performance_gap",
+          "severity": "major",
+          "description": "Largest engagement-to-date is $4M; RFP requires $25M+ similar past performance.",
+          "evidence_snippet": "demonstrated past performance at scale ($25M+ similar engagements)",
+          "is_human_review": false
+        }
+      ]
+    }
+  }
 }

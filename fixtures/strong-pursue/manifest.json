@@ -26,5 +26,149 @@
   },
   "attachments": [
     { "filename": "RFP-001.pdf", "kind": "solicitation" }
-  ]
+  ],
+  "eval_inputs": {
+    "parse_goal": {
+      "goal": "Find DC-area cloud migration and AWS GovCloud RFPs due in the next 90 days for a 541512 small business with CMMC L2.",
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": ["CMMC L2"],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["cloud migration", "AWS GovCloud", "cloud assessment"]
+      }
+    },
+    "extract_requirements": {
+      "pdf_path": "attachments/RFP-001.pdf",
+      "opportunity_id": "a1b2c3d4-0000-4000-8000-000000000001"
+    },
+    "score_fit": {
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": ["CMMC L2"],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["cloud migration", "AWS GovCloud", "cloud assessment"]
+      },
+      "requirements": [
+        {
+          "type": "technical",
+          "title": "AWS GovCloud migration experience",
+          "value": "Demonstrated AWS GovCloud migration experience required",
+          "description": "Vendor must have completed at least one prior AWS GovCloud migration of comparable scope.",
+          "confidence": "high",
+          "evidence_snippet": "Vendor must have completed at least one prior AWS GovCloud migration of comparable scope.",
+          "source_document": "RFP-001.pdf",
+          "page_number": 3,
+          "is_blocker": false
+        },
+        {
+          "type": "eligibility",
+          "title": "Total Small Business Set-Aside",
+          "value": "Total Small Business Set-Aside",
+          "description": "Reserved for small businesses under NAICS 541512.",
+          "confidence": "high",
+          "evidence_snippet": "Total Small Business Set-Aside",
+          "source_document": "RFP-001.pdf",
+          "page_number": 1,
+          "is_blocker": false
+        },
+        {
+          "type": "certification",
+          "title": "CMMC Level 2",
+          "value": "CMMC L2 required at award",
+          "description": "Vendor must hold CMMC Level 2 certification at time of award.",
+          "confidence": "high",
+          "evidence_snippet": "CMMC L2 required at award",
+          "source_document": "RFP-001.pdf",
+          "page_number": 5,
+          "is_blocker": false
+        }
+      ]
+    },
+    "detect_risks": {
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": ["CMMC L2"],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["cloud migration", "AWS GovCloud", "cloud assessment"]
+      },
+      "opportunity": {
+        "id": "a1b2c3d4-0000-4000-8000-000000000001",
+        "title": "Cloud Migration Support Services for the Office of the Chief Information Officer",
+        "agency": "Department of the Interior",
+        "due_date": "2026-06-15",
+        "naics": "541512",
+        "set_aside": "Total Small Business Set-Aside"
+      },
+      "requirements": [
+        {
+          "type": "technical",
+          "title": "AWS GovCloud migration experience",
+          "value": "Demonstrated AWS GovCloud migration experience required",
+          "confidence": "high",
+          "evidence_snippet": "Vendor must have completed at least one prior AWS GovCloud migration of comparable scope.",
+          "source_document": "RFP-001.pdf",
+          "page_number": 3,
+          "is_blocker": false
+        }
+      ]
+    },
+    "generate_action_package": {
+      "mode": "full",
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": ["CMMC L2"],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["cloud migration", "AWS GovCloud"]
+      },
+      "opportunity": {
+        "id": "a1b2c3d4-0000-4000-8000-000000000001",
+        "title": "Cloud Migration Support Services for the Office of the Chief Information Officer",
+        "agency": "Department of the Interior",
+        "solicitation_number": "DOI-CMS-2026-001",
+        "due_date": "2026-06-15",
+        "naics": "541512",
+        "set_aside": "Total Small Business Set-Aside",
+        "place_of_performance": "Washington, DC (remote acceptable)"
+      },
+      "requirements": [
+        {
+          "type": "technical",
+          "title": "AWS GovCloud migration experience",
+          "value": "Demonstrated AWS GovCloud migration experience required",
+          "confidence": "high",
+          "is_blocker": false
+        },
+        {
+          "type": "eligibility",
+          "title": "Total Small Business Set-Aside",
+          "value": "Total Small Business Set-Aside",
+          "confidence": "high",
+          "is_blocker": false
+        }
+      ],
+      "fit_score": {
+        "total_score": 88,
+        "decision": "strong_pursue",
+        "confidence": "high",
+        "score_breakdown": {
+          "capability": 18, "eligibility": 15, "naics": 12, "past_performance": 10,
+          "certification": 10, "insurance_bonding": 5, "deadline": 8, "complexity": 5, "geography": 5
+        },
+        "strengths": ["AWS GovCloud match", "CMMC L2 in hand", "541512 NAICS"],
+        "weaknesses": [],
+        "blockers": [],
+        "missing_information": [],
+        "recommended_next_action": "Begin proposal kickoff; assign capture lead."
+      },
+      "risks": []
+    }
+  }
 }

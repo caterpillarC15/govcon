@@ -28,5 +28,129 @@
   },
   "attachments": [
     { "filename": "RFP-003.pdf", "kind": "solicitation" }
-  ]
+  ],
+  "eval_inputs": {
+    "parse_goal": {
+      "goal": "Find DOD network defense or cyber RFPs in the next 90 days for a 541512 small business.",
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": [],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["network defense", "cybersecurity"]
+      }
+    },
+    "score_fit": {
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": [],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["network defense"]
+      },
+      "requirements": [
+        {
+          "type": "security",
+          "title": "Top Secret + SCI clearance required",
+          "value": "All operational personnel must hold TS/SCI",
+          "description": "All operational personnel must hold Top Secret + SCI clearance.",
+          "confidence": "high",
+          "evidence_snippet": "all operational personnel must hold Top Secret + SCI clearance",
+          "source_document": "RFP-003.pdf",
+          "page_number": 1,
+          "is_blocker": true
+        },
+        {
+          "type": "eligibility",
+          "title": "8(a) Set-Aside",
+          "value": "8(a) participants only",
+          "description": "Reserved for 8(a) participants.",
+          "confidence": "high",
+          "evidence_snippet": "reserved for 8(a) participants",
+          "source_document": "RFP-003.pdf",
+          "page_number": 1,
+          "is_blocker": true
+        }
+      ]
+    },
+    "detect_risks": {
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": [],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["network defense"]
+      },
+      "opportunity": {
+        "id": "a1b2c3d4-0000-4000-8000-000000000003",
+        "title": "Classified Network Defense Operations Support",
+        "agency": "Department of Defense",
+        "due_date": "2026-08-01",
+        "naics": "541512",
+        "set_aside": "8(a) Set-Aside"
+      },
+      "requirements": [
+        {
+          "type": "security",
+          "title": "Top Secret + SCI clearance required",
+          "value": "All operational personnel must hold TS/SCI",
+          "confidence": "high",
+          "evidence_snippet": "all operational personnel must hold Top Secret + SCI clearance",
+          "source_document": "RFP-003.pdf",
+          "page_number": 1,
+          "is_blocker": true
+        }
+      ]
+    },
+    "generate_action_package": {
+      "mode": "reject_summary",
+      "company_profile": {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+        "certifications": [],
+        "small_business_status": true,
+        "clearance_status": "none",
+        "capabilities": ["network defense"]
+      },
+      "opportunity": {
+        "id": "a1b2c3d4-0000-4000-8000-000000000003",
+        "title": "Classified Network Defense Operations Support",
+        "agency": "Department of Defense",
+        "solicitation_number": "DOD-CNDO-2026-044",
+        "due_date": "2026-08-01",
+        "naics": "541512",
+        "set_aside": "8(a) Set-Aside"
+      },
+      "requirements": [
+        {
+          "type": "security",
+          "title": "Top Secret + SCI clearance required",
+          "value": "All operational personnel must hold TS/SCI",
+          "confidence": "high",
+          "is_blocker": true
+        }
+      ],
+      "fit_score": {
+        "total_score": 0,
+        "decision": "reject",
+        "confidence": "high",
+        "score_breakdown": {
+          "capability": 0, "eligibility": 0, "naics": 0, "past_performance": 0,
+          "certification": 0, "insurance_bonding": 0, "deadline": 0, "complexity": 0, "geography": 0
+        },
+        "strengths": [],
+        "weaknesses": [],
+        "blockers": [
+          "Top Secret + SCI clearance required — company has no clearance",
+          "8(a) Set-Aside — company is not 8(a)-certified"
+        ],
+        "missing_information": [],
+        "recommended_next_action": "Do not pursue. Critical eligibility blocker(s) present."
+      },
+      "risks": []
+    }
+  }
 }
