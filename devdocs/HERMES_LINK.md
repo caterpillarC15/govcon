@@ -24,7 +24,7 @@ mcp_servers:
   govcapture:
     command: "mcp-server-govcapture"
     env:
-      GOVCAPTURE_API_BASE: "https://api.<your-domain>"
+      GOVCAPTURE_API_BASE: "https://api.samrail.com"
       GOVCAPTURE_API_KEY: "gck_..."
 
 skills:

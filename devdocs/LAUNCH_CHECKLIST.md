@@ -56,7 +56,7 @@ What still needs to happen for §5.14 to actually send mail in production:
 
 1. `[USER]` sign up for Resend, verify your sending domain (SPF + DKIM + DMARC)
 2. `[USER]` set `RESEND_API_KEY`, `EMAIL_UNSUBSCRIBE_SECRET` (`openssl rand -hex 32`), and `EMAIL_LEGAL_FOOTER_ADDRESS` on VX1 `.env`
-3. `[USER]` set `RESEND_FROM_EMAIL=GovCapture <noreply@<verified-domain>>` (the default is the Resend sandbox sender, which only delivers to the account owner)
+3. `[USER]` set `RESEND_FROM_EMAIL=GovCapture <noreply@samrail.com>` (the default is the Resend sandbox sender, which only delivers to the account owner)
 4. `[USER]` smoke-test with `EMAIL_DRY_RUN=true` first; review log rows in `weekly_opportunity_email_log` (status=`dry_run`)
 5. `[USER]` flip `EMAIL_DRY_RUN=false` and trigger a manual run via `POST /internal/cron/weekly-opportunity-email` from inside the VX1 with the bearer
 6. `[USER]` enable both timers: `sudo systemctl enable --now govcapture-cron-auto-pick.timer govcapture-cron-weekly.timer`
@@ -93,7 +93,7 @@ Phases 5/6 are the slowest because each needs ≥1 third-party account + DNS pro
 ### 5.1 Resend account [USER]
 
 1. Sign up at https://resend.com
-2. Add domain (e.g., `<your-domain>` or `mail.<your-domain>`)
+2. Add domain (e.g., `samrail.com` or `mail.samrail.com`)
 3. Add SPF + DKIM × 3 + (optional) DMARC records at your DNS provider — Resend dashboard tells you the exact records
 4. Wait for verification (≤ 30 min)
 5. Generate an API key under **API Keys** → scope: **Sending access only**
@@ -103,7 +103,7 @@ Phases 5/6 are the slowest because each needs ≥1 third-party account + DNS pro
 Send a test email to your own inbox via the Resend dashboard. Confirm:
 - Arrives within 60 s
 - Lands in inbox (not spam)
-- From-address shows `noreply@<your-domain>`
+- From-address shows `noreply@samrail.com`
 
 ### 5.3 Configure Supabase Auth SMTP [USER]
 
@@ -111,7 +111,7 @@ In Supabase Studio → **Authentication** → **Email Templates** → **SMTP Set
 
 | Field | Value |
 |---|---|
-| Sender email | `noreply@<your-domain>` |
+| Sender email | `noreply@samrail.com` |
 | Sender name | `GovCon Bid Desk` |
 | Host | `smtp.resend.com` |
 | Port | `465` (SSL) |
@@ -123,7 +123,7 @@ Save.
 ### 5.4 Smoke test prod magic-link [USER]
 
 From a clean browser (no session), request a magic link via your local `/web` against the linked Supabase project. Verify:
-- Email arrives < 60 s from `noreply@<your-domain>`
+- Email arrives < 60 s from `noreply@samrail.com`
 - Lands in inbox on Gmail (test) and Outlook (test)
 - Clicking the link signs you in to `/app`
 - Resend dashboard → Logs shows a `delivered` event
@@ -144,9 +144,9 @@ I update `devdocs/CURRENT_STATE.md` §10 with "Resend SMTP wired YYYY-MM-DD" and
 2. Upload SSH public key
 3. Capture the public IP
 4. Decide three domains (note them in a scratch file):
-   - `api.<your-domain>` — FastAPI behind nginx
-   - `app.<your-domain>` (or `<your-domain>` direct) — `/web`
-   - `<your-domain>` (or `marketing.<your-domain>`) — `/landing`
+   - `api.samrail.com` — FastAPI behind nginx
+   - `app.samrail.com` (or `samrail.com` direct) — `/web`
+   - `samrail.com` (or `marketing.samrail.com`) — `/landing`
 
 ### 6.2 Bootstrap [USER]
 
@@ -179,13 +179,13 @@ SUPABASE_ANON_KEY        — sb_publishable_…
 SUPABASE_STORAGE_BUCKET  — govcapture-attachments
 INTERNAL_API_KEY         — $INTERNAL_KEY  (the openssl rand value)
 REDIS_URL                — redis://localhost:6379/0
-CORS_ALLOWED_ORIGINS     — https://app.<your-domain>,https://<your-domain>
-NEXT_PUBLIC_API_BASE     — https://api.<your-domain>   (for parity; only /web reads this)
+CORS_ALLOWED_ORIGINS     — https://app.samrail.com,https://samrail.com
+NEXT_PUBLIC_API_BASE     — https://api.samrail.com   (for parity; only /web reads this)
 
 # §5.14 weekly opportunity email — keep EMAIL_DRY_RUN=true for first deploy.
 RESEND_API_KEY           — re_…  (sending-scope key)
-RESEND_FROM_EMAIL        — GovCapture <noreply@<verified-domain>>
-EMAIL_PUBLIC_BASE_URL    — https://api.<your-domain>
+RESEND_FROM_EMAIL        — GovCapture <noreply@samrail.com>
+EMAIL_PUBLIC_BASE_URL    — https://api.samrail.com
 EMAIL_UNSUBSCRIBE_SECRET — $(openssl rand -hex 32)  (DIFFERENT from any dev value)
 EMAIL_LEGAL_FOOTER_ADDRESS — "Acme Inc, 123 Main St, …"   (CAN-SPAM physical address)
 EMAIL_DRY_RUN            — true  (flip to false only after smoke test)
@@ -208,24 +208,24 @@ Expected: status `active (running)`; healthz returns 200 with supabase + redis g
 ### 6.5 Wire nginx + TLS [USER]
 
 ```bash
-# DNS first — A record api.<your-domain> → VX1 IP. Wait for propagation.
-dig +short api.<your-domain>   # from your laptop, should resolve to VX1 IP
+# DNS first — A record api.samrail.com → VX1 IP. Wait for propagation.
+dig +short api.samrail.com   # from your laptop, should resolve to VX1 IP
 
 sudo cp /opt/govcapture/infra/nginx/govcapture.conf /etc/nginx/sites-available/
-sudo sed -i 's|api.your-domain.example|api.<your-domain>|g' /etc/nginx/sites-available/govcapture.conf
+sudo sed -i 's|api.your-domain.example|api.samrail.com|g' /etc/nginx/sites-available/govcapture.conf
 sudo ln -sf /etc/nginx/sites-available/govcapture.conf /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 
-sudo certbot --nginx -d api.<your-domain> --redirect --agree-tos -m you@<your-domain> -n
+sudo certbot --nginx -d api.samrail.com --redirect --agree-tos -m you@samrail.com -n
 ```
 
 ### 6.6 Smoke test from outside [USER]
 
 ```bash
 # From your laptop, NOT the box:
-curl -s https://api.<your-domain>/healthz
-curl -s https://api.<your-domain>/.well-known/agent.json | jq .
+curl -s https://api.samrail.com/healthz
+curl -s https://api.samrail.com/.well-known/agent.json | jq .
 ssh root@<VX1-IP> 'sudo journalctl -u govcapture-api -n 50' | grep -i error || echo "no errors"
 ssh root@<VX1-IP> 'sudo certbot certificates'   # cert valid > 30 days
 ```
@@ -235,7 +235,7 @@ ssh root@<VX1-IP> 'sudo certbot certificates'   # cert valid > 30 days
 In each Vercel project → Settings → Environment Variables (Production scope):
 
 ```
-NEXT_PUBLIC_API_BASE        https://api.<your-domain>
+NEXT_PUBLIC_API_BASE        https://api.samrail.com
 NEXT_PUBLIC_SUPABASE_URL    https://vvyxjdoenjujkxwbnzyl.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY  sb_publishable_…
 ```
@@ -257,7 +257,7 @@ Two flavors. Pick one — both verify the SSE pipeline works end-to-end.
 Validates that prod's nginx + gunicorn streams SSE correctly, without `/root/michealaai`.
 
 ```bash
-# 1. Sign in to https://app.<your-domain>/login
+# 1. Sign in to https://app.samrail.com/login
 # 2. Submit a goal at /app/goal — note the run-uuid in the URL
 # 3. From your laptop, against your dev API (or prod with SSH tunnel to Redis):
 make sse-stub RUN_ID=<run-uuid>   DELAY_MS=500
@@ -332,7 +332,7 @@ uv run ruff check api && uv run mypy api             # both clean
 make fixtures-validate && make eval                  # both green
 npm -w landing run lint && npm -w landing run build  # clean
 npm -w web run lint && npm -w web run typecheck && npm -w web run build  # clean
-curl -s https://api.<your-domain>/healthz            # 200
+curl -s https://api.samrail.com/healthz            # 200
 supabase migration list                              # local + remote synced
 git status --short                                   # clean
 ```
