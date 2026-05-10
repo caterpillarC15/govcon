@@ -239,11 +239,14 @@ see the rows our `POST /agent-runs` writes.
 **Cohabitation note for the pack side:** the same project also hosts
 the persona/public-presence schema (`personas`, `persona_profiles`,
 `persona_assets`, …) and a public storage bucket `persona-assets`.
-Verify `govcapture-attachments` stays private in Studio. None of those
-persona tables share names with ours, so SQL collisions aren't a
-concern; the risk is purely operational (admin clicks into the wrong
-bucket, RLS misconfigured on a persona table by someone unfamiliar
-with our half).
+
+**Verified clean 2026-05-10:**
+
+- `govcapture-attachments` bucket — Public OFF (private). Confirmed in Studio.
+- `persona-assets` bucket — Public ON (intentional, persona's bucket).
+- Table-name collision check: no overlap between our migrations and persona's schema. The `agent_runs` reference in the persona skill's documented table list was aspirational / never materialized as a separate table.
+
+Re-verify if Studio is touched by anyone unfamiliar with both halves.
 
 ## Model Provider Boundary
 
