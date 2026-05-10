@@ -43,18 +43,17 @@ auth wired, env files gitignored, full test suite green.
 
 ## 1. Verified state at handoff (what's true RIGHT NOW)
 
-These were directly verified after Sprint B shipped
-(2026-05-09; final state pending one consolidating commit per the
-"hold commits to the end" preference).
+These were directly verified after the launch-runway sprint shipped
+(2026-05-10; 12 commits, phases 1–5 complete, all tests green).
 
 | Check | Result |
 |-------|--------|
-| Branch | `main`, ahead of `origin/main` by 4+ commits (Sprint B work pending) |
-| Working tree | Sprint B implementation pending one consolidating commit (routes + tests + docs) |
-| `uv run pytest api/tests/` | **154 passed** (113 baseline + 41 new for `/tools/<name>` routes) |
+| Branch | `main`, ahead of `origin/main` by ~24 commits (all launch-runway work committed) |
+| Working tree | Clean after consolidating commit on 2026-05-10 (docs + verified state) |
+| `uv run pytest api/tests/` | **181 passed** (113 baseline + 68 new across api_keys, v1_tools, rate_limit, query_usaspending, eval fixtures) |
 | `uv run ruff check api` | All checks passed |
-| `uv run mypy api` | Success: no issues found in 66 source files |
-| `uv run python -c "from api.main import app; print(sum(1 for r in app.routes if hasattr(r,'path')))"` | **34** routes (24 user-facing + 10 internal `/tools/<name>`) |
+| `uv run mypy api` | Success: no issues found in **76 source files** |
+| `uv run python -c "from api.main import app; print(sum(1 for r in app.routes if hasattr(r,'path')))"` | **53** routes (24 user-facing + 3 /api/keys + 10 /api/v1/tools + 2 /opportunities/{id}/competitors + 2 /well-known + 2 /tools) |
 | `HERMES_HOME=$(pwd)/.hermes hermes config show` | Reads model.provider=anthropic, default=claude-sonnet-4-6; no unknown-key warnings |
 | `find api/agent -type f` | (empty — directory gone) |
 | `grep -rn 'from api\.agent' api/` | (empty) |
@@ -62,8 +61,15 @@ These were directly verified after Sprint B shipped
 | `ls tasks/` | `CONTRACTS.md DEMO.md FIXTURES.md INTERFERENCE_MAP.md LANDING_BRIEF.md README.md` (no AGENT_ARCHITECTURE.md, no HERMES.md) |
 | `ls devdocs/` | `CAPABILITY_PACK_INTEGRATION.md CAPABILITY_PACKS_CANVAS.md CURRENT_STATE.md HANDOFF_PROMPT.md MICHAELA_SYSTEM_MODEL.md V1_PRODUCT_ALIGNMENT.md _archive/` |
 | `git check-ignore .env` | matches `.env` (real keys safely uncommitted) |
-| Supabase CLI | linked to `vvyxjdoenjujkxwbnzyl`; all 5 migrations applied (verify with `supabase migration list`) |
+| Supabase CLI | linked to `vvyxjdoenjujkxwbnzyl`; all 7 migrations applied (verify with `supabase migration list`) |
 | Bucket `govcapture-attachments` | created (private) |
+
+**Schema migrations committed but NOT applied** — apply before exercising new routes:
+
+- `b334c20` — `api_keys` table (per-agent gck_… keys)
+- `ec7eb5f` — `competitor_history` table (Ledger writebacks)
+
+Run `supabase db push` against the linked project to apply both before exercising the new routes against the real Supabase project.
 
 **Still placeholder in `.env`** (won't block /healthz or DB calls — needed only when LLM-backed skills are exercised end-to-end):
 
@@ -343,15 +349,15 @@ A and C.
 
 | ID | Sprint | Effort | Unblocks | Depends on |
 |----|--------|--------|----------|------------|
-| **A** | `hermes_plugin_govcapture/` Python plugin so Michaela's Hermes-hosted workers native-call our tools | 3–5 days | Native delegation from /root/michealaai workers; better latency than HTTP | None |
-| ~~**B**~~ | ~~HTTP `POST /tools/<name>` parity for non-Hermes callers (TS, Codex, Cursor)~~ — **DONE 2026-05-09** (10 routes live; 34 routes total; 154 tests; plan: `docs/superpowers/plans/2026-05-09-sprint-b-http-tools-parity.md`) | 1–2 days | Any orchestrator that doesn't run Hermes | None |
-| **C** | `/web` product UI build-out (profile create → goal entry → run timeline → opportunity detail → action-package review) | 3–5 days | Public demo; first-customer trial | A or B (something must produce real artifacts) |
+| ~~**A**~~ | ~~`hermes_plugin_govcapture/` Python plugin so Michaela's Hermes-hosted workers native-call our tools~~ — **SPEC + MCP PACKAGE DONE 2026-05-09** (966fa96; `mcp-server-govcapture` wraps `/api/v1/tools`; native Hermes plugin skipped in favor of MCP bridge). | 3–5 days | Native delegation from /root/michealaai workers; better latency than HTTP | None |
+| ~~**B**~~ | ~~HTTP `POST /tools/<name>` parity for non-Hermes callers (TS, Codex, Cursor)~~ — **DONE 2026-05-09** (3c9a7de + 1b239c6; 10 routes + public /api/v1/tools/<name> mirror; 53 routes total; 181 tests). | 1–2 days | Any orchestrator that doesn't run Hermes | None |
+| ~~**C**~~ | ~~`/web` product UI build-out (profile create → goal entry → run timeline → opportunity detail → action-package review)~~ — **PHASES 0–6, 7.1, 7.2, 7.4, 8 DONE** (5628129 loading skeletons + error boundaries; 94120fd SSE upgrade + same-origin proxy; e8e2500 SEO + robots.txt; a63bf30 rate-limit fail-open). **Phases 1.3 mobile sweep, 1.4 a11y, 1.5 copy pass owed** (user-driven). | 3–5 days | Public demo; first-customer trial | A or B (something must produce real artifacts) |
 | **D** | Vultr VX1 production deploy | 4–8 hours | Public URL; hosted /healthz | A or B working locally |
-| E | `query_usaspending` skill for Ledger (separate writeback table) | 1–2 days | Real competitive-intel content (today rides on `risk_flags` w/ category convention) | Schema PR ack |
-| F | `eval/` harness — fixture-driven regression on LLM skills | 2–3 days | Confidence in cross-version model upgrades | None |
-| ~~G~~ | ~~Cross-repo coordination with `/root/michealaai` — emit-spec, run-row pickup contract, trace event format~~ — **SPEC DONE 2026-05-10** in `devdocs/CAPABILITY_PACK_INTEGRATION.md` (pickup contract, claim SQL, status state machine, INTERNAL_API_KEY provisioning, known-unknowns table). End-to-end verification owed by `/root/michealaai`. | 1–2 days | All of A/B/C in real end-to-end | michealaai's own status |
+| ~~**E**~~ | ~~`query_usaspending` skill for Ledger (separate writeback table)~~ — **DONE 2026-05-10** (3b19e39; Ledger's competitive-intel skill + competitor_history schema + migrations b334c20 ec7eb5f). | 1–2 days | Real competitive-intel content (today rides on `risk_flags` w/ category convention) | Schema PR ack |
+| ~~**F**~~ | ~~`eval/` harness — fixture-driven regression on LLM skills~~ — **SCAFFOLDING DONE** (b420fd5; runner + differs + golden structure). **Goldens bootstrap owed** (`make eval-bootstrap`; costs Anthropic tokens; user-driven). | 2–3 days | Confidence in cross-version model upgrades | None |
+| ~~G~~ | ~~Cross-repo coordination with `/root/michealaai` — emit-spec, run-row pickup contract, trace event format~~ — **SPEC DONE 2026-05-10** in `devdocs/CAPABILITY_PACK_INTEGRATION.md` (pickup contract, claim SQL, status state machine, INTERNAL_API_KEY provisioning, known-unknowns table). **End-to-end verification owed by `/root/michealaai`** (cross-repo). | 1–2 days | All of A/B/C in real end-to-end | michealaai's own status |
 
-**Recommended order:** B → A → G → C → D → E → F
+**Recommended next order:** D (deploy) → Sprint G e2e (cross-repo) → Phase 1.3/1.4/1.5 (user-driven UI polish) → eval goldens bootstrap (token cost) → v1.0.0 tag
 
 Why B before A: HTTP `/tools/` is a faster unblock for any external
 caller (including a thin TypeScript shim from /root/michealaai), buys

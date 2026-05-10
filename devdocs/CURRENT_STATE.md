@@ -221,13 +221,25 @@ next squash.
 | `GET  /opportunities/{id}`                   | JWT           | Read an opportunity                                      |
 | `GET  /opportunities/{id}/{requirements,fit-score,risks}` | JWT (owner-aware) | Per-opportunity analysis read paths       |
 | `POST /opportunities/{id}/{requirements,fit-score,risks}` | **InternalActor** (X-Internal-API-Key) | Sub-agent writebacks |
+| `GET  /opportunities/{id}/competitors`       | JWT (owner)   | Ledger competitive-intel list                            |
+| `POST /opportunities/{id}/competitors`       | **InternalActor** | Ledger writeback                                      |
 | `GET  /action-packages/{id}`                 | JWT (owner)   | Read a Roy-produced package                              |
 | `POST /action-packages`                      | **InternalActor** | Roy writeback                                        |
-| `POST /tools/<name>` (×10)                   | **InternalActor** | Direct skill dispatch for non-Hermes callers (Sprint B) |
+| `POST /tools/<name>` (×10)                   | **InternalActor** | Direct skill dispatch for non-Hermes callers      |
+| `POST /api/keys`                             | JWT           | Mint per-agent gck_… API key                             |
+| `GET  /api/keys`                             | JWT           | List caller's API keys                                   |
+| `DELETE /api/keys/{id}`                      | JWT           | Revoke a key                                             |
+| `POST /api/v1/tools/<name>` (×11)            | gck_ or InternalActor | Public skill dispatch (per-agent bearer) |
+| `POST /tools/query-usaspending`              | **InternalActor** | Ledger competitive-intel skill                      |
+| `POST /api/v1/tools/query-usaspending`       | gck_ or InternalActor | Public competitive-intel skill                  |
+| `GET  /agents` (SEO)                         | none          | Agent landing + JSON-LD SoftwareApplication               |
+| `GET  /robots.txt`                           | none          | SEO robots rules                                         |
 
 User-facing routes use Supabase JWT; sub-agent writebacks use a
-separate internal API key so no human bearer token can reach the
-write path.
+separate internal API key (X-Internal-API-Key header) or per-agent
+bearer token (gck_…) so no human bearer token can reach the write path.
+
+**Route count:** **53** total (24 user-facing + 3 /api/keys + 10 /api/v1/tools + 2 /opportunities/{id}/competitors + 2 /tools + 2 SEO + 10 other internal/Supabase-auto)
 
 ---
 
@@ -284,38 +296,44 @@ recipes — those live in `/root/michealaai`.
 
 ## 10. What ships today vs. what's next
 
-**Done (committed on `main` as of `dc9d1d8` plus the 2026-05-09 in-flight branch):**
+**Done (committed on `main` as of 2026-05-10, launch-runway sprint):**
 
 - Schemas + Pydantic codegen (`make schemas`)
-- Supabase migrations (remote dump + govcon core + Michaela layer + ownership)
-- Auth: `AuthenticatedUser` + `InternalActor`
-- 4 user-facing repositories (opportunity, agent_run, company_profile,
-  action_package) + 2 user resources (profile, waitlist)
-- 29 FastAPI path operations across 8 router modules, including 10
-  internal `/tools/<name>` skill dispatches added 2026-05-09
-- 10 skills (parse_goal, parse_pdf, extract_requirements, score_fit,
-  detect_risks, generate_action_package, search_sam, fetch_attachment,
-  rank_opportunities, load_seeded)
+- Supabase migrations (remote dump + govcon core + Michaela layer + ownership + api_keys + competitor_history)
+- Auth: `AuthenticatedUser` + `InternalActor` + per-agent gck_… bearer tokens
+- Per-agent API key minting + rate limiting (Redis-backed; fail-open)
+- 4 user-facing repositories (opportunity, agent_run, company_profile, action_package) + 2 user resources (profile, waitlist)
+- 53 FastAPI path operations across 10 router modules, including 10 public `/api/v1/tools/<name>` + 3 /api/keys + 2 /opportunities/{id}/competitors + 2 /tools skill routes
+- 10 core skills + `query_usaspending` Ledger skill (parse_goal, parse_pdf, extract_requirements, score_fit, detect_risks, generate_action_package, search_sam, fetch_attachment, rank_opportunities, load_seeded, query_usaspending)
 - Supabase Storage wrapper (`api/storage.py`)
-- 4 fixture sets (strong-pursue, maybe, reject, adversarial-image-pdf)
-  with `manifest.json` + PDFs + `build_pdf.py`
-- VX1 bootstrap + deploy + nginx + systemd
-- Landing site (Next 15 glassmorphism), product `/web` Supabase Auth
-  authenticated shell
+- 4 fixture sets (strong-pursue, maybe, reject, adversarial-image-pdf) with `manifest.json` + PDFs + `build_pdf.py`
+- VX1 bootstrap + deploy + nginx + systemd (runbook in `infra/RUNBOOK.md`)
+- Landing site (Next 15 glassmorphism) with SEO (robots.txt, JSON-LD SoftwareApplication)
+- Product `/web` with authenticated shell + loading skeletons + error boundaries + SSE stream upgrade
+- MCP server package (`mcp-server-govcapture` wrapping `/api/v1/tools`)
+- Eval harness scaffolding (`eval/runner/`, `eval/goldens/`, differs + tolerance) — goldens not yet bootstrapped
+- 181 passing tests (baseline 113 + 68 new across phases 1–5)
 
 **Next (this repo's queue):**
 
-- Ledger's `query_usaspending` skill (separate writeback table)
-- `hermes_plugin_govcapture/` — register tool adapters with Hermes for
-  Michaela's workers (per `devdocs/CAPABILITY_PACK_INTEGRATION.md`)
-- Eval harness (`eval/runner/`, `eval/goldens/`)
-- `/web` product UI beyond the authenticated shell
+- Sprint C Phases 1.3/1.4/1.5: mobile sweep + a11y full pass + copy pass (user-driven)
+- Eval goldens bootstrap (`make eval-bootstrap`; costs Anthropic tokens; user-driven)
+- Sprint D: VX1 production deploy (external infra)
+- Sprint G e2e: cross-repo verification with `/root/michealaai` (michealaai's scope)
+- Phase 6: Resend SMTP production email (Supabase Studio account access required)
+- v1.0.0 git tag (gated by Phase 7 + Sprint G verification)
+
+**Schema migrations committed but NOT applied:**
+- `b334c20` — api_keys table
+- `ec7eb5f` — competitor_history table
+Apply both with `supabase db push` before exercising the new routes.
 
 **Owned by `/root/michealaai`, not us:**
 
 - Michaela orchestrator + worker bench
 - Per-opportunity orchestration recipe
 - Trace event emission (we ship the schema; they emit against it)
+- Goldens bootstrap (token cost; user-initiated)
 
 ---
 
