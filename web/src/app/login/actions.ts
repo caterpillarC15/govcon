@@ -193,7 +193,14 @@ export async function signInWithGoogle(formData: FormData) {
 // page-level conditional render mean this can't be triggered in prod
 // even if the form data leaks.
 export async function signInAsDev() {
-  if (process.env.ALLOW_DEV_LOGIN !== 'true') {
+  // Defense in depth: even if ALLOW_DEV_LOGIN=true was accidentally set
+  // in a prod environment, refuse outright on production builds. The
+  // login page already hides the button under the same guard; this is
+  // the second wall in case the form is POSTed directly.
+  const isProdBuild =
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL_ENV === 'production'
+  if (isProdBuild || process.env.ALLOW_DEV_LOGIN !== 'true') {
     redirect('/login?error=Dev+login+is+disabled')
   }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL

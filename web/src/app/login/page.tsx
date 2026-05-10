@@ -23,7 +23,17 @@ export default async function LoginPage({
   // here in a Server Component keeps the dev-button render decision on
   // the server — even if the .env leaks to a build, the variable name
   // never enters the client bundle.
-  const showDevLogin = process.env.ALLOW_DEV_LOGIN === 'true'
+  //
+  // Defense in depth: refuse the dev login on any production build, even
+  // if ALLOW_DEV_LOGIN=true was accidentally set in Vercel's prod env.
+  // Past incident: prod once shipped with the dev-login button visible
+  // because the env var was copied between environments. The actions.ts
+  // signInAsDev() handler enforces the same guard server-side.
+  const isProdBuild =
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL_ENV === 'production'
+  const showDevLogin =
+    !isProdBuild && process.env.ALLOW_DEV_LOGIN === 'true'
 
   return (
     <main className="relative min-h-screen w-full">
