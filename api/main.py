@@ -9,11 +9,13 @@ from api.redis import close_redis
 from api.routes import (
     action_packages,
     agent_runs,
+    api_keys,
     company_profiles,
     healthz,
     opportunities,
     profiles,
     tools,
+    v1_tools,
     waitlist,
     well_known,
 )
@@ -44,5 +46,7 @@ app.include_router(company_profiles.router)
 app.include_router(agent_runs.router)
 app.include_router(opportunities.router)
 app.include_router(action_packages.router)
+app.include_router(api_keys.router)
 app.include_router(tools.router)
+app.include_router(v1_tools.router)
 app.include_router(well_known.router)

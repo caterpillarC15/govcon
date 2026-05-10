@@ -60,6 +60,10 @@ class _Query:
         self._filters.append((col, "in", values))
         return self
 
+    def is_(self, col: str, value: str) -> "_Query":
+        self._filters.append((col, "is", value))
+        return self
+
     def order(self, col: str, *, desc: bool = False) -> "_Query":
         self._order = (col, desc)
         return self
@@ -83,6 +87,8 @@ class _Query:
             if op == "eq" and (row_value is None or str(row_value) != str(value)):
                 return False
             if op == "in" and str(row_value) not in {str(v) for v in value}:
+                return False
+            if op == "is" and value == "null" and row_value is not None:
                 return False
         return True
 
@@ -230,6 +236,11 @@ _TABLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "role": None,
         "source": "landing",
     },
+    "api_keys": {
+        "scopes": ["tools:*"],
+        "last_used_at": None,
+        "revoked_at": None,
+    },
 }
 
 
@@ -259,6 +270,7 @@ async def client(fake_supabase: FakeSupabase):
 
     from api.auth import AuthenticatedUser, require_user
     from api.config import settings
+    from api.db import get_client
     from api.deps import get_supabase
     from api.main import app
 
@@ -270,6 +282,7 @@ async def client(fake_supabase: FakeSupabase):
 
     settings.internal_api_key = TEST_INTERNAL_API_KEY
     app.dependency_overrides[get_supabase] = _fake_dep
+    app.dependency_overrides[get_client] = _fake_dep
     app.dependency_overrides[require_user] = _fake_user
     transport = ASGITransport(app=app)
     try:
@@ -277,4 +290,5 @@ async def client(fake_supabase: FakeSupabase):
             yield c
     finally:
         app.dependency_overrides.pop(get_supabase, None)
+        app.dependency_overrides.pop(get_client, None)
         app.dependency_overrides.pop(require_user, None)

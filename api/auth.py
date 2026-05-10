@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+import hashlib
 import secrets
 import uuid
 from typing import Annotated
 
 import httpx
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from pydantic import BaseModel
+from supabase import AsyncClient
 
 from api.config import settings
+from api.db import get_client
+from api.rate_limit import RateLimitError, acquire
+from api.repositories.api_key import ApiKeyRepository
 
 
 class AuthenticatedUser(BaseModel):
@@ -18,6 +23,14 @@ class AuthenticatedUser(BaseModel):
 
 class InternalActor(BaseModel):
     name: str = "internal"
+
+
+class AgentActor(BaseModel):
+    """An authenticated agent. Either an internal call or a per-user gck_ key."""
+
+    is_internal: bool
+    owner_profile_id: uuid.UUID | None = None
+    api_key_id: uuid.UUID | None = None
 
 
 async def require_user(
@@ -107,3 +120,59 @@ async def require_internal_actor(
             detail="Invalid internal API key",
         )
     return InternalActor()
+
+
+async def require_agent_or_internal(
+    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    x_internal_api_key: Annotated[
+        str | None, Header(alias="X-Internal-API-Key")
+    ] = None,
+    client: AsyncClient = Depends(get_client),
+) -> AgentActor:
+    """Auth for /api/v1/tools/<name>: accept either INTERNAL_API_KEY or gck_."""
+    # Path A: internal shared secret (Sprint B compatibility).
+    configured = settings.internal_api_key
+    if (
+        x_internal_api_key
+        and configured
+        and secrets.compare_digest(x_internal_api_key, configured)
+    ):
+        return AgentActor(is_internal=True)
+
+    # Path B: per-user gck_ bearer.
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, "Missing credentials"
+        )
+    token = authorization.split(" ", 1)[1].strip()
+    if not token.startswith("gck_"):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Token must be a gck_ API key (mint at /app/keys)",
+        )
+    digest = hashlib.sha256(token.encode()).hexdigest()
+    repo = ApiKeyRepository(client)
+    row = await repo.find_active_by_hash(digest)
+    if row is None:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, "Invalid or revoked API key"
+        )
+
+    api_key_id = uuid.UUID(str(row["id"]))
+    # Per-key rate limit: 60 req/min, refill 1/s.
+    try:
+        await acquire(
+            f"rl:apikey:{api_key_id}", capacity=60, refill_per_sec=1.0
+        )
+    except RateLimitError as exc:
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded",
+            headers={"Retry-After": str(exc.retry_after)},
+        ) from exc
+
+    return AgentActor(
+        is_internal=False,
+        owner_profile_id=uuid.UUID(str(row["owner_profile_id"])),
+        api_key_id=api_key_id,
+    )
