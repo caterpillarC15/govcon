@@ -231,15 +231,8 @@ async def test_extract_requirements_unparseable_short_circuit(client) -> None:
 # ─── /tools/score-fit ──────────────────────────────────────────────────────
 
 
-async def test_score_fit_eligibility_short_circuit(client, fake_llm_factory) -> None:
-    fake_llm_factory(
-        {
-            "total_score": 80,
-            "decision": "pursue",
-            "confidence": "high",
-            "score_breakdown": {},
-        }
-    )
+async def test_score_fit_eligibility_short_circuit(client) -> None:
+    """PRD v1.2.6: §11.1 short-circuit deterministic; metrics None."""
     payload = {
         "company_profile": {"clearance_status": "none", "certifications": []},
         "requirements": [
@@ -260,7 +253,7 @@ async def test_score_fit_eligibility_short_circuit(client, fake_llm_factory) -> 
     body = r.json()
     assert body["data"]["decision"] == "reject"
     assert body["data"]["total_score"] == 0
-    assert body["metrics"]["model"] == "none"
+    assert body["metrics"] is None
 
 
 # ─── /tools/detect-risks ───────────────────────────────────────────────────

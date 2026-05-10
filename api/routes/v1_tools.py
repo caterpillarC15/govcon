@@ -92,10 +92,10 @@ async def extract_requirements_route(
 async def score_fit_route(
     payload: ScoreFitRequest,
     _actor: AgentActor = Depends(require_agent_or_internal),
-    llm=Depends(get_llm),
 ) -> ToolResponse:
-    data, metrics = await score_fit(payload.model_dump(), llm=llm)
-    return ToolResponse(data=data, metrics=metrics)
+    # PRD v1.2.6: deterministic. See tools.py for flow notes.
+    data = await score_fit(payload.model_dump())
+    return ToolResponse(data=data, metrics=None)
 
 
 @router.post("/detect-risks", response_model=ToolResponse)

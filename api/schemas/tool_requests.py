@@ -50,6 +50,14 @@ class ExtractRequirementsRequest(_Strict):
 class ScoreFitRequest(_Strict):
     company_profile: dict[str, Any]
     requirements: list[dict[str, Any]]
+    # PRD v1.2.6: Lenny supplies these after computing in her agent context.
+    # Omit on the first call (returns "needs_score" if no §11.1 blockers).
+    total_score: int | None = None
+    score_breakdown: dict[str, Any] | None = None
+    strengths: list[str] = Field(default_factory=list)
+    weaknesses: list[str] = Field(default_factory=list)
+    missing_information: list[str] = Field(default_factory=list)
+    recommended_next_action: str = ""
 
 
 class DetectRisksRequest(_Strict):

@@ -25,7 +25,6 @@ from typing import Any
 from api.config import settings
 from api.db import get_client
 from api.jobs.weekly_opportunity_safety import safety_filter
-from api.llm import LLM
 from api.repositories.opportunity import OpportunityRepository
 from api.repositories.weekly_opportunity_pick import (
     PickSource,
@@ -117,22 +116,29 @@ def _synth_requirements_from_opp(opp: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 async def _score_candidate(
-    opp: dict[str, Any], *, llm: LLM
+    opp: dict[str, Any],
 ) -> dict[str, Any] | None:
     """Run score_fit against a single candidate; return its output dict.
 
-    Returns None if score_fit raises (LLM unavailable, malformed input).
-    Logged as a rejection in the picker_audit downstream.
+    PRD v1.2.6: score_fit is deterministic. Returns None only if
+    score_fit raises on malformed input (logged as a rejection
+    downstream).
     """
-    # Imported here to avoid pulling LLM-touching modules at module load.
     from api.skills.score_fit.skill import score_fit
 
+    # PRD v1.2.6: score_fit is deterministic. The auto-picker only
+    # needs the §11.1 short-circuit + decision band — Lenny's full
+    # rationale is not consulted here. We omit total_score so the
+    # skill returns "needs_score" for non-blocker opportunities,
+    # which the caller treats as "not auto-pickable, defer to a real
+    # run." Blocker opportunities return decision=reject and get
+    # filtered out.
     payload = {
         "company_profile": SYNTHETIC_SMB_PROFILE,
         "requirements": _synth_requirements_from_opp(opp),
     }
     try:
-        out, _metrics = await score_fit(payload, llm=llm)
+        out = await score_fit(payload)
     except Exception as exc:  # noqa: BLE001
         logger.warning(
             "score_fit failed on opportunity %s: %s", opp.get("id"), exc
@@ -214,10 +220,12 @@ async def auto_pick_for_week(
             (opp, 70, "medium") for opp in survivors
         ]
     else:
-        llm = LLM()
+        # PRD v1.2.6: score_fit is deterministic; no LLM client needed.
+        # `pretend_disable_llm` retained as a manual-vs-auto picker
+        # source distinction, not as an LLM-availability gate.
         ranked = []
         for opp in survivors:
-            out = await _score_candidate(opp, llm=llm)
+            out = await _score_candidate(opp)
             if out is None:
                 audit["rejections"].append(
                     {"opportunity_id": opp.get("id"), "reason": "score_fit_failed"}

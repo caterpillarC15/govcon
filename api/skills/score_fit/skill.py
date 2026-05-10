@@ -1,26 +1,32 @@
-"""score_fit — A6.
+"""score_fit — §11.1 short-circuit + decision-band normalizer (PRD v1.2.6).
 
-§5.7 fit-scoring rubric + §11.1 deterministic eligibility short-circuit.
+Per the operating rule (devdocs/MICHAELA_SYSTEM_MODEL.md line 175),
+the §5.7 fit-scoring rubric is judgment work — Lenny computes the
+score breakdown + total in her agent context (in /root/michealaai).
 
-The §11.1 short-circuit fires BEFORE any LLM call when extracted requirements include
-a hard eligibility blocker (set-aside the company doesn't qualify for, clearance the
-company doesn't hold, or a low/unknown-confidence eligibility requirement). When it
-fires, score=0, decision=reject, and NO LLM call is made.
+This skill keeps two deterministic mechanics:
 
-When no short-circuit triggers, the LLM is called with the §5.7 rubric prompt; its
-returned decision is normalized strictly from total_score (decision band rule).
+1. **§11.1 eligibility short-circuit** (always runs first). If the
+   requirements include a hard eligibility blocker — set-aside the
+   company doesn't qualify for, clearance the company doesn't hold,
+   low/unknown-confidence eligibility item, or explicit is_blocker —
+   returns decision=reject + total_score=0. Lenny cannot override.
+
+2. **Decision-band normalizer**. When Lenny supplies a total_score
+   computed in her agent context, the skill maps that score to the
+   §5.7 decision band (strong_pursue / pursue / maybe / reject) and
+   echoes back the agent-supplied strengths/weaknesses/etc.
+
+Two-call contract:
+- total_score=None → §11.1 only. Returns blockers (or empty) so
+  Lenny knows whether to bother computing a score.
+- total_score=N    → §11.1 first, then band normalization on N.
 """
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
-
-from api.llm import LLM, LLMMetrics
-
-_PROMPT = (Path(__file__).parent / "prompt.txt").read_text()
 
 # §11.1 enforcement
 _ELIGIBILITY_TYPES = frozenset({"eligibility", "security", "certification"})
@@ -51,8 +57,10 @@ def _band_from_score(score: int) -> str:
     return "reject"
 
 
-def _detect_eligibility_blockers(profile: dict, requirements: list[dict]) -> list[str]:
-    """Return list of human-readable blocker strings if §11.1 trips, else empty list."""
+def _detect_eligibility_blockers(
+    profile: dict, requirements: list[dict]
+) -> list[str]:
+    """Return list of human-readable blocker strings if §11.1 trips."""
     blockers: list[str] = []
     company_certs = {c.lower() for c in profile.get("certifications", [])}
     company_clearance = (profile.get("clearance_status") or "none").lower()
@@ -60,12 +68,14 @@ def _detect_eligibility_blockers(profile: dict, requirements: list[dict]) -> lis
     for req in requirements:
         if req.get("type") not in _ELIGIBILITY_TYPES:
             continue
-        text = " ".join([
-            str(req.get("title", "")),
-            str(req.get("value", "")),
-            str(req.get("description", "")),
-            str(req.get("evidence_snippet", "")),
-        ]).lower()
+        text = " ".join(
+            [
+                str(req.get("title", "")),
+                str(req.get("value", "")),
+                str(req.get("description", "")),
+                str(req.get("evidence_snippet", "")),
+            ]
+        ).lower()
 
         # Set-aside mismatch
         for kw in _SET_ASIDE_KEYWORDS:
@@ -79,7 +89,8 @@ def _detect_eligibility_blockers(profile: dict, requirements: list[dict]) -> lis
             for kw in _CLEARANCE_KEYWORDS:
                 if kw in text:
                     blockers.append(
-                        f"Clearance required ({req.get('title', 'unspecified')}) — company has none."
+                        f"Clearance required ({req.get('title', 'unspecified')}) "
+                        "— company has none."
                     )
                     break
 
@@ -89,7 +100,8 @@ def _detect_eligibility_blockers(profile: dict, requirements: list[dict]) -> lis
             and req.get("confidence") in {"low", "unknown"}
         ):
             blockers.append(
-                f"Eligibility uncertain: {req.get('title', '')} (low/unknown confidence)."
+                f"Eligibility uncertain: {req.get('title', '')} "
+                "(low/unknown confidence)."
             )
 
         # Explicit is_blocker on eligibility-type requirement
@@ -101,20 +113,6 @@ def _detect_eligibility_blockers(profile: dict, requirements: list[dict]) -> lis
     # Dedupe preserving order
     seen: set[str] = set()
     return [b for b in blockers if not (b in seen or seen.add(b))]  # type: ignore[func-returns-value]
-
-
-def _zero_metrics() -> LLMMetrics:
-    """Synthetic metrics emitted when the short-circuit fires (no real LLM call)."""
-    return LLMMetrics(
-        model="none",
-        latency_ms=0,
-        cost_usd=0.0,
-        input_tokens=0,
-        output_tokens=0,
-        cache_read_tokens=0,
-        cache_creation_tokens=0,
-        attempts=0,
-    )
 
 
 class _ScoreBreakdown(BaseModel):
@@ -129,69 +127,88 @@ class _ScoreBreakdown(BaseModel):
     geography: int = 0
 
 
-class _ScoreFitOutput(BaseModel):
-    total_score: int = Field(..., ge=0, le=100)
-    decision: Literal["strong_pursue", "pursue", "maybe", "reject"]
-    confidence: Literal["high", "medium", "low"]
-    score_breakdown: _ScoreBreakdown
+Decision = Literal[
+    "strong_pursue", "pursue", "maybe", "reject", "needs_score"
+]
+
+
+class ScoreFitInput(BaseModel):
+    company_profile: dict[str, Any]
+    requirements: list[dict[str, Any]]
+    # Agent-supplied (Lenny computes in her LLM context):
+    total_score: int | None = Field(None, ge=0, le=100)
+    score_breakdown: _ScoreBreakdown | None = None
     strengths: list[str] = Field(default_factory=list)
     weaknesses: list[str] = Field(default_factory=list)
-    blockers: list[str] = Field(default_factory=list)
     missing_information: list[str] = Field(default_factory=list)
     recommended_next_action: str = ""
 
 
-async def score_fit(
-    payload: dict[str, Any], *, llm: LLM
-) -> tuple[dict[str, Any], LLMMetrics]:
-    """Score how well a company fits an opportunity.
+async def score_fit(payload: ScoreFitInput | dict[str, Any]) -> dict[str, Any]:
+    """§11.1 short-circuit + decision-band normalizer.
 
-    Input shape:
-        {"company_profile": {...}, "requirements": [{...}, ...]}
+    Always evaluates blockers first. If any blocker fires, returns
+    the deterministic reject regardless of supplied total_score
+    (PRD §11.1 — eligibility is unforgiving).
 
-    Returns: (output_dict, metrics) where output_dict matches §5.7 + §11.1 contract.
+    With no blockers and no total_score: returns decision="needs_score"
+    so Lenny knows to compute the score and call back.
+
+    With no blockers and total_score supplied: maps to §5.7 decision
+    band and echoes the agent-supplied detail fields.
     """
-    profile = payload["company_profile"]
-    requirements = payload["requirements"]
+    if isinstance(payload, dict):
+        payload = ScoreFitInput.model_validate(payload)
 
-    # §11.1 deterministic short-circuit BEFORE any LLM call
-    blockers = _detect_eligibility_blockers(profile, requirements)
+    blockers = _detect_eligibility_blockers(
+        payload.company_profile, payload.requirements
+    )
+
     if blockers:
-        return (
-            {
-                "total_score": 0,
-                "decision": "reject",
-                "confidence": "high",
-                "score_breakdown": dict(_ZERO_BREAKDOWN),
-                "strengths": [],
-                "weaknesses": [],
-                "blockers": blockers,
-                "missing_information": [],
-                "recommended_next_action": (
-                    "Do not pursue. Critical eligibility blocker(s) present."
-                ),
-            },
-            _zero_metrics(),
-        )
+        # §11.1 deterministic reject — Lenny cannot override.
+        return {
+            "total_score": 0,
+            "decision": "reject",
+            "confidence": "high",
+            "score_breakdown": dict(_ZERO_BREAKDOWN),
+            "strengths": [],
+            "weaknesses": [],
+            "blockers": blockers,
+            "missing_information": [],
+            "recommended_next_action": (
+                "Do not pursue. Critical eligibility blocker(s) present."
+            ),
+        }
 
-    # No short-circuit → call LLM with rubric
-    user_prompt = (
-        "Company profile:\n"
-        + json.dumps(profile, indent=2)
-        + "\n\nExtracted requirements:\n"
-        + json.dumps(requirements, indent=2)
-        + "\n\nReturn JSON per the schema."
-    )
-    result, metrics = await llm.complete_structured(
-        system=_PROMPT,
-        user=user_prompt,
-        output_model=_ScoreFitOutput,
-    )
+    if payload.total_score is None:
+        # No score yet — Lenny hasn't computed it. Return clean state
+        # so she knows she's clear of §11.1 and should proceed.
+        return {
+            "total_score": 0,
+            "decision": "needs_score",
+            "confidence": "low",
+            "score_breakdown": dict(_ZERO_BREAKDOWN),
+            "strengths": [],
+            "weaknesses": [],
+            "blockers": [],
+            "missing_information": [],
+            "recommended_next_action": "",
+        }
 
-    # result is a Pydantic model — convert to dict and normalize decision from total_score
-    out = result.model_dump()
-    out["decision"] = _band_from_score(int(out.get("total_score", 0)))
-    # score_breakdown is a nested model — ensure it's a plain dict
-    if not isinstance(out["score_breakdown"], dict):
-        out["score_breakdown"] = dict(out["score_breakdown"])
-    return out, metrics
+    # Score supplied → normalize to §5.7 band, pass agent fields through.
+    breakdown = (
+        payload.score_breakdown.model_dump()
+        if payload.score_breakdown
+        else dict(_ZERO_BREAKDOWN)
+    )
+    return {
+        "total_score": payload.total_score,
+        "decision": _band_from_score(payload.total_score),
+        "confidence": "high",
+        "score_breakdown": breakdown,
+        "strengths": payload.strengths,
+        "weaknesses": payload.weaknesses,
+        "blockers": [],
+        "missing_information": payload.missing_information,
+        "recommended_next_action": payload.recommended_next_action,
+    }
