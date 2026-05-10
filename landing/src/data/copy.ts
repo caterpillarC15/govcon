@@ -1,13 +1,19 @@
 /**
  * Single source of truth for landing-page copy.
- * Defensible against PRD §15 (Outreach Positioning):
- * — say "first-pass capture analysis," "human-reviewed workflow"
- * — never claim "guaranteed eligibility," "automatic submission," "legal review"
+ *
+ * Brand: GovCon Bid Desk — AI bid-desk operator for government-contracting
+ * teams. Canonical source: tasks/LANDING_BRIEF.md.
+ *
+ * Public positioning rules (devdocs/V1_PRODUCT_ALIGNMENT.md §"Public Terms"):
+ * sell the worker, not the framework; use bid / proposal / contract /
+ * opportunity / action plan language; avoid leading with capture, MCP,
+ * Hermes, OpenClaw, or "agent platform."
  */
 
 export const PRODUCT = {
-  name: 'GovCapture',
-  fullName: 'GovCapture Agent',
+  name: 'GovCon Bid Desk',
+  fullName: 'GovCon Bid Desk',
+  tagline: 'AI bid-desk operator for government contracting teams.',
 } as const
 
 export const NAV = [
@@ -17,9 +23,10 @@ export const NAV = [
 
 export const HERO = {
   pill: 'Private beta · onboarding design partners',
-  title: 'GovCapture',
-  subtitle: 'A first-pass capture analyst for federal contracts.',
-  primaryCta: 'Request access',
+  title: 'Find contracts worth bidding\nbefore the deadline',
+  subtitle:
+    'Hire an AI operator that qualifies opportunities, drafts the bid plan, and keeps proposal work moving.',
+  primaryCta: 'Start bid review',
   secondaryCta: 'See the workflow',
 } as const
 
@@ -48,10 +55,10 @@ export const TRUST_PILLS = [
   { label: 'Source-cited', sub: 'evidence + page #' },
   { label: 'Human-approved', sub: 'gate before external' },
   { label: 'Eligibility-conservative', sub: 'mismatch = reject' },
-  { label: 'Bounded runs', sub: '40 steps · 6 min · $0.50' },
 ] as const
 
 export const FOOTER = {
-  blurb: 'MVP for the Agents Track',
-  legal: '© ' + new Date().getFullYear() + ' GovCapture. Source-cited; not legal advice.',
+  // Footer.tsx renders the © + year separately; keep this string free of
+  // both so we don't get a duplicate © on the rendered page.
+  legal: 'GovCon Bid Desk · All rights reserved.',
 } as const

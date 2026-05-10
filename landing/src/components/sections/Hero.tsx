@@ -15,6 +15,9 @@ export default function Hero() {
             letterSpacing: 0,
             fontWeight: 600,
             maxWidth: '100%',
+            // HERO.title encodes the brief's two-line headline with a \n;
+            // preserve it as a hard break in the rendered h1.
+            whiteSpace: 'pre-line',
           }}
         >
           {HERO.title}
@@ -29,25 +32,12 @@ export default function Hero() {
             fontWeight: 500,
           }}
         >
-          A first-pass{' '}
-          <span
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontStyle: 'italic',
-              fontWeight: 400,
-              letterSpacing: '0',
-            }}
-            className="text-[var(--color-ink)]"
-          >
-            capture analyst
-          </span>{' '}
-          for federal contracts.
+          {HERO.subtitle}
         </p>
 
         <p className="mt-3 mx-auto max-w-xl text-[14.5px] leading-[1.55] text-[var(--color-ink-muted)]">
-          Extracts requirements with page-level citations, scores fit against
-          your profile, and produces a reviewable action package. Human
-          approval before anything external.
+          Source-cited bid/no-bid decisions, owners and deadlines on every
+          action, and a human approval gate before anything goes external.
         </p>
 
         <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">

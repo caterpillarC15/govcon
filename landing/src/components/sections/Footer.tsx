@@ -8,8 +8,6 @@ export default function Footer() {
         <div className="pt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-[12px] text-[var(--color-ink-muted)]">
             <span className="text-[var(--color-ink)] font-medium">{PRODUCT.fullName}</span>
-            <span className="mx-2 text-[var(--color-ink-subtle)]">·</span>
-            {FOOTER.blurb}
             <span className="mx-2 text-[var(--color-ink-subtle)]">·</span>© {new Date().getFullYear()}
           </span>
           <nav className="flex flex-wrap gap-x-5 gap-y-2" aria-label="Footer">

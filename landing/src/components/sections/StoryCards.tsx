@@ -1,15 +1,19 @@
-import { Badge, GlassCard, InnerTile } from '../ui/Primitives'
+import { Badge, GlassCard, InnerTile, MonoLabel } from '../ui/Primitives'
 import { STORY_CARDS } from '../../data/copy'
 import FitScoreGauge from '../FitScoreGauge'
 
 /* ------- Per-card supporting UI previews -------
  * One strong proof element per card. The glass surface is the hero;
  * the preview is a quiet anchor that earns the claim above it.
+ *
+ * Each preview is illustrative — labelled "Example output" so visitors
+ * don't read the screenshot data as live or as a customer commitment.
  */
 
 function DiscoverPreview() {
   return (
     <div className="flex flex-col gap-2.5">
+      <MonoLabel>Example output</MonoLabel>
       <InnerTile className="px-3.5 py-3 flex items-center gap-3">
         <span className="font-mono text-[10px] tracking-[0.12em] text-[var(--color-ink-subtle)] shrink-0">
           DLA

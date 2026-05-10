@@ -52,11 +52,11 @@ export default function Navbar() {
             <a
               href="#"
               className="flex items-center gap-2 shrink-0 pl-1 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-              aria-label="GovCapture — back to top"
+              aria-label="GovCon Bid Desk — back to top"
             >
               <Mark />
               <span className="text-[14px] font-medium tracking-tight text-[var(--color-ink)]">
-                GovCapture
+                GovCon Bid Desk
               </span>
             </a>
 

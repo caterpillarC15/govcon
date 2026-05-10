@@ -72,7 +72,7 @@ export default function Waitlist() {
                 fontWeight: 600,
               }}
             >
-              Run a real capture against your{' '}
+              Run a real bid review against your{' '}
               <span
                 style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400 }}
               >

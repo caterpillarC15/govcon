@@ -13,20 +13,26 @@ const instrumentSerif = Instrument_Serif({
 })
 
 export const metadata: Metadata = {
-  title: 'GovCapture Agent — First-pass capture analyst for federal contracts',
+  title: {
+    default: 'GovCon Bid Desk · AI bid-desk operator',
+    template: '%s · GovCon Bid Desk',
+  },
   description:
-    'GovCapture Agent reads federal solicitations, extracts requirements with evidence, scores fit against your company profile, and produces a reviewable action package. Human approval required before any external action.',
+    'Hire an AI operator that finds contracts worth bidding, qualifies opportunities, and drafts the bid plan.',
   icons: [{ rel: 'icon', url: '/favicon.svg' }],
   openGraph: {
-    title: 'GovCapture Agent',
-    description:
-      'An autonomous capture analyst for small businesses pursuing federal contracts. Source-cited requirements, conservative eligibility, human-in-the-loop.',
+    title: 'GovCon Bid Desk',
+    description: 'AI bid-desk operator for government contracting teams.',
+    siteName: 'GovCon Bid Desk',
     type: 'website',
   },
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0f172a',
+  // Match the warm-canvas body color (--color-canvas-warm) so the mobile
+  // browser chrome blends with the page; was '#0f172a' which produced a
+  // dark slate bar against the light design.
+  themeColor: '#fafaf7',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
