@@ -14,6 +14,11 @@
 > - **Two systemd timers added** on the VX1: `govcapture-cron-auto-pick.timer` (Sun 22:00 UTC, runs the picker) and `govcapture-cron-weekly.timer` (Mon 14:00 UTC, runs the send). Decoupled so a failed pick never breaks the send job. Both gated by `INTERNAL_API_KEY`.
 > - **Reuses existing `INTERNAL_API_KEY`** for cron auth — no new `CRON_SECRET` env var.
 > - **Reuses the existing `waitlist_signups` table** by adding `weekly_opportunity_enabled`, `unsubscribed_at`, `unsubscribed_reason`, `bounced_at`, `complained_at`, `confirmed_at`, `last_emailed_at` columns. Two new tables `weekly_opportunity_picks` and `weekly_opportunity_email_log` carry per-week curation and per-recipient idempotency. New Supabase migration under `supabase/migrations/`.
+> - **Skills are now deterministic-only.** Per the operating rule (mechanics in tools, judgment in agents), `parse_goal`, `extract_requirements`, `score_fit`, `detect_risks`, and `generate_action_package` no longer call any LLM provider. Michaela's bench in `/root/michealaai` owns all LLM judgment; this repo carries only mechanics, schemas, and contracts. Skills accept agent-emitted content and validate against PRD §11.1, §11, §5.8, §5.13.
+> - **Removed surface:** `api/llm.py` (LLM wrapper, LLMMetrics, LLMError), `api/tests/fakes.py` (FakeLLM), `api.deps.get_llm`. The `anthropic` SDK dropped from `pyproject.toml`. Worker prompts under `api/skills/<name>/prompt.txt` deleted (5 files).
+> - **Removed env vars:** `ANTHROPIC_API_KEY`, `LLM_DEV_MODEL`, `LLM_SYNTH_MODEL`, `RUN_BUDGET_USD`, `RUN_BUDGET_STEPS`, `RUN_BUDGET_SECONDS`. Budgets move to Michaela's environment in `/root/michealaai`.
+> - **Response envelope change:** `/tools/<name>` and `/api/v1/tools/<name>` now return `{"data": ...}` only — no `metrics` field. Cross-repo callers in `/root/michealaai` must stop reading `response.metrics`. Documented in `devdocs/CAPABILITY_PACK_INTEGRATION.md`.
+> - **Eval harness simplified** to byte-exact deterministic diff. `make eval` no longer requires Anthropic credits; goldens bootstrapped at 18 (4 fixtures × {parse_goal, score_fit, detect_risks, generate_action_package, extract_requirements} minus skipped combos).
 >
 > **Changelog v1.2.4 → v1.2.5** (2026-05-09)
 > - **Repo boundary corrected.** This repo is now the GovCon Bid Desk

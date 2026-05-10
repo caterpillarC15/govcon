@@ -49,14 +49,15 @@ body matching the schema in `api/schemas/tool_requests.py`.
 Responses share the uniform envelope:
 
 ```json
-{ "data": <skill output>, "metrics": <LLMMetrics | null> }
+{ "data": <skill output> }
 ```
 
-`metrics` is null for non-LLM skills (parse_pdf, rank_opportunities,
-search_sam, fetch_attachment, load_seeded_opportunities) and populated with
-token counts and cost for LLM-backed skills (parse_goal,
-extract_requirements, score_fit, detect_risks, generate_action_package).
-The full table of routes lives in `tasks/CONTRACTS.md` §6.
+**PRD v1.2.6 contract change.** Every skill is deterministic; the
+envelope no longer carries a `metrics` field. Cross-repo callers that
+previously read `response.metrics` (token counts, cost, latency) must
+stop — those measurements move to the orchestrator side, where the
+LLM calls now actually happen. The full table of routes lives in
+`tasks/CONTRACTS.md` §6.
 
 This is parity with — not a replacement for — the planned Hermes plugin
 (Sprint A). The plugin gives Michaela's Hermes-hosted workers native tool
@@ -171,23 +172,32 @@ will pass it through unchanged (the route does not validate). The frontend
 renderer should treat unknown types as opaque "trace step" rows rather
 than dropping them.
 
-### Python Skills
+### Python Skills (deterministic — PRD v1.2.6)
 
-Domain mechanics live under `api/skills/<name>/`:
+Domain mechanics live under `api/skills/<name>/`. Per the operating
+rule (`devdocs/MICHAELA_SYSTEM_MODEL.md` line 175), this repo holds
+mechanics only; Michaela's bench in `/root/michealaai` does the
+LLM judgment and passes its results back to these skills as input
+for shape validation.
 
-- `parse_goal`
-- `search_sam`
-- `load_seeded_opportunities`
-- `rank_opportunities`
-- `fetch_attachment`
-- `parse_pdf`
-- `extract_requirements`
-- `score_fit`
-- `detect_risks`
-- `generate_action_package`
-- `query_usaspending` (Ledger; persists to `competitor_history`)
+| Skill | Caller worker | Skill role |
+|---|---|---|
+| `parse_goal` | Michaela | input pass-through validator |
+| `search_sam` | Scot | SAM.gov v2 query |
+| `load_seeded_opportunities` | Scot | fixture loader |
+| `rank_opportunities` | Lenny | deterministic decision-band sort |
+| `fetch_attachment` | Happer | URL → Supabase Storage |
+| `parse_pdf` | Happer | pypdf chunking + page metadata |
+| `extract_requirements` | Gate | chunks emitter + §11 evidence-binding validator |
+| `score_fit` | Lenny + Gate | §11.1 short-circuit + decision-band normalizer |
+| `detect_risks` | Gate | §5.8 taxonomy + cap-at-8 + critical-blocker carry-forward |
+| `generate_action_package` | Roy | reject_summary mode + §5.13 enforcer |
+| `query_usaspending` | Ledger | USASpending HTTP query → `competitor_history` |
 
-These functions are provider-agnostic except where an LLM call is explicit.
+No skill calls an LLM. `ANTHROPIC_API_KEY`, `LLM_DEV_MODEL`,
+`LLM_SYNTH_MODEL`, `RUN_BUDGET_*` env vars were dropped at v1.2.6 —
+those concerns live in `/root/michealaai`'s environment now.
+
 Inputs and outputs must stay aligned with `schemas/*.json` and
 `api/schemas/*.py`.
 
@@ -207,16 +217,16 @@ Raw files do not belong in Postgres.
 
 ## Model Provider Boundary
 
-The clean project-isolated default is direct Anthropic:
+**This repo no longer holds an LLM credential** (PRD v1.2.6). All
+LLM calls happen in `/root/michealaai` against whatever provider
+Michaela's environment is configured for (Anthropic direct, OpenRouter,
+etc.). Cross-repo concern: the orchestrator side owns model selection,
+budget tracking, and provider auth.
 
-```bash
-ANTHROPIC_API_KEY=...
-```
-
-OpenRouter is a future model-routing option, not the project architecture.
-If Hermes can chat but FastAPI skills fail with provider auth errors, treat
-that as an environment split: different processes are reading different
-credential sources.
+If a developer wants to run Hermes against this pack's tools for
+isolated testing (`HERMES_HOME=$(pwd)/.hermes hermes`), the credential
+goes in their per-user `~/.hermes/auth.json` or in `HERMES_HOME/.env`,
+not in this repo's `.env`.
 
 ## INTERNAL_API_KEY provisioning
 
