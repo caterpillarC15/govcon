@@ -116,10 +116,10 @@ async def score_fit_route(
 async def detect_risks_route(
     payload: DetectRisksRequest,
     _actor: InternalActor = Depends(require_internal_actor),
-    llm=Depends(get_llm),
 ) -> ToolResponse:
-    data, metrics = await detect_risks(payload.model_dump(), llm=llm)
-    return ToolResponse(data=data, metrics=metrics)
+    # PRD v1.2.6: skill validates Gate-emitted risks; no LLM.
+    data = await detect_risks(payload.model_dump())
+    return ToolResponse(data=data, metrics=None)
 
 
 @router.post("/generate-action-package", response_model=ToolResponse)

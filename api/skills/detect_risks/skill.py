@@ -1,31 +1,45 @@
-"""detect_risks — A7.
+"""detect_risks — risk validator (PRD v1.2.6).
 
-§5.8 risk taxonomy + severity calibration. The LLM identifies risks; we enforce:
-- silent-drop on categories outside the allowed taxonomy
-- forced human review on critical_blocker severity or legal_compliance_review category
+Per the operating rule (devdocs/MICHAELA_SYSTEM_MODEL.md line 175),
+emitting risks requires judgment — Gate produces them in her agent
+context (in /root/michealaai). This skill is the deterministic gate
+that enforces:
+
+- silent-drop on categories outside the §5.8 allowed taxonomy
+- forced human review on critical_blocker severity OR
+  legal_compliance_review category (regardless of agent's flag)
 """
 from __future__ import annotations
-import json
-from pathlib import Path
+
 from typing import Any, Literal
+
 from pydantic import BaseModel
-from api.llm import LLM, LLMMetrics
 
-_PROMPT = (Path(__file__).parent / "prompt.txt").read_text()
-
-_ALLOWED_CATEGORIES = frozenset({
-    "clearance_required", "set_aside_mismatch", "certification_gap",
-    "past_performance_weakness", "deadline_too_close", "missing_attachments",
-    "submission_ambiguity", "insurance_bonding_gap", "scope_mismatch",
-    "legal_compliance_review", "pricing_complexity", "missing_required_document",
-})
+_ALLOWED_CATEGORIES = frozenset(
+    {
+        "clearance_required",
+        "set_aside_mismatch",
+        "certification_gap",
+        "past_performance_weakness",
+        "deadline_too_close",
+        "missing_attachments",
+        "submission_ambiguity",
+        "insurance_bonding_gap",
+        "scope_mismatch",
+        "legal_compliance_review",
+        "pricing_complexity",
+        "missing_required_document",
+    }
+)
 
 _FORCE_HUMAN_REVIEW_CATEGORIES = frozenset({"legal_compliance_review"})
 
 
 class _RiskFlag(BaseModel):
     category: str
-    severity: Literal["critical_blocker", "major_risk", "moderate_risk", "minor_concern"]
+    severity: Literal[
+        "critical_blocker", "major_risk", "moderate_risk", "minor_concern"
+    ]
     title: str
     description: str
     evidence: str
@@ -33,43 +47,37 @@ class _RiskFlag(BaseModel):
     requires_human_review: bool
 
 
-class _DetectRisksOutput(BaseModel):
-    risks: list[_RiskFlag]
+class DetectRisksInput(BaseModel):
+    company_profile: dict[str, Any] = {}
+    opportunity: dict[str, Any] = {}
+    requirements: list[dict[str, Any]] = []
+    # Agent-emitted risks. Gate produces these in her LLM context.
+    risks: list[_RiskFlag] = []
 
 
 async def detect_risks(
-    payload: dict[str, Any],
-    *,
-    llm: LLM,
-) -> tuple[dict[str, Any], LLMMetrics]:
-    """Detect risks per §5.8 taxonomy.
+    payload: DetectRisksInput | dict[str, Any],
+) -> dict[str, Any]:
+    """Validate Gate-emitted risks against the §5.8 taxonomy.
 
-    Input shape:
-        {"company_profile": {...}, "requirements": [...], "opportunity": {...}}
-    Output:
-        ({"risks": [{...}, ...]}, LLMMetrics)
+    - Drops any risk whose category isn't in _ALLOWED_CATEGORIES
+      (silent — protects against agent hallucination).
+    - Forces requires_human_review=True for critical_blocker
+      severity OR legal_compliance_review category.
     """
-    user_prompt = (
-        "Company profile:\n" + json.dumps(payload.get("company_profile", {}), indent=2) +
-        "\n\nOpportunity:\n" + json.dumps(payload.get("opportunity", {}), indent=2) +
-        "\n\nRequirements:\n" + json.dumps(payload.get("requirements", []), indent=2) +
-        "\n\nReturn JSON per the schema."
-    )
+    if isinstance(payload, dict):
+        payload = DetectRisksInput.model_validate(payload)
 
-    result, metrics = await llm.complete_structured(
-        system=_PROMPT,
-        user=user_prompt,
-        output_model=_DetectRisksOutput,
-    )
+    filtered: list[dict[str, Any]] = []
+    for risk in payload.risks:
+        if risk.category not in _ALLOWED_CATEGORIES:
+            continue  # silent drop
+        rdict = risk.model_dump()
+        if (
+            risk.severity == "critical_blocker"
+            or risk.category in _FORCE_HUMAN_REVIEW_CATEGORIES
+        ):
+            rdict["requires_human_review"] = True
+        filtered.append(rdict)
 
-    risks_dump = result.model_dump()["risks"]
-    filtered: list[dict] = []
-    for r in risks_dump:
-        if r["category"] not in _ALLOWED_CATEGORIES:
-            continue  # silent drop on hallucinated category
-        # Force human review on critical or legal-compliance
-        if r["severity"] == "critical_blocker" or r["category"] in _FORCE_HUMAN_REVIEW_CATEGORIES:
-            r["requires_human_review"] = True
-        filtered.append(r)
-
-    return ({"risks": filtered}, metrics)
+    return {"risks": filtered}

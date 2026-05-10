@@ -102,10 +102,10 @@ async def score_fit_route(
 async def detect_risks_route(
     payload: DetectRisksRequest,
     _actor: AgentActor = Depends(require_agent_or_internal),
-    llm=Depends(get_llm),
 ) -> ToolResponse:
-    data, metrics = await detect_risks(payload.model_dump(), llm=llm)
-    return ToolResponse(data=data, metrics=metrics)
+    # PRD v1.2.6: validator only.
+    data = await detect_risks(payload.model_dump())
+    return ToolResponse(data=data, metrics=None)
 
 
 @router.post("/generate-action-package", response_model=ToolResponse)

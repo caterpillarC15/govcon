@@ -259,9 +259,12 @@ async def test_score_fit_eligibility_short_circuit(client) -> None:
 # ─── /tools/detect-risks ───────────────────────────────────────────────────
 
 
-async def test_detect_risks_happy_path(client, fake_llm_factory) -> None:
-    fake_llm_factory(
-        {
+async def test_detect_risks_happy_path(client) -> None:
+    """PRD v1.2.6: validates Gate-emitted risks; metrics None."""
+    r = await client.post(
+        "/tools/detect-risks",
+        json={
+            "requirements": [{"type": "deadline", "title": "Due soon"}],
             "risks": [
                 {
                     "category": "deadline_too_close",
@@ -272,18 +275,14 @@ async def test_detect_risks_happy_path(client, fake_llm_factory) -> None:
                     "mitigation": "Assign capture owner today.",
                     "requires_human_review": False,
                 }
-            ]
-        }
-    )
-    r = await client.post(
-        "/tools/detect-risks",
-        json={"requirements": [{"type": "deadline", "title": "Due soon"}]},
+            ],
+        },
         headers=INTERNAL_HEADERS,
     )
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["data"]["risks"][0]["category"] == "deadline_too_close"
-    assert body["metrics"]["model"] == "claude-haiku-4-5-20251001"
+    assert body["metrics"] is None
 
 
 # ─── /tools/generate-action-package ────────────────────────────────────────

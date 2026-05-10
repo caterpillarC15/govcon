@@ -64,6 +64,8 @@ class DetectRisksRequest(_Strict):
     company_profile: dict[str, Any] = Field(default_factory=dict)
     opportunity: dict[str, Any] = Field(default_factory=dict)
     requirements: list[dict[str, Any]] = Field(default_factory=list)
+    # PRD v1.2.6: Gate emits risks in her agent context; skill validates.
+    risks: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class GenerateActionPackageRequest(_Strict):
