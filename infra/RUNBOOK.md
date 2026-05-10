@@ -18,7 +18,7 @@ separately and calls this API.
 
 - Vultr VX1 provisioned with **Ubuntu 24.04 LTS**
 - Root SSH access (or a sudoer)
-- A domain you control, e.g. `api.govcapture.example`
+- A domain you control: `api.samrail.com`
 - A Supabase project (create at https://supabase.com — Free tier is enough for MVP)
 - The Supabase CLI on your local machine (or on the box): https://supabase.com/docs/guides/local-development/cli/getting-started
 
@@ -105,26 +105,25 @@ curl http://127.0.0.1:8000/healthz
 Point your domain's `A` record at the box, wait for DNS to propagate, then:
 
 ```bash
-sudo cp /opt/govcapture/infra/nginx/govcapture.conf /etc/nginx/sites-available/
-sudo sed -i 's|api.your-domain.example|api.govcapture.example|g' /etc/nginx/sites-available/govcapture.conf
-sudo ln -sf /etc/nginx/sites-available/govcapture.conf /etc/nginx/sites-enabled/
+sudo cp /opt/govcapture/infra/nginx/samrail.conf /etc/nginx/sites-available/
+sudo ln -sf /etc/nginx/sites-available/samrail.conf /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 
-sudo certbot --nginx -d api.govcapture.example --redirect --agree-tos -m you@example.com -n
+sudo certbot --nginx -d api.samrail.com --redirect --agree-tos -m you@samrail.com -n
 ```
 
 Verify:
 
 ```bash
-curl https://api.govcapture.example/healthz
+curl https://api.samrail.com/healthz
 ```
 
 ## 7. Wire the landing → API
 
 In Vercel project `landing`:
 **Settings → Environment Variables** → add
-`NEXT_PUBLIC_API_BASE = https://api.govcapture.example` for **Production**.
+`NEXT_PUBLIC_API_BASE = https://api.samrail.com` for **Production**.
 Trigger a redeploy.
 
 The FastAPI CORS allowlist is driven by `CORS_ALLOWED_ORIGINS` in the box's
@@ -206,7 +205,7 @@ A standalone outbound channel: one curated federal opportunity per week to opted
 ### Resend account + domain (one-time, manual)
 
 1. Sign up at https://resend.com (free tier covers 3,000/month).
-2. Add `<your-domain>` at https://resend.com/domains. Copy the SPF (TXT) and DKIM (3 × CNAME) records into your DNS. Wait for verification (usually <10 min).
+2. Add `samrail.com` at https://resend.com/domains. Copy the SPF (TXT) and DKIM (3 × CNAME) records into your DNS. Wait for verification (usually <10 min).
 3. Create a sending API key at https://resend.com/api-keys with `send_emails` scope only. Capture the `re_…` value.
 4. Until step 2 verifies, the Resend sandbox sender (`onboarding@resend.dev`) only delivers to the Resend account-owner inbox — fine for the first dev test, useless for production.
 
@@ -216,8 +215,8 @@ Add to `/opt/govcapture/.env`:
 
 ```bash
 RESEND_API_KEY=re_…
-RESEND_FROM_EMAIL=GovCapture <noreply@your-domain>
-EMAIL_PUBLIC_BASE_URL=https://api.govcapture.example
+RESEND_FROM_EMAIL=SamRail <noreply@samrail.com>
+EMAIL_PUBLIC_BASE_URL=https://api.samrail.com
 EMAIL_UNSUBSCRIBE_SECRET=$(openssl rand -hex 32)
 EMAIL_LEGAL_FOOTER_ADDRESS="Your Co · 123 Main St · Austin, TX 78701"
 EMAIL_DRY_RUN=true

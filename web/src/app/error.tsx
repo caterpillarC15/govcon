@@ -27,9 +27,9 @@ export default function GlobalError({
             email{' '}
             <a
               className="font-medium text-[var(--color-accent)] underline-offset-4 hover:underline"
-              href="mailto:support@govcapture.example"
+              href="mailto:support@samrail.com"
             >
-              support@govcapture.example
+              support@samrail.com
             </a>
             {error.digest ? ` and quote error id ${error.digest}.` : '.'}
           </p>

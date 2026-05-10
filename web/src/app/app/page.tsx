@@ -91,7 +91,7 @@ function Onboarding({ firstName }: { firstName: string }) {
     <div className="space-y-6">
       <header>
         <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-[var(--color-ink-muted)]">
-          Welcome to GovCon Bid Desk
+          Welcome to SamRail
         </p>
         <h1 className="mt-2 text-[34px] font-semibold leading-[1.05] tracking-[-0.01em] text-[var(--color-ink)]">
           Hi {firstName} — let&apos;s set up your bid desk.

@@ -15,7 +15,7 @@ export default function TermsPage() {
 
       <h2>The product</h2>
       <p>
-        GovCon Bid Desk is a workspace for government-contracting teams to
+        SamRail is a workspace for government-contracting teams to
         qualify opportunities, draft bid plans, and route action packages
         through human approval. The product is in private beta.
       </p>
@@ -48,7 +48,7 @@ export default function TermsPage() {
 
       <h2>Contact</h2>
       <p>
-        Questions: legal@govconbiddesk.com.
+        Questions: legal@samrail.com.
       </p>
     </LegalShell>
   )

@@ -1,7 +1,7 @@
 """Well-known agent-discoverability endpoints.
 
 Public, auth-free routes that let AI crawlers, MCP clients, and other
-agents discover what GovCon Bid Desk does and how to call it. Modeled
+agents discover what SamRail does and how to call it. Modeled
 on the emerging /.well-known/agent.json + llms.txt conventions plus
 FastAPI's auto-generated /openapi.json.
 
@@ -42,7 +42,7 @@ async def agent_manifest() -> dict:
     in /openapi.json.
     """
     return {
-        "name": "GovCon Bid Desk",
+        "name": "SamRail",
         "description": (
             "Federal contracting capability pack: a hired AI worker that "
             "finds federal contracts worth bidding on, decides "
@@ -67,14 +67,14 @@ async def agent_manifest() -> dict:
             "data": "skill output (dict or Pydantic model dump)",
         },
         "contact": {
-            "support": "support@govcapture.example",
-            "agents": "agents@govcapture.example",
+            "support": "support@samrail.com",
+            "agents": "agents@samrail.com",
         },
     }
 
 
 _LLMS_TXT = """\
-# GovCon Bid Desk
+# SamRail
 
 Federal contracting capability pack. A hired AI worker that finds federal
 contracts worth bidding on, decides pursue/skip, and produces a bid memo
@@ -140,7 +140,7 @@ that lands, the same /tools/<name> routes accept either header.
 
 ## Contact
 
-agents@govcapture.example
+agents@samrail.com
 """
 
 

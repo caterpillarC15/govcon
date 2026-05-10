@@ -16,6 +16,12 @@ const emailSchema = z.string().email().max(254)
 const OTP_WINDOW_MS = 60_000
 const OTP_MAX_PER_WINDOW = 3
 const otpHits = new Map<string, number[]>()
+const AUTH_REDIRECT_CONFIG_ERROR =
+  'Auth redirect URL is still localhost. Set NEXT_PUBLIC_APP_URL to the deployed /web origin and redeploy.'
+
+type HeaderReader = {
+  get(name: string): string | null
+}
 
 function rateLimited(key: string) {
   const now = Date.now()
@@ -29,14 +35,59 @@ function rateLimited(key: string) {
   return false
 }
 
+function normalizedOrigin(value: string | null | undefined) {
+  if (!value) return null
+  try {
+    return new URL(value).origin
+  } catch {
+    return null
+  }
+}
+
+function isLocalOrigin(origin: string) {
+  try {
+    const host = new URL(origin).hostname
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1'
+  } catch {
+    return false
+  }
+}
+
+function originFromHeaders(hdrs: HeaderReader) {
+  const origin = normalizedOrigin(hdrs.get('origin'))
+  if (origin) return origin
+
+  const forwardedHost = hdrs.get('x-forwarded-host')?.split(',')[0]?.trim()
+  const host = forwardedHost || hdrs.get('host')
+  if (!host) return null
+
+  const proto =
+    hdrs.get('x-forwarded-proto')?.split(',')[0]?.trim() || 'https'
+  return normalizedOrigin(`${proto}://${host}`)
+}
+
 async function originUrl() {
   // The magic-link callback route lives in /web (this app), not in
   // /landing. NEXT_PUBLIC_APP_URL points at /web; NEXT_PUBLIC_SITE_URL
   // points at /landing. Reading SITE_URL here was the bug — the link
   // would hit landing's :3000, which doesn't have /auth/callback.
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
-  if (configured) return configured
-  return (await headers()).get('origin') || 'http://localhost:3001'
+  const hdrs = await headers()
+  const configured = normalizedOrigin(process.env.NEXT_PUBLIC_APP_URL)
+  const requestOrigin = originFromHeaders(hdrs)
+
+  // If a deployed request arrives while NEXT_PUBLIC_APP_URL is still a
+  // localhost value, prefer the real host instead of sending a dead link.
+  const resolved =
+    configured &&
+    (!isLocalOrigin(configured) || !requestOrigin || isLocalOrigin(requestOrigin))
+      ? configured
+      : requestOrigin || configured || 'http://localhost:3001'
+
+  if (process.env.VERCEL === '1' && isLocalOrigin(resolved)) {
+    throw new Error(AUTH_REDIRECT_CONFIG_ERROR)
+  }
+
+  return resolved
 }
 
 export async function signIn(formData: FormData) {
@@ -62,7 +113,16 @@ export async function signIn(formData: FormData) {
     )
   }
 
-  const origin = await originUrl()
+  let origin: string
+  try {
+    origin = await originUrl()
+  } catch (error) {
+    redirect(
+      `/login?error=${encodeURIComponent(
+        error instanceof Error ? error.message : AUTH_REDIRECT_CONFIG_ERROR,
+      )}`,
+    )
+  }
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithOtp({
     email,
@@ -80,7 +140,16 @@ export async function signIn(formData: FormData) {
 
 export async function signInWithGoogle(formData: FormData) {
   const next = safeNext(formData.get('next'))
-  const origin = await originUrl()
+  let origin: string
+  try {
+    origin = await originUrl()
+  } catch (error) {
+    redirect(
+      `/login?error=${encodeURIComponent(
+        error instanceof Error ? error.message : AUTH_REDIRECT_CONFIG_ERROR,
+      )}`,
+    )
+  }
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.signInWithOAuth({

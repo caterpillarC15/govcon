@@ -103,7 +103,7 @@ A capability pack is a maintained product:
    - Stores outputs for 7 days or longer for paid accounts if enabled.
    - Cache prevents paying full price twice for the same document.
 
-2. **GovCon Bid Desk / Michaela**
+2. **SamRail / Michaela**
    - Learns what a company does.
    - Finds government opportunities that matter.
    - Produces bid/no-bid decisions and action plans.
@@ -148,7 +148,7 @@ Build one demo where an agent uses one capability pack and the value is obvious 
 Best wedge:
 
 ```text
-Document Processor Pack -> GovCon Bid Desk demo
+Document Processor Pack -> SamRail demo
 ```
 
 The demo:
@@ -170,7 +170,7 @@ The story is not "we read PDFs." The story is:
 Michaela joined your bid team, read the contract, and told you what to do next.
 ```
 
-## Product 1: Michaela, GovCon Bid Desk
+## Product 1: Michaela, SamRail
 
 Public description:
 
@@ -334,7 +334,7 @@ Recommended:
 
 ```text
 Atlas Document Processor Pack
-Michaela GovCon Bid Desk using Atlas
+Michaela SamRail using Atlas
 ```
 
 That proves:

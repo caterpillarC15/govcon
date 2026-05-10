@@ -89,7 +89,7 @@ curl -s https://samrail.com/ | grep -oE 'href="[^"]*login[^"]*"' | head -3
 curl -s https://govcon-rouge.vercel.app/ | grep -oE 'href="[^"]*login[^"]*"' | head -3
 ```
 
-Should NOT contain `localhost` or `govconbiddesk.com`.
+Should NOT contain `localhost` or `samrail.com`.
 
 ---
 
@@ -113,7 +113,7 @@ Toggle **Custom SMTP** ON, fill:
 | Field | Value |
 |---|---|
 | Sender email | `noreply@samrail.com` (after Resend domain verifies) <br> OR `onboarding@resend.dev` (sandbox; only delivers to Resend account owner) |
-| Sender name | `GovCon Bid Desk` |
+| Sender name | `SamRail` |
 | Host | `smtp.resend.com` |
 | Port | `465` |
 | Username | `resend` |
@@ -149,7 +149,7 @@ What this commit lands:
 - `.env.production.example`, `infra/RUNBOOK.md`, `infra/nginx/govcapture.conf`, `devdocs/SETUP.md` — already swapped (user did this earlier)
 
 What's intentionally LEFT as placeholders:
-- `PRD.md` — spec doc, domain-agnostic. Keeps `<your-domain>` / `govcapture.example` in §5.14 email format examples.
+- `PRD.md` — spec doc, domain-agnostic. Keeps `<your-domain>` / `samrail.com` in §5.14 email format examples.
 
 After this commit, every operational doc is `samrail.com`-ready. Phase 4 (VX1) commands are paste-ready instead of needing find-and-replace.
 
@@ -207,10 +207,10 @@ INTERNAL_API_KEY=<the openssl output above>
 REDIS_URL=redis://localhost:6379/0
 CORS_ALLOWED_ORIGINS=https://samrail.com,https://app.samrail.com
 RESEND_API_KEY=$RESEND_API_KEY (from your local .env)
-RESEND_FROM_EMAIL=GovCapture <noreply@samrail.com>
+RESEND_FROM_EMAIL=SamRail <noreply@samrail.com>
 EMAIL_PUBLIC_BASE_URL=https://api.samrail.com
 EMAIL_UNSUBSCRIBE_SECRET=<the openssl output above>
-EMAIL_LEGAL_FOOTER_ADDRESS=GovCon Bid Desk · <real CAN-SPAM mailing address> · United States
+EMAIL_LEGAL_FOOTER_ADDRESS=SamRail · <real CAN-SPAM mailing address> · United States
 EMAIL_DRY_RUN=true                              ← keep true for first deploy
 EMAIL_REQUIRE_DOUBLE_OPT_IN=false
 EMAIL_AUTO_PICK_ENABLED=true
@@ -377,7 +377,7 @@ git commit -m "docs(release): v1.0.0 — first public release
 
 See PRD changelog and CURRENT_STATE §10 for state at this tag."
 
-git tag -a v1.0.0 -m "GovCon Bid Desk v1.0.0 — first public release.
+git tag -a v1.0.0 -m "SamRail v1.0.0 — first public release.
 
 Production at https://samrail.com (landing) +
 https://app.samrail.com (/web) + https://api.samrail.com (FastAPI).

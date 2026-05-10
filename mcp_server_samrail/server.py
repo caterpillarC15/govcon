@@ -1,20 +1,20 @@
-"""MCP server wrapping the GovCon /api/v1/tools/<name> public surface.
+"""MCP server wrapping the SamRail /api/v1/tools/<name> public surface.
 
 The 10 tools are thin HTTP wrappers — same pattern as the Hermes plugin
-at .hermes/plugins/govcapture/. The pack-side route is the source of
+at .hermes/plugins/samrail/. The pack-side route is the source of
 truth; this module just adapts MCP tool calls into HTTP POSTs.
 
 Configuration via environment variables:
-  GOVCAPTURE_API_BASE   default https://api.govcapture.example
-  GOVCAPTURE_API_KEY    required; gck_… key minted at /app/keys
+  SAMRAIL_API_BASE   default https://api.samrail.com
+  SAMRAIL_API_KEY    required; gck_… key minted at /app/keys
 
 Install in Claude Desktop with this entry in claude_desktop_config.json:
 
   {
     "mcpServers": {
-      "govcapture": {
-        "command": "mcp-server-govcapture",
-        "env": { "GOVCAPTURE_API_KEY": "gck_..." }
+      "samrail": {
+        "command": "mcp-server-samrail",
+        "env": { "SAMRAIL_API_KEY": "gck_..." }
       }
     }
   }
@@ -27,18 +27,18 @@ from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("govcapture")
+mcp = FastMCP("samrail")
 
-_DEFAULT_BASE = "https://api.govcapture.example"
+_DEFAULT_BASE = "https://api.samrail.com"
 _TIMEOUT_SECONDS = 60.0
 
 
 def _api_base() -> str:
-    return os.environ.get("GOVCAPTURE_API_BASE", _DEFAULT_BASE).rstrip("/")
+    return os.environ.get("SAMRAIL_API_BASE", _DEFAULT_BASE).rstrip("/")
 
 
 def _api_key() -> str | None:
-    return os.environ.get("GOVCAPTURE_API_KEY") or None
+    return os.environ.get("SAMRAIL_API_KEY") or None
 
 
 def _post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -51,7 +51,7 @@ def _post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
     key = _api_key()
     if not key:
         raise RuntimeError(
-            "GOVCAPTURE_API_KEY not set. Mint one at /app/keys and add it "
+            "SAMRAIL_API_KEY not set. Mint one at /app/keys and add it "
             "to your MCP client config."
         )
     url = f"{_api_base()}/api/v1/tools/{path}"
@@ -63,13 +63,13 @@ def _post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
         resp = client.post(url, headers=headers, json=payload)
     if resp.status_code >= 400:
         raise RuntimeError(
-            f"govcapture {path} returned {resp.status_code}: {resp.text[:500]}"
+            f"samrail {path} returned {resp.status_code}: {resp.text[:500]}"
         )
     try:
         return resp.json()
     except ValueError as exc:
         raise RuntimeError(
-            f"govcapture {path} returned non-JSON body: {resp.text[:500]}"
+            f"samrail {path} returned non-JSON body: {resp.text[:500]}"
         ) from exc
 
 
@@ -78,7 +78,7 @@ def parse_goal(
     goal: str,
     company_profile: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Parse a natural-language GovCon goal into structured search criteria
+    """Parse a natural-language federal-contracting goal into structured search criteria
     (keywords, NAICS hints, due window, set-aside preferences). LLM-backed."""
     return _post("parse-goal", {"goal": goal, "company_profile": company_profile or {}})
 

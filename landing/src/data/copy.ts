@@ -1,7 +1,7 @@
 /**
  * Single source of truth for landing-page copy.
  *
- * Brand: GovCon Bid Desk — AI bid-desk operator for government-contracting
+ * Brand: SamRail — AI bid-desk operator for government-contracting
  * teams. Canonical source: tasks/LANDING_BRIEF.md.
  *
  * Public positioning rules (devdocs/V1_PRODUCT_ALIGNMENT.md §"Public Terms"):
@@ -11,8 +11,8 @@
  */
 
 export const PRODUCT = {
-  name: 'GovCon Bid Desk',
-  fullName: 'GovCon Bid Desk',
+  name: 'SamRail',
+  fullName: 'SamRail',
   tagline: 'AI bid-desk operator for government contracting teams.',
 } as const
 
@@ -60,5 +60,5 @@ export const TRUST_PILLS = [
 export const FOOTER = {
   // Footer.tsx renders the © + year separately; keep this string free of
   // both so we don't get a duplicate © on the rendered page.
-  legal: 'GovCon Bid Desk · All rights reserved.',
+  legal: 'SamRail · All rights reserved.',
 } as const

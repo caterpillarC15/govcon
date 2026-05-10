@@ -41,7 +41,7 @@ _UNSUB_OK_HTML = """<!doctype html>
     <h1 style="margin:0 0 12px;font-size:20px;">You're unsubscribed.</h1>
     <p style="margin:0;font-size:14px;color:#475569;line-height:1.5;">
       We won't send any more weekly opportunity emails to this address.
-      You can rejoin anytime at <a href="https://govcapture.app" style="color:#1e3a8a;">govcapture.app</a>.
+      You can rejoin anytime at <a href="https://samrail.com" style="color:#1e3a8a;">samrail.com</a>.
     </p>
   </div>
 </body></html>"""
@@ -54,7 +54,7 @@ _UNSUB_INVALID_HTML = """<!doctype html>
     <h1 style="margin:0 0 12px;font-size:20px;">Invalid unsubscribe link.</h1>
     <p style="margin:0;font-size:14px;color:#475569;line-height:1.5;">
       The link you followed doesn't validate. If you wanted to unsubscribe,
-      reply to any GovCapture email with "unsubscribe" and we'll handle it
+      reply to any SamRail email with "unsubscribe" and we'll handle it
       manually.
     </p>
   </div>

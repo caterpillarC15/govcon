@@ -49,7 +49,7 @@ export default function PrivacyPage() {
 
       <h2>Contact</h2>
       <p>
-        Questions: privacy@govconbiddesk.com. We answer within 5 business days.
+        Questions: privacy@samrail.com. We answer within 5 business days.
       </p>
     </LegalShell>
   )

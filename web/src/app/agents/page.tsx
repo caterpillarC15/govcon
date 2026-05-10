@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { ArrowRight, Code2, FileJson, Globe, KeyRound } from 'lucide-react'
 
 export const metadata = {
-  title: 'GovCapture for agents',
+  title: 'SamRail for agents',
   description:
-    'GovCon Bid Desk is a callable capability pack: 10 typed tools any agent can use to find federal contracts, score fit, and produce bid memos.',
+    'SamRail is a callable capability pack: 10 typed tools any agent can use to find federal contracts, score fit, and produce bid memos.',
 }
 
 export default function AgentsPage() {
@@ -19,7 +19,7 @@ export default function AgentsPage() {
             Hire a federal contracting capability pack from your agent.
           </h1>
           <p className="max-w-2xl text-base leading-7 text-[var(--color-ink)]">
-            GovCon Bid Desk exposes 10 typed tools that find federal
+            SamRail exposes 10 typed tools that find federal
             opportunities, extract requirements, score fit, detect risks,
             and produce bid memos with a human-approval gate. Any
             agent — Claude, GPT, MCP clients, custom workflows — can call
@@ -33,12 +33,12 @@ export default function AgentsPage() {
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'SoftwareApplication',
-              name: 'GovCon Bid Desk',
+              name: 'SamRail',
               applicationCategory: 'BusinessApplication',
               description:
                 'Federal contracting capability pack for AI agents. Ten typed tools for SAM search, requirement extraction, fit scoring, risk detection, and bid memo synthesis.',
               offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-              url: 'https://app.govcapture.example/agents',
+              url: 'https://app.samrail.com/agents',
               operatingSystem: 'Web',
               featureList: [
                 'parse-goal', 'parse-pdf', 'extract-requirements',
@@ -98,17 +98,17 @@ export default function AgentsPage() {
           <h2 className="text-2xl font-semibold tracking-tight">Quickstart</h2>
           <pre className="overflow-auto rounded-2xl border border-[var(--color-canvas-border)] bg-[var(--color-ink)] p-5 text-xs leading-6 text-slate-100">
 {`# Discover
-curl https://api.govcapture.example/.well-known/agent.json
+curl https://api.samrail.com/.well-known/agent.json
 
 # Read llms.txt for the natural-language story
-curl https://api.govcapture.example/.well-known/llms.txt
+curl https://api.samrail.com/.well-known/llms.txt
 
 # Read the schemas
-curl https://api.govcapture.example/openapi.json | jq '.paths | keys'
+curl https://api.samrail.com/openapi.json | jq '.paths | keys'
 
 # Call a tool (rank a few scored opportunities — pure deterministic)
 # Mint $GCK_TOKEN at /app/keys (or use X-Internal-API-Key server-to-server)
-curl -X POST https://api.govcapture.example/tools/rank-opportunities \\
+curl -X POST https://api.samrail.com/tools/rank-opportunities \\
   -H "Authorization: Bearer $GCK_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{

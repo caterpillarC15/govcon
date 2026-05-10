@@ -1,4 +1,4 @@
-# GovCon Bid Desk capability pack — continuation handoff
+# SamRail capability pack — continuation handoff
 
 > **Read top to bottom before doing anything.** This single file is
 > designed to be pasted into a fresh Claude Code, Codex, or comparable
@@ -11,7 +11,7 @@
 
 ## 0. Who you are and what you're being asked to do
 
-You are an engineer continuing the **GovCon Bid Desk capability pack**.
+You are an engineer continuing the **SamRail capability pack**.
 The previous session (where this handoff was written) finished the
 v1.2.4 → v1.2.5 repositioning: it removed in-repo orchestration code,
 slimmed the Hermes config to schema-correct dev-only, deleted misplaced
@@ -60,7 +60,7 @@ the finish-it-all execution session (`93e396b`, `0f03693`, `6827594`,
 | `HERMES_HOME=$(pwd)/.hermes hermes config show` | Reads model.provider=anthropic, default=claude-sonnet-4-6; no unknown-key warnings |
 | `find api/agent -type f` | (empty — directory gone) |
 | `grep -rn 'from api\.agent' api/` | (empty) |
-| `ls .hermes/skills/govcapture/` | exactly 5 dirs: `extract_requirements_with_evidence`, `score_fit_with_eligibility_check`, `detect_risks_calibrated`, `generate_full_action_package`, `generate_reject_summary` |
+| `ls .hermes/skills/samrail/` | exactly 5 dirs: `extract_requirements_with_evidence`, `score_fit_with_eligibility_check`, `detect_risks_calibrated`, `generate_full_action_package`, `generate_reject_summary` |
 | `ls tasks/` | `CONTRACTS.md FIXTURES.md LANDING_BRIEF.md README.md` (DEMO/INTERFERENCE_MAP retired in the 2026-05-10 doc sweep) |
 | `ls devdocs/` | `CAPABILITY_PACK_INTEGRATION.md CAPABILITY_PACKS_CANVAS.md CURRENT_STATE.md HANDOFF_PROMPT.md MICHAELA_SYSTEM_MODEL.md V1_PRODUCT_ALIGNMENT.md` (no `_archive/`) |
 | `git check-ignore .env` | matches `.env` (real keys safely uncommitted) |
@@ -221,7 +221,7 @@ orchestrator are unchanged. Old names survive only in PRD changelogs.
 | D6 | Tooling: `uv` for Python deps; `bun` for michealaai TS; `make` targets canonical for common workflows. | Done |
 | D7 | Worker names: **Gabby (eligibility), Lance (competitive intel)**. Scot/Lenny/Happer/Roy/Michaela unchanged. Reconciled 2026-05-10 with Michaela's runtime persona names (was Gate/Ledger; see PRD v1.2.6 changelog). | Locked PRD v1.2.6 |
 | D8 | Fixtures: 4 sets — `strong-pursue`, `maybe-needs-partner`, `reject`, `adversarial-image-pdf`. PDFs + manifests committed. | Done |
-| D9 | This repo's identity: **GovCon Bid Desk capability pack**, NOT the orchestrator. Orchestrator lives in /root/michealaai. | PRD v1.2.5 |
+| D9 | This repo's identity: **SamRail capability pack**, NOT the orchestrator. Orchestrator lives in /root/michealaai. | PRD v1.2.5 |
 | D10 | In-repo orchestration removed: `api/agent/` is gone. `POST /agent-runs` only persists a row; the external orchestrator picks it up out of band. | PRD v1.2.5 |
 | D11 | Demo-routing env vars (`DEMO_USE_SEEDED_ONLY`, `DEMO_REPLAY_TRACE`) are **not read by this repo** anymore. Seeded/demo routing belongs to the external orchestrator. | PRD v1.2.5 |
 
@@ -324,7 +324,7 @@ match `api/config.py` keys exactly.
 │   │   └── query_usaspending/       ← Lance competitive intel
 │   └── tests/
 ├── eval/                            ← fixture-driven LLM regression harness
-├── mcp_server_govcapture/           ← MCP wrapper around /api/v1/tools/<name>
+├── mcp_server_samrail/           ← MCP wrapper around /api/v1/tools/<name>
 ├── supabase/migrations/             ← 7 SQL files (5 applied + 2 local-only); canonical schema
 ├── schemas/                         ← JSON Schema sources
 ├── fixtures/                        ← strong-pursue, maybe, reject,
@@ -351,7 +351,7 @@ match `api/config.py` keys exactly.
 │   └── HANDOFF_PROMPT.md            ← THIS FILE
 └── docs/superpowers/plans/          ← active execution plans
     ├── README.md                              ← active vs archived index
-    ├── 2026-05-10-everything-to-v1.0.0.md     ← drift cleanup + launch finish
+    ├── _archive/2026-05-10-everything-to-v1.0.0.md  ← archived 2026-05-10 (samrail rebrand + Vercel + Resend + VX1 shipped)
     └── _archive/                              ← finish-it-all, frontend-cleanup, skills-deterministic
 ```
 
@@ -363,9 +363,9 @@ match `api/config.py` keys exactly.
 api/agent/                                    ← entire dir removed
 api/tests/test_hermes_bridge.py               ← tested removed code
 .hermes/SOUL.md                               ← runtime artifact, gitignored
-.hermes/skills/govcapture/operate_bid_desk/   ← orchestration recipe
-.hermes/skills/govcapture/analyze_opportunity_e2e/ ← orchestration recipe
-.hermes/skills/govcapture/discover_opportunities/  ← worker recipe
+.hermes/skills/samrail/operate_bid_desk/   ← orchestration recipe
+.hermes/skills/samrail/analyze_opportunity_e2e/ ← orchestration recipe
+.hermes/skills/samrail/discover_opportunities/  ← worker recipe
 tasks/AGENT_ARCHITECTURE.md                   ← Michaela's bench design
 tasks/HERMES.md                               ← duplicated root HERMES.md
 devdocs/HERMES_INTEGRATION_PLAN.md            ← stale plan
@@ -391,7 +391,7 @@ A and C.
 
 | ID | Sprint | Effort | Unblocks | Depends on |
 |----|--------|--------|----------|------------|
-| ~~**A**~~ | ~~`hermes_plugin_govcapture/` Python plugin so Michaela's Hermes-hosted workers native-call our tools~~ — **SPEC + MCP PACKAGE DONE 2026-05-09** (966fa96; `mcp-server-govcapture` wraps `/api/v1/tools`; native Hermes plugin skipped in favor of MCP bridge). | 3–5 days | Native delegation from /root/michealaai workers; better latency than HTTP | None |
+| ~~**A**~~ | ~~`hermes_plugin_govcapture/` Python plugin so Michaela's Hermes-hosted workers native-call our tools~~ — **SPEC + MCP PACKAGE DONE 2026-05-09** (966fa96; `mcp-server-samrail` wraps `/api/v1/tools`; native Hermes plugin skipped in favor of MCP bridge). | 3–5 days | Native delegation from /root/michealaai workers; better latency than HTTP | None |
 | ~~**B**~~ | ~~HTTP `POST /tools/<name>` parity for non-Hermes callers (TS, Codex, Cursor)~~ — **DONE 2026-05-09** (3c9a7de + 1b239c6 + Phase 4.x query_usaspending; 11 internal routes + 11 public `/api/v1/tools/<name>` mirror; 53 routes total; 183 tests). | 1–2 days | Any orchestrator that doesn't run Hermes | None |
 | ~~**C**~~ | ~~`/web` product UI build-out (profile create → goal entry → run timeline → opportunity detail → action-package review)~~ — **PHASES 0–6, 7.1, 7.2, 7.4, 8 DONE** (5628129 loading skeletons + error boundaries; 94120fd SSE upgrade + same-origin proxy; e8e2500 SEO + robots.txt; a63bf30 rate-limit fail-open). **Phases 1.3 mobile sweep, 1.4 a11y, 1.5 copy pass owed** (user-driven). | 3–5 days | Public demo; first-customer trial | A or B (something must produce real artifacts) |
 | **D** | Vultr VX1 production deploy | 4–8 hours | Public URL; hosted /healthz | A or B working locally |
@@ -411,7 +411,7 @@ front.
 
 ## 8 · Active work
 
-The active plan is `docs/superpowers/plans/2026-05-10-everything-to-v1.0.0.md`.
+There is no active plan; remaining work tracked in `devdocs/SETUP.md` (§5.14 flip + Sprint G + tag).
 Sprint-specific menus that previously lived in §§8–14 of this file
 are archived in commit history; their outcomes shipped in commits
 listed under `devdocs/CURRENT_STATE.md` §10.
@@ -488,7 +488,7 @@ listed under `devdocs/CURRENT_STATE.md` §10.
 
 Per-sprint gates (formerly listed here for Sprints A–G) are
 superseded; current phase-by-phase gates live in
-`docs/superpowers/plans/2026-05-10-everything-to-v1.0.0.md`.
+`docs/superpowers/plans/_archive/2026-05-10-everything-to-v1.0.0.md` (archived).
 
 ---
 

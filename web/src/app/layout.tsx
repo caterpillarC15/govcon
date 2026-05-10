@@ -14,8 +14,8 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: {
-    default: 'GovCon Bid Desk',
-    template: '%s · GovCon Bid Desk',
+    default: 'SamRail',
+    template: '%s · SamRail',
   },
   description: 'Authenticated bid-desk workspace.',
 }

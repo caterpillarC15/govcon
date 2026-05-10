@@ -4,7 +4,7 @@ description: Gate procedure for converting parsed solicitation chunks into struc
 version: 1.0.0
 metadata:
   hermes:
-    tags: [govcapture, extraction, compliance-officer, evidence]
+    tags: [samrail, extraction, compliance-officer, evidence]
     category: gov
     requires_toolsets: [gov_compliance]
 ---

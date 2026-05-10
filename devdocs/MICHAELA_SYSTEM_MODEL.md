@@ -7,13 +7,13 @@ This document separates three layers that are easy to conflate:
 3. **Anthropic/OpenRouter** are model transport options used only when an
    agent needs LLM tokens.
 
-GovCapture is the current GovCon capability pack running on the Michaela
+SamRail is the current GovCon capability pack running on the Michaela
 system. The product logic is provider-agnostic; changing a model route should
 not change how tasks are captured, assigned, stored, or surfaced.
 
 ## Repo Boundary
 
-This GovCapture repo is the GovCon capability/application surface: FastAPI,
+This SamRail repo is the GovCon capability/application surface: FastAPI,
 Supabase schema, seeded skills, landing, `/web`, and Hermes-facing project
 context.
 
@@ -40,7 +40,7 @@ docs:
   agent-bootstrap/TOOLS.md
 ```
 
-Do not judge the Michaela architecture by whether this GovCapture repo has a
+Do not judge the Michaela architecture by whether this SamRail repo has a
 TypeScript workloop directory. This repo consumes/implements the GovCon mission
 surface and should remain compatible with the core workloop model.
 

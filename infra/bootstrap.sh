@@ -107,14 +107,14 @@ Next (see infra/RUNBOOK.md for full detail):
        sudo systemctl enable --now govcapture-api.service
 
   5. Wire nginx + TLS (after DNS points to this box):
-       sudo cp infra/nginx/govcapture.conf /etc/nginx/sites-available/govcapture.conf
-       sudo ln -sf /etc/nginx/sites-available/govcapture.conf /etc/nginx/sites-enabled/
+       sudo cp infra/nginx/samrail.conf /etc/nginx/sites-available/samrail.conf
+       sudo ln -sf /etc/nginx/sites-available/samrail.conf /etc/nginx/sites-enabled/
        sudo rm -f /etc/nginx/sites-enabled/default
        sudo nginx -t && sudo systemctl reload nginx
-       sudo certbot --nginx -d api.your-domain.example
+       sudo certbot --nginx -d api.samrail.com
 
   6. Verify:
-       curl https://api.your-domain.example/healthz
+       curl https://api.samrail.com/healthz
        sudo systemctl status govcapture-api
 ================================================================
 EOF

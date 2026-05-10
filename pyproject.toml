@@ -1,7 +1,7 @@
 [project]
-name = "govcapture"
+name = "samrail"
 version = "0.1.0"
-description = "GovCon Bid Desk capability-pack API"
+description = "SamRail capability-pack API"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",

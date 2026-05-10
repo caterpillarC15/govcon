@@ -2,7 +2,7 @@
 
 Status: current as of 2026-05-10.
 
-This repo is the GovCon Bid Desk capability pack. It exposes tools,
+This repo is the SamRail capability pack. It exposes tools,
 schemas, storage, and HTTP routes that Michaela can call. It is not the
 Michaela workloop runtime.
 
@@ -203,7 +203,7 @@ Inputs and outputs must stay aligned with `schemas/*.json` and
 
 ### Hermes Skill Procedures
 
-`.hermes/skills/govcapture/*/SKILL.md` files describe how an agent should
+`.hermes/skills/samrail/*/SKILL.md` files describe how an agent should
 use the pack's tools. They are local procedure docs, not the canonical
 agent registry. The worker bench definitions live with Michaela.
 

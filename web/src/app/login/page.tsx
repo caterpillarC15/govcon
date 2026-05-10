@@ -30,12 +30,12 @@ export default async function LoginPage({
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-12">
         <Link
           href="/"
-          aria-label="GovCon Bid Desk — home"
+          aria-label="SamRail — home"
           className="mb-7 inline-flex items-center gap-2 self-start rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
         >
           <Mark />
           <span className="text-[14px] font-medium tracking-tight text-[var(--color-ink)]">
-            GovCon Bid Desk
+            SamRail
           </span>
         </Link>
 

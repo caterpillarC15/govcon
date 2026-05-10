@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     await close_redis()
 
 
-app = FastAPI(title="GovCapture API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="SamRail API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

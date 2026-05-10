@@ -26,11 +26,11 @@ export default async function AppLayout({
               <Link
                 href="/app"
                 className="flex shrink-0 items-center gap-2 rounded-full pl-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-                aria-label="GovCon Bid Desk — dashboard"
+                aria-label="SamRail — dashboard"
               >
                 <Mark />
                 <span className="hidden text-[14px] font-medium tracking-tight text-[var(--color-ink)] sm:inline">
-                  GovCon Bid Desk
+                  SamRail
                 </span>
               </Link>
 

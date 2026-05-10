@@ -4,7 +4,7 @@ description: Gate procedure for scoring fit against the §5.7 rubric WITH the §
 version: 1.0.0
 metadata:
   hermes:
-    tags: [govcapture, scoring, compliance-officer, eligibility, "section-11.1", critical]
+    tags: [samrail, scoring, compliance-officer, eligibility, "section-11.1", critical]
     category: gov
     requires_toolsets: [gov_compliance]
 ---

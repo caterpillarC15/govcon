@@ -1,4 +1,4 @@
-# GovCon Bid Desk capability pack — current state
+# SamRail capability pack — current state
 
 > Canonical synthesis dated **2026-05-10** (PRD v1.2.6). This doc
 > supersedes any older PRD section or task markdown that contradicts
@@ -17,7 +17,7 @@ decisions, (9) what ships today vs. what's next, (10) env contract,
 
 ## 1. The product
 
-**GovCon Bid Desk Operator** — a hired AI worker that finds federal
+**SamRail Operator** — a hired AI worker that finds federal
 contracts worth bidding, decides pursue / monitor / skip, and turns
 every opportunity into a bid memo and action plan with a human-approval
 gate before anything goes out the door.
@@ -295,7 +295,7 @@ Lance's competitive-intel outputs persist to the dedicated
 workaround of riding on `risk_flags` with `category="competitor_history"`
 was retired when the skill landed.
 
-The `.hermes/skills/govcapture/` directory holds five
+The `.hermes/skills/samrail/` directory holds five
 **tool-procedure** SKILL.mds (extract_requirements_with_evidence,
 score_fit_with_eligibility_check, detect_risks_calibrated,
 generate_full_action_package, generate_reject_summary). These describe
@@ -337,7 +337,7 @@ recipes — those live in `/root/michealaai`.
 - VX1 bootstrap + deploy + nginx + systemd (runbook in `infra/RUNBOOK.md`)
 - Landing site (Next 15 glassmorphism) with SEO (robots.txt, JSON-LD SoftwareApplication)
 - Product `/web` with authenticated shell + loading skeletons + error boundaries + SSE stream upgrade
-- MCP server package (`mcp-server-govcapture` wrapping `/api/v1/tools`)
+- MCP server package (`mcp-server-samrail` wrapping `/api/v1/tools`)
 - Eval harness — byte-exact regression gate (PRD v1.2.6, deterministic-only). Goldens committed under `fixtures/<slug>/goldens/`; `make eval` PASSes today.
 - ApprovalGate server-side persistence: `POST /action-packages/{id}/approve` + `approved_at`/`approved_by` columns + frontend wire-up (commit `93e396b`)
 - SSE polish: RunTimeline memoize + dedupe + partial badge (commit `0f03693`)
@@ -429,4 +429,4 @@ Dropped vs. earlier states: `DATABASE_URL`, `OPENAI_*`,
 | Landing copy | `tasks/LANDING_BRIEF.md` |
 | Deploy | `infra/RUNBOOK.md`, `infra/{bootstrap,deploy}.sh` |
 | Continuation prompt | `devdocs/HANDOFF_PROMPT.md` |
-| Active plans | `docs/superpowers/plans/2026-05-10-finish-it-all.md`, `docs/superpowers/plans/2026-05-10-frontend-cleanup-fixes.md` |
+| Active plans | _none_ — remaining v1.0.0 work tracked in `devdocs/SETUP.md` (§5.14 flip + Sprint G verify + tag) |

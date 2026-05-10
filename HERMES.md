@@ -1,4 +1,4 @@
-# Hermes context for the GovCon Bid Desk capability pack
+# Hermes context for the SamRail capability pack
 
 > For wiring this pack into a real Hermes runtime (Michaela's host or
 > any other), see **`devdocs/HERMES_LINK.md`**. This file documents only
@@ -10,7 +10,7 @@ isolation. It is **NOT** loaded by FastAPI or by any production process.
 
 The orchestrator (Michaela) and her worker bench (Scot, Lenny, Lance,
 Gabby, Happer, Roy) live in **/root/michealaai**. This repo is the
-**GovCon Bid Desk capability pack**: shared tools, data layer, HTTP API,
+**SamRail capability pack**: shared tools, data layer, HTTP API,
 and the direct-user product surface (`/web`).
 
 ## What you can do here
@@ -24,7 +24,7 @@ HERMES_HOME=$(pwd)/.hermes hermes
 …they get a Hermes REPL with this project's isolated state:
 
 - `model.provider: anthropic, default: claude-sonnet-4-6` (per `.hermes/config.yaml`)
-- The five tool-usage SKILL.md procedures under `.hermes/skills/govcapture/`
+- The five tool-usage SKILL.md procedures under `.hermes/skills/samrail/`
 - Memory storage isolated to `.hermes/memories/`
 
 This is for testing tool calls in isolation. It is not a production

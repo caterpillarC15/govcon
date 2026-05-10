@@ -1,0 +1,17 @@
+name: samrail
+version: 0.1.0
+description: "SamRail capability pack — 11 tools delegating to the pack's POST /tools/<name> HTTP surface (Sprint B). Pack URL via SAMRAIL_API_BASE; auth via INTERNAL_API_KEY."
+author: samrail
+kind: backend
+provides_tools:
+  - samrail_parse_goal
+  - samrail_parse_pdf
+  - samrail_extract_requirements
+  - samrail_score_fit
+  - samrail_detect_risks
+  - samrail_generate_action_package
+  - samrail_search_sam
+  - samrail_fetch_attachment
+  - samrail_rank_opportunities
+  - samrail_load_seeded_opportunities
+  - samrail_query_usaspending

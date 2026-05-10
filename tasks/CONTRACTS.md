@@ -148,7 +148,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhos
 
 # Resend (weekly opportunity email — PRD §5.14, v1.2.6)
 RESEND_API_KEY=
-RESEND_FROM_EMAIL=GovCapture <onboarding@resend.dev>
+RESEND_FROM_EMAIL=SamRail <onboarding@resend.dev>
 RESEND_REPLY_TO=
 EMAIL_PUBLIC_BASE_URL=http://localhost:8000
 EMAIL_UNSUBSCRIBE_SECRET=

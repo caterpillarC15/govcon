@@ -1,6 +1,6 @@
-# GovCon Bid Desk capability pack
+# SamRail capability pack
 
-GovCon Bid Desk is a capability pack: shared tools, a data layer, an
+SamRail is a capability pack: shared tools, a data layer, an
 HTTP API, and a direct-user product surface (`/web`) for AI agents
 operating government-contracting workflows. Michaela — the orchestrator
 that drives bid analyses end-to-end — and her worker bench (Scot, Lenny,
@@ -22,14 +22,14 @@ The product truth is `PRD.md` v1.2.5. The layer model is
 - **HTTP API** under `api/routes/` — health, profiles, company
   profiles, agent runs, opportunities, internal analysis writebacks,
   action packages, waitlist, and internal `POST /tools/<name>` wrappers
-  for the shared GovCon skills.
+  for the shared SamRail skills.
 - **Data layer** — Supabase via `supabase-py` AsyncClient (PostgREST).
   Schema lives as versioned SQL under `supabase/migrations/`.
 - **Auth** — `AuthenticatedUser` (Supabase JWT) for user routes;
   `InternalActor` (X-Internal-API-Key) for sub-agent writebacks.
 - **`/web`** — Next 15 product UI behind Supabase Auth.
 - **`/landing`** — public marketing site.
-- **Tool-procedure SKILL.mds** under `.hermes/skills/govcapture/` — the
+- **Tool-procedure SKILL.mds** under `.hermes/skills/samrail/` — the
   five procedures an agent should consult when it calls our tools.
 
 ## What this repo does NOT own

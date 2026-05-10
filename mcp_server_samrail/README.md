@@ -1,15 +1,15 @@
-# mcp-server-govcapture
+# mcp-server-samrail
 
-MCP server exposing GovCon Bid Desk's 11 tools. Wraps the pack's public
+MCP server exposing SamRail's 11 tools. Wraps the pack's public
 HTTP surface (`/api/v1/tools/<name>`) — same architectural pattern as the
 Hermes plugin (lower latency than reading raw OpenAPI; full type hints).
 
 ## Install
 
-    pip install mcp-server-govcapture
+    pip install mcp-server-samrail
 
 (Or, while developing this repo:
-`uv pip install -e mcp_server_govcapture/` from the project root.)
+`uv pip install -e mcp_server_samrail/` from the project root.)
 
 ## Configure (Claude Desktop)
 
@@ -19,25 +19,25 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`
 ```json
 {
   "mcpServers": {
-    "govcapture": {
-      "command": "mcp-server-govcapture",
+    "samrail": {
+      "command": "mcp-server-samrail",
       "env": {
-        "GOVCAPTURE_API_KEY": "gck_..."
+        "SAMRAIL_API_KEY": "gck_..."
       }
     }
   }
 }
 ```
 
-Mint a key at https://app.govcapture.example/app/keys after sign-in.
+Mint a key at https://app.samrail.com/app/keys after sign-in.
 
-`GOVCAPTURE_API_BASE` defaults to `https://api.govcapture.example`. Set
+`SAMRAIL_API_BASE` defaults to `https://api.samrail.com`. Set
 explicitly to point at a dev instance:
 
 ```json
 "env": {
-  "GOVCAPTURE_API_BASE": "http://localhost:8000",
-  "GOVCAPTURE_API_KEY": "gck_..."
+  "SAMRAIL_API_BASE": "http://localhost:8000",
+  "SAMRAIL_API_KEY": "gck_..."
 }
 ```
 
@@ -73,13 +73,13 @@ at 1/s). Burst over the cap → HTTP 429 with `Retry-After`.
 
 ```bash
 # From the project root.
-uv pip install -e mcp_server_govcapture/
+uv pip install -e mcp_server_samrail/
 
 # Run against a local pack (uvicorn).
-GOVCAPTURE_API_BASE=http://localhost:8000 \
-GOVCAPTURE_API_KEY=$(curl -s -X POST http://localhost:8000/api/keys \
+SAMRAIL_API_BASE=http://localhost:8000 \
+SAMRAIL_API_KEY=$(curl -s -X POST http://localhost:8000/api/keys \
   -H "Authorization: Bearer $JWT" \
   -H "Content-Type: application/json" \
   -d '{"name":"local-dev"}' | jq -r .plaintext_key) \
-mcp-server-govcapture
+mcp-server-samrail
 ```

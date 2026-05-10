@@ -4,7 +4,7 @@ description: Gate procedure for identifying risks across the 12 PRD §5.8 catego
 version: 1.0.0
 metadata:
   hermes:
-    tags: [govcapture, risk, gabby]
+    tags: [samrail, risk, gabby]
     category: gov
     requires_toolsets: [gov_risks]
 ---

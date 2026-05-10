@@ -4,7 +4,7 @@ description: Roy procedure for producing the §10.3 action package for pursue/st
 version: 1.0.0
 metadata:
   hermes:
-    tags: [govcapture, action-package, proposal-strategist, full-mode]
+    tags: [samrail, action-package, proposal-strategist, full-mode]
     category: gov
     requires_toolsets: [gov_proposals]
 ---

@@ -1,8 +1,8 @@
-# GovCapture Agent PRD
+# SamRail PRD
 
 ## Product Requirements Document
 
-**Product name:** GovCapture Agent
+**Product name:** SamRail
 **Document status:** MVP PRD v1.2.6
 **Primary track:** Agents Track
 **Primary objective:** Build an autonomous AI capture agent that turns a small business profile and government contracting goal into a useful federal opportunity analysis package by searching opportunities, parsing solicitation documents, extracting requirements, scoring fit, detecting blockers, and producing actionable next steps with human approval gates.
@@ -25,7 +25,7 @@
 >   unchanged. Old names retained only in this changelog.
 >
 > **Changelog v1.2.4 → v1.2.5** (2026-05-09)
-> - **Repo boundary corrected.** This repo is now the GovCon Bid Desk
+> - **Repo boundary corrected.** This repo is now the SamRail
 >   capability pack: tools, schemas, Supabase data layer, FastAPI routes,
 >   landing, and `/web`. Michaela's workloop, worker bench, task queue, and
 >   orchestration recipes live in `/root/michealaai`.
@@ -60,7 +60,7 @@
 >
 > **Product-positioning note for V1**
 > - Internal docs may continue to use "capture" because it is precise govcon operating language.
-> - Publicly, the product should be framed as a **GovCon Bid Desk Operator**: a hired AI worker that finds contracts worth bidding, tells the team whether to pursue, and creates the action plan.
+> - Publicly, the product should be framed as a **SamRail Operator**: a hired AI worker that finds contracts worth bidding, tells the team whether to pursue, and creates the action plan.
 > - Compliance and requirement extraction are internal mechanisms, not the sales headline.
 > - Michaela is the product/workloop and owns orchestration. Hermes is the runtime shell/tool harness. Anthropic/OpenRouter are model transport choices only. OpenClaw may be used as a channel/tool substrate, but customers experience one agent.
 >
@@ -95,7 +95,7 @@
 
 # 1. Executive Summary
 
-GovCapture Agent is an autonomous capture workflow for small businesses pursuing federal contracts. The system starts with a company profile and a contracting goal, searches or loads relevant government opportunities, retrieves and parses solicitation documents, extracts structured requirements, compares those requirements against the company profile, identifies blockers and risks, recommends pursue/maybe/reject decisions, and generates a practical action package.
+SamRail is an autonomous capture workflow for small businesses pursuing federal contracts. The system starts with a company profile and a contracting goal, searches or loads relevant government opportunities, retrieves and parses solicitation documents, extracts structured requirements, compares those requirements against the company profile, identifies blockers and risks, recommends pursue/maybe/reject decisions, and generates a practical action package.
 
 The MVP is designed around one useful workflow:
 
@@ -113,7 +113,7 @@ Small businesses do not only need help finding government contracts. They need h
 
 Government contracting opportunities are often buried inside portals, dense PDFs, amendments, eligibility rules, deadlines, certifications, set-asides, submission instructions, and compliance requirements. The valuable workflow is turning that chaos into a clear pursuit decision and action package.
 
-GovCapture Agent acts as an autonomous capture analyst that performs the first-pass work a business owner or junior capture analyst would otherwise do manually.
+SamRail acts as an autonomous capture analyst that performs the first-pass work a business owner or junior capture analyst would otherwise do manually.
 
 ---
 
@@ -183,7 +183,7 @@ The MVP supports one complete capture run.
 
 ## 4.5 Agent Architecture
 
-GovCapture Agent is an *agent*, not a hardcoded pipeline. The §4 user flow is what the agent typically does on a clean run; the architecture below is how it actually decides, recovers, and stays bounded. This section is what makes the project an Agents Track submission rather than a workflow with LLM calls in it.
+SamRail is an *agent*, not a hardcoded pipeline. The §4 user flow is what the agent typically does on a clean run; the architecture below is how it actually decides, recovers, and stays bounded. This section is what makes the project an Agents Track submission rather than a workflow with LLM calls in it.
 
 ### Planner loop
 
@@ -778,18 +778,18 @@ Subject: `"This week's federal opportunity: {opportunity.title[:60]}"`. Plain-te
 
 Body, in order:
 
-1. Header — "GovCapture · Week NN, YYYY".
+1. Header — "SamRail · Week NN, YYYY".
 2. Honest framing — "One contract worth a look. We picked it from this week's SAM.gov listings." Not "you should pursue this."
 3. Opportunity card — title, agency, solicitation number, due date, NAICS, set-aside, place of performance, short description.
 4. Single CTA button — "View on SAM.gov" linking to `opportunity.source_url`. No secondary CTAs.
-5. Honest framing 2 — "This isn't a fit analysis — it's one opportunity to read. Run a real fit check at govcapture.app."
+5. Honest framing 2 — "This isn't a fit analysis — it's one opportunity to read. Run a real fit check at samrail.com."
 6. Footer — sender name, `EMAIL_LEGAL_FOOTER_ADDRESS`, signed unsubscribe link, "you're getting this because…" line.
 
 No fake personalization (no `Hi {first_name}` — we don't have first names).
 
 ### Headers
 
-* `List-Unsubscribe: <https://api.govcapture.example/email-subscriptions/unsubscribe?token=…>, <mailto:unsubscribe@govcapture.app>`
+* `List-Unsubscribe: <https://api.samrail.com/email-subscriptions/unsubscribe?token=…>, <mailto:unsubscribe@samrail.com>`
 * `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058)
 * `X-Entity-Ref-ID: <log_row_id>` for trace correlation
 
@@ -1556,7 +1556,7 @@ does not execute agents inside this repo.
 
 For early company outreach, position the product as:
 
-> GovCapture Agent helps small businesses quickly understand which government contracts are worth pursuing. It reads solicitation documents, extracts requirements, scores fit, flags blockers, and generates a first-pass action package.
+> SamRail helps small businesses quickly understand which government contracts are worth pursuing. It reads solicitation documents, extracts requirements, scores fit, flags blockers, and generates a first-pass action package.
 
 Avoid claiming:
 
@@ -1580,7 +1580,7 @@ Use language like:
 
 # 16. Final Product Positioning
 
-GovCapture Agent turns a small business profile into a government contract action package. It searches opportunities, reads solicitation documents, extracts requirements, scores fit, identifies blockers, and generates next actions so businesses know what to pursue and what to avoid.
+SamRail turns a small business profile into a government contract action package. It searches opportunities, reads solicitation documents, extracts requirements, scores fit, identifies blockers, and generates next actions so businesses know what to pursue and what to avoid.
 
 The product should be described as:
 

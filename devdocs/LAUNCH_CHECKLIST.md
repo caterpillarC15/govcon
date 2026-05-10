@@ -18,10 +18,10 @@
 | `/web` | Auth-hardened (`requireUser` helper) · ApprovalGate persisted server-side · SSE memoize/dedupe shipped |
 | `/landing` | SEO + a11y baseline shipped; brand strings aligned with `LANDING_BRIEF.md` |
 | Eval | Goldens bootstrapped (byte-exact, deterministic per PRD v1.2.6); `make eval` is the regression gate |
-| MCP | `mcp-server-govcapture` package wraps `/api/v1/tools` |
-| Infra | `bootstrap.sh`/`deploy.sh`/systemd/nginx authored + bash-syntax-clean; **§5.14 cron timers added**; never executed in prod |
-| Email Channel A (auth) | Supabase default SMTP (4/hr cap); needs swap to Resend SMTP |
-| Email Channel B (§5.14 weekly opportunity) | **shipped** — migration + auto-picker + send job + unsubscribe + curator override + 13 tests; behind `EMAIL_DRY_RUN=true` until production keys land |
+| MCP | `mcp-server-samrail` package wraps `/api/v1/tools` |
+| Infra | VX1 live at `api.samrail.com` (TLS via certbot · systemd units running · §5.14 timers staged, awaiting `EMAIL_DRY_RUN=false` flip) |
+| Email Channel A (auth) | ✅ Resend SMTP wired in Supabase Studio · domain `samrail.com` verified · sender `noreply@samrail.com` |
+| Email Channel B (§5.14 weekly opportunity) | **shipped** — migration + auto-picker + send job + unsubscribe + curator override + 13 tests; behind `EMAIL_DRY_RUN=true` until prod-flip step (§4 below) |
 
 ---
 
@@ -56,7 +56,7 @@ What still needs to happen for §5.14 to actually send mail in production:
 
 1. `[USER]` sign up for Resend, verify your sending domain (SPF + DKIM + DMARC)
 2. `[USER]` set `RESEND_API_KEY`, `EMAIL_UNSUBSCRIBE_SECRET` (`openssl rand -hex 32`), and `EMAIL_LEGAL_FOOTER_ADDRESS` on VX1 `.env`
-3. `[USER]` set `RESEND_FROM_EMAIL=GovCapture <noreply@samrail.com>` (the default is the Resend sandbox sender, which only delivers to the account owner)
+3. `[USER]` set `RESEND_FROM_EMAIL=SamRail <noreply@samrail.com>` (the default is the Resend sandbox sender, which only delivers to the account owner)
 4. `[USER]` smoke-test with `EMAIL_DRY_RUN=true` first; review log rows in `weekly_opportunity_email_log` (status=`dry_run`)
 5. `[USER]` flip `EMAIL_DRY_RUN=false` and trigger a manual run via `POST /internal/cron/weekly-opportunity-email` from inside the VX1 with the bearer
 6. `[USER]` enable both timers: `sudo systemctl enable --now govcapture-cron-auto-pick.timer govcapture-cron-weekly.timer`
@@ -112,7 +112,7 @@ In Supabase Studio → **Authentication** → **Email Templates** → **SMTP Set
 | Field | Value |
 |---|---|
 | Sender email | `noreply@samrail.com` |
-| Sender name | `GovCon Bid Desk` |
+| Sender name | `SamRail` |
 | Host | `smtp.resend.com` |
 | Port | `465` (SSL) |
 | Username | `resend` |
@@ -184,7 +184,7 @@ NEXT_PUBLIC_API_BASE     — https://api.samrail.com   (for parity; only /web re
 
 # §5.14 weekly opportunity email — keep EMAIL_DRY_RUN=true for first deploy.
 RESEND_API_KEY           — re_…  (sending-scope key)
-RESEND_FROM_EMAIL        — GovCapture <noreply@samrail.com>
+RESEND_FROM_EMAIL        — SamRail <noreply@samrail.com>
 EMAIL_PUBLIC_BASE_URL    — https://api.samrail.com
 EMAIL_UNSUBSCRIBE_SECRET — $(openssl rand -hex 32)  (DIFFERENT from any dev value)
 EMAIL_LEGAL_FOOTER_ADDRESS — "Acme Inc, 123 Main St, …"   (CAN-SPAM physical address)
@@ -342,7 +342,7 @@ git status --short                                   # clean
 I author the v1.0.0 release-notes commit (PRD changelog + CURRENT_STATE refresh), create the annotated tag, and push:
 
 ```bash
-git tag -a v1.0.0 -m "GovCon Bid Desk v1.0.0 — first public release"
+git tag -a v1.0.0 -m "SamRail v1.0.0 — first public release"
 git push origin main --follow-tags
 ```
 

@@ -564,7 +564,7 @@ tail -60 devdocs/MICHAELA_SYSTEM_MODEL.md
 
 - [ ] **Step 4.2 [ENG]: Verify against Michaela's actual runtime intro from this session's transcript**
 
-Spot-check: Hermes v0.13.0; primary model deepseek-v4-pro; bench naming matches the Phase 2.1 choice; `~/.hermes/skills/govcapture/` has 8 entries (5 from this repo + 3 orchestration recipes she owns).
+Spot-check: Hermes v0.13.0; primary model deepseek-v4-pro; bench naming matches the Phase 2.1 choice; `~/.hermes/skills/samrail/` has 8 entries (5 from this repo + 3 orchestration recipes she owns).
 
 - [ ] **Step 4.3 [ENG]: Patch any drift in place**
 
@@ -632,10 +632,10 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ##### Step 2: Spot-check `HERMES.md`
 
-- [ ] **Step 2.1 [ENG]: Verify the SKILL.md list matches `.hermes/skills/govcapture/`**
+- [ ] **Step 2.1 [ENG]: Verify the SKILL.md list matches `.hermes/skills/samrail/`**
 
 ```bash
-ls .hermes/skills/govcapture/
+ls .hermes/skills/samrail/
 grep -E "extract_requirements_with_evidence|score_fit_with_eligibility_check|detect_risks_calibrated|generate_full_action_package|generate_reject_summary" HERMES.md | wc -l
 ```
 
@@ -927,7 +927,7 @@ Content (verbatim — every step from the recent conversation, plus the cross-re
 
 Last session's authoritative answer compressed into one durable doc.
 The two artifacts Michaela's host needs are (1) the
-`mcp-server-govcapture` Python package from `mcp_server_govcapture/`,
+`mcp-server-samrail` Python package from `mcp_server_samrail/`,
 and (2) two keys in `~/.hermes/config.yaml`. Source of authority for
 the integration shape: PRD §5.14, `devdocs/CAPABILITY_PACK_INTEGRATION.md`.
 
@@ -939,8 +939,8 @@ cd /usr/local/lib/hermes-agent
 uv pip install -e ".[mcp]"
 
 # 2. This pack's MCP server
-pip install --user "git+https://github.com/caterpillarC15/govcon.git#subdirectory=mcp_server_govcapture"
-which mcp-server-govcapture   # should resolve
+pip install --user "git+https://github.com/caterpillarC15/govcon.git#subdirectory=mcp_server_samrail"
+which mcp-server-samrail   # should resolve
 ```
 
 ## `~/.hermes/config.yaml` on her host
@@ -948,7 +948,7 @@ which mcp-server-govcapture   # should resolve
 ```yaml
 mcp_servers:
   govcapture:
-    command: "mcp-server-govcapture"
+    command: "mcp-server-samrail"
     env:
       GOVCAPTURE_API_BASE: "https://api.<your-domain>"
       GOVCAPTURE_API_KEY: "gck_..."
@@ -992,7 +992,7 @@ it for non-LLM skills, which is now all of them).
 Michaela (Hermes v0.13.0, Ubuntu, DeepSeek)
   │  MCP / stdio
   ▼
-mcp-server-govcapture (Python pkg from this repo, on her box)
+mcp-server-samrail (Python pkg from this repo, on her box)
   │  HTTPS + Authorization: Bearer gck_…
   ▼
 FastAPI /api/v1/tools/<name> (this repo, VX1 prod or local + ngrok)
@@ -1038,7 +1038,7 @@ Expected: file exists with ≥ 70 lines.
 git add devdocs/HERMES_LINK.md
 git commit -m "docs: HERMES_LINK.md — concrete steps to wire this pack into Michaela's Hermes
 
-Captures the answer derived in this session: install mcp-server-govcapture
+Captures the answer derived in this session: install mcp-server-samrail
 on Michaela's host, add two keys to ~/.hermes/config.yaml, mint a gck_
 key, /reload-mcp, smoke-test. Plus the cross-repo coordination owed by
 /root/michealaai (DATA-SOURCES.md fix + INTERNAL_API_KEY mirror).
@@ -1328,7 +1328,7 @@ See PRD changelog and CURRENT_STATE §10 for state at this tag.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
-git tag -a v1.0.0 -m "GovCon Bid Desk v1.0.0 — first public release.
+git tag -a v1.0.0 -m "SamRail v1.0.0 — first public release.
 
 See PRD.md changelog and devdocs/CURRENT_STATE.md for the full state
 at this tag."

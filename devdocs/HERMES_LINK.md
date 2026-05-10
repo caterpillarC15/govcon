@@ -1,7 +1,7 @@
 # Wiring this pack into Hermes
 
 The two artifacts Michaela's host needs are (1) the
-`mcp-server-govcapture` Python package from `mcp_server_govcapture/`,
+`mcp-server-samrail` Python package from `mcp_server_samrail/`,
 and (2) two keys in `~/.hermes/config.yaml`. Source of authority for
 the integration shape: PRD §5.14, `devdocs/CAPABILITY_PACK_INTEGRATION.md`.
 
@@ -13,8 +13,8 @@ cd /usr/local/lib/hermes-agent
 uv pip install -e ".[mcp]"
 
 # 2. This pack's MCP server
-pip install --user "git+https://github.com/caterpillarC15/govcon.git#subdirectory=mcp_server_govcapture"
-which mcp-server-govcapture   # should resolve
+pip install --user "git+https://github.com/caterpillarC15/govcon.git#subdirectory=mcp_server_samrail"
+which mcp-server-samrail   # should resolve
 ```
 
 ## `~/.hermes/config.yaml` on her host
@@ -22,7 +22,7 @@ which mcp-server-govcapture   # should resolve
 ```yaml
 mcp_servers:
   govcapture:
-    command: "mcp-server-govcapture"
+    command: "mcp-server-samrail"
     env:
       GOVCAPTURE_API_BASE: "https://api.samrail.com"
       GOVCAPTURE_API_KEY: "gck_..."
@@ -66,7 +66,7 @@ it for non-LLM skills, which is now all of them).
 Michaela (Hermes v0.13.0, Ubuntu, DeepSeek)
   │  MCP / stdio
   ▼
-mcp-server-govcapture (Python pkg from this repo, on her box)
+mcp-server-samrail (Python pkg from this repo, on her box)
   │  HTTPS + Authorization: Bearer gck_…
   ▼
 FastAPI /api/v1/tools/<name> (this repo, VX1 prod or local + ngrok)
@@ -99,18 +99,18 @@ Per `devdocs/CAPABILITY_PACK_INTEGRATION.md` "Three Supabase projects":
 
 ## SKILL.md drift check
 
-Michaela's `~/.hermes/skills/govcapture/` reportedly contains 8 entries:
+Michaela's `~/.hermes/skills/samrail/` reportedly contains 8 entries:
 the 5 tool-procedure files this repo ships, plus 3 owned by her side
 (`analyze_opportunity_e2e`, `discover_opportunities`,
 `govcapture-proof-first-voice`). Periodically diff her copy against
-`.hermes/skills/govcapture/` here:
+`.hermes/skills/samrail/` here:
 
 ```bash
 # On her host:
-ls ~/.hermes/skills/govcapture/
+ls ~/.hermes/skills/samrail/
 
 # In this repo:
-ls .hermes/skills/govcapture/
+ls .hermes/skills/samrail/
 ```
 
 If our 5 have drifted from her copies, re-rsync from this repo. Her

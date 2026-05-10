@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     # PRD §5.14 — Weekly opportunity email (Resend HTTP API).
     resend_api_key: str = Field("", alias="RESEND_API_KEY")
     resend_from_email: str = Field(
-        "GovCapture <onboarding@resend.dev>", alias="RESEND_FROM_EMAIL"
+        "SamRail <onboarding@resend.dev>", alias="RESEND_FROM_EMAIL"
     )
     resend_reply_to: str = Field("", alias="RESEND_REPLY_TO")
     email_public_base_url: str = Field(

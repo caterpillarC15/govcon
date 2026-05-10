@@ -1,7 +1,7 @@
-"""HTTP-wrapper tools for the govcapture plugin.
+"""HTTP-wrapper tools for the samrail plugin.
 
 Each handler does exactly one thing: serialize its `args` dict to JSON,
-POST to `{GOVCAPTURE_API_BASE}/tools/<name>`, return the response body
+POST to `{SAMRAIL_API_BASE}/tools/<name>`, return the response body
 via `tool_result()`. The pack-side route does input validation (Pydantic
 422) and authentication (X-Internal-API-Key); this layer just forwards.
 
@@ -28,16 +28,16 @@ _TIMEOUT_SECONDS = 60.0
 
 
 def _api_base() -> str:
-    return os.environ.get("GOVCAPTURE_API_BASE", _DEFAULT_BASE).rstrip("/")
+    return os.environ.get("SAMRAIL_API_BASE", _DEFAULT_BASE).rstrip("/")
 
 
 def _api_key() -> str | None:
     # Match the pack's env var name. Empty / unset disables the toolset
-    # via _check_govcapture_available below.
+    # via _check_samrail_available below.
     return os.environ.get("INTERNAL_API_KEY") or None
 
 
-def _check_govcapture_available() -> bool:
+def _check_samrail_available() -> bool:
     """Hermes calls this before dispatching any tool in the toolset.
     Returns True only when an INTERNAL_API_KEY is configured.
     """
@@ -78,9 +78,9 @@ def _post_tool(path: str, args: Dict[str, Any]) -> str:
 
 # ─── schemas (OpenAI function-call style) ──────────────────────────────────
 
-GOVCAPTURE_PARSE_GOAL_SCHEMA = {
-    "name": "govcapture_parse_goal",
-    "description": "Parse a natural-language GovCon goal into structured search criteria (keywords, NAICS hints, due window, set-aside preferences, etc.). LLM-backed.",
+SAMRAIL_PARSE_GOAL_SCHEMA = {
+    "name": "samrail_parse_goal",
+    "description": "Parse a natural-language federal-contracting goal into structured search criteria (keywords, NAICS hints, due window, set-aside preferences, etc.). LLM-backed.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -91,9 +91,9 @@ GOVCAPTURE_PARSE_GOAL_SCHEMA = {
     },
 }
 
-GOVCAPTURE_PARSE_PDF_SCHEMA = {
-    "name": "govcapture_parse_pdf",
-    "description": "Deterministic page-aware PDF text extraction. NB: takes a server-local filesystem path. Cross-host callers must call govcapture_fetch_attachment first.",
+SAMRAIL_PARSE_PDF_SCHEMA = {
+    "name": "samrail_parse_pdf",
+    "description": "Deterministic page-aware PDF text extraction. NB: takes a server-local filesystem path. Cross-host callers must call samrail_fetch_attachment first.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -104,13 +104,13 @@ GOVCAPTURE_PARSE_PDF_SCHEMA = {
     },
 }
 
-GOVCAPTURE_EXTRACT_REQUIREMENTS_SCHEMA = {
-    "name": "govcapture_extract_requirements",
+SAMRAIL_EXTRACT_REQUIREMENTS_SCHEMA = {
+    "name": "samrail_extract_requirements",
     "description": "Convert parsed PDF chunks into structured §10.1 requirements with evidence binding. LLM-backed; degrades to empty result on unparseable input.",
     "parameters": {
         "type": "object",
         "properties": {
-            "parsed": {"type": "object", "description": "ParsePdfOutput dict from govcapture_parse_pdf (chunks, doc_id, unparseable, etc.)."},
+            "parsed": {"type": "object", "description": "ParsePdfOutput dict from samrail_parse_pdf (chunks, doc_id, unparseable, etc.)."},
             "opportunity_metadata": {"type": "object", "description": "Optional opportunity context for the prompt."},
             "doc_id": {"type": "string", "description": "Optional document identifier override."},
         },
@@ -118,8 +118,8 @@ GOVCAPTURE_EXTRACT_REQUIREMENTS_SCHEMA = {
     },
 }
 
-GOVCAPTURE_SCORE_FIT_SCHEMA = {
-    "name": "govcapture_score_fit",
+SAMRAIL_SCORE_FIT_SCHEMA = {
+    "name": "samrail_score_fit",
     "description": "Score how well a company fits an opportunity per §5.7 rubric. §11.1 deterministic short-circuit fires (score=0, decision=reject) when an eligibility blocker is present, skipping the LLM call entirely.",
     "parameters": {
         "type": "object",
@@ -131,8 +131,8 @@ GOVCAPTURE_SCORE_FIT_SCHEMA = {
     },
 }
 
-GOVCAPTURE_DETECT_RISKS_SCHEMA = {
-    "name": "govcapture_detect_risks",
+SAMRAIL_DETECT_RISKS_SCHEMA = {
+    "name": "samrail_detect_risks",
     "description": "Detect risks per the §5.8 taxonomy. Hallucinated categories are silently dropped; critical_blocker severity and legal_compliance_review category force human review.",
     "parameters": {
         "type": "object",
@@ -144,8 +144,8 @@ GOVCAPTURE_DETECT_RISKS_SCHEMA = {
     },
 }
 
-GOVCAPTURE_GENERATE_ACTION_PACKAGE_SCHEMA = {
-    "name": "govcapture_generate_action_package",
+SAMRAIL_GENERATE_ACTION_PACKAGE_SCHEMA = {
+    "name": "samrail_generate_action_package",
     "description": "Synthesize the §5.11 action package. mode='full' calls the LLM; mode='reject_summary' is deterministic (no LLM) and used when score_fit returned decision=reject. The §5.13 invariant (non-empty human_approval_required) is enforced.",
     "parameters": {
         "type": "object",
@@ -160,9 +160,9 @@ GOVCAPTURE_GENERATE_ACTION_PACKAGE_SCHEMA = {
     },
 }
 
-GOVCAPTURE_SEARCH_SAM_SCHEMA = {
-    "name": "govcapture_search_sam",
-    "description": "Query SAM.gov v2 search. Reads SAM_API_KEY on the pack side. Returns degraded=True with empty results on rate-limit, 5xx, or network error so the caller can fall back to govcapture_load_seeded_opportunities.",
+SAMRAIL_SEARCH_SAM_SCHEMA = {
+    "name": "samrail_search_sam",
+    "description": "Query SAM.gov v2 search. Reads SAM_API_KEY on the pack side. Returns degraded=True with empty results on rate-limit, 5xx, or network error so the caller can fall back to samrail_load_seeded_opportunities.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -176,9 +176,9 @@ GOVCAPTURE_SEARCH_SAM_SCHEMA = {
     },
 }
 
-GOVCAPTURE_FETCH_ATTACHMENT_SCHEMA = {
-    "name": "govcapture_fetch_attachment",
-    "description": "Download a URL and persist its body to Supabase Storage at raw/<run_id>/<filename>. Used before govcapture_parse_pdf when the PDF is not yet local.",
+SAMRAIL_FETCH_ATTACHMENT_SCHEMA = {
+    "name": "samrail_fetch_attachment",
+    "description": "Download a URL and persist its body to Supabase Storage at raw/<run_id>/<filename>. Used before samrail_parse_pdf when the PDF is not yet local.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -190,8 +190,8 @@ GOVCAPTURE_FETCH_ATTACHMENT_SCHEMA = {
     },
 }
 
-GOVCAPTURE_RANK_OPPORTUNITIES_SCHEMA = {
-    "name": "govcapture_rank_opportunities",
+SAMRAIL_RANK_OPPORTUNITIES_SCHEMA = {
+    "name": "samrail_rank_opportunities",
     "description": "Sort scored opportunities by (decision_band, -total_score, due_date_asc). Pure deterministic — no LLM, no I/O.",
     "parameters": {
         "type": "object",
@@ -206,8 +206,8 @@ GOVCAPTURE_RANK_OPPORTUNITIES_SCHEMA = {
     },
 }
 
-GOVCAPTURE_LOAD_SEEDED_OPPORTUNITIES_SCHEMA = {
-    "name": "govcapture_load_seeded_opportunities",
+SAMRAIL_LOAD_SEEDED_OPPORTUNITIES_SCHEMA = {
+    "name": "samrail_load_seeded_opportunities",
     "description": "Read fixture manifests under /fixtures/ and persist opportunities. Idempotent on slug. Use as a fallback when SAM live queries fail (degraded=true).",
     "parameters": {
         "type": "object",
@@ -221,8 +221,8 @@ GOVCAPTURE_LOAD_SEEDED_OPPORTUNITIES_SCHEMA = {
     },
 }
 
-GOVCAPTURE_QUERY_USASPENDING_SCHEMA = {
-    "name": "govcapture_query_usaspending",
+SAMRAIL_QUERY_USASPENDING_SCHEMA = {
+    "name": "samrail_query_usaspending",
     "description": "Query USASpending.gov for competitive intel on prior awards. Filters by NAICS and/or top-tier agency name. Returns normalized award records, deduped incumbent list, and total obligated dollars. Degrades gracefully on rate-limit / 5xx.",
     "parameters": {
         "type": "object",

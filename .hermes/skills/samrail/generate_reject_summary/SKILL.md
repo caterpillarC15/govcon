@@ -4,7 +4,7 @@ description: Roy procedure for producing a slim, deterministic action package wh
 version: 1.0.0
 metadata:
   hermes:
-    tags: [govcapture, action-package, proposal-strategist, reject-mode, deterministic]
+    tags: [samrail, action-package, proposal-strategist, reject-mode, deterministic]
     category: gov
     requires_toolsets: [gov_proposals]
 ---

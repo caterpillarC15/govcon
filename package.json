@@ -1,12 +1,12 @@
 {
-  "name": "govcon",
+  "name": "samrail",
   "private": true,
   "workspaces": [
     "landing",
     "web"
   ],
   "scripts": {
-    "dev": "npm -w landing run dev --",
+    "dev": "(trap 'kill 0' INT TERM; npm -w landing run dev -- & npm -w web run dev -- & wait)",
     "dev:landing": "npm -w landing run dev --",
     "dev:web": "npm -w web run dev --",
     "build": "npm run build:landing && npm run build:web",

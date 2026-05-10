@@ -1,6 +1,6 @@
 # Landing Brief
 
-Build the public-facing surface for **GovCon Bid Desk**, an AI bid-desk operator for government-contracting teams.
+Build the public-facing surface for **SamRail**, an AI bid-desk operator for government-contracting teams.
 
 ## Message
 

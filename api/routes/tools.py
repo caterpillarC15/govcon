@@ -1,4 +1,4 @@
-"""Internal HTTP surface for the GovCon skills.
+"""Internal HTTP surface for the SamRail skills.
 
 Every endpoint POST /tools/<name> requires X-Internal-API-Key (InternalActor).
 Responses share a uniform `{"data": ...}` envelope (per PRD v1.2.6 —

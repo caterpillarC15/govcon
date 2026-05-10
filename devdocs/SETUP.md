@@ -13,13 +13,13 @@ Local dev is working (dev-skip login + Supabase migrations applied + 206 tests g
 | Local dev (FastAPI + landing + /web + Redis + dev-skip login) | ✅ done |
 | Supabase migrations applied | ✅ done |
 | Bench rename, doc cleanup, schema sync | ✅ done |
-| **Deploy `/web` to Vercel as 2nd project** | ⏳ next |
-| **Wire env vars on both Vercel projects** | ⏳ |
-| **Resend SMTP in Supabase Studio (Channel A)** | ⏳ |
-| **§5.14 production-flip** (`EMAIL_DRY_RUN=false`) | ⏳ |
-| **VX1 production deploy** (FastAPI on Vultr) | ⏳ |
+| Deploy `/web` to Vercel as 2nd project | ✅ done — `app.samrail.com` |
+| Wire env vars on both Vercel projects | ✅ done |
+| Resend SMTP in Supabase Studio (Channel A) | ✅ done — `noreply@samrail.com`, domain verified |
+| **§5.14 production-flip** (`EMAIL_DRY_RUN=false`) | ⏳ flip + enable timers |
+| VX1 production deploy (FastAPI on Vultr) | ✅ live — `api.samrail.com` |
 | Sprint G cross-repo verification with `/root/michealaai` | ⏳ |
-| **v1.0.0 tag** | ⏳ (gated on all above) |
+| **v1.0.0 tag** | ⏳ (gated on §5.14 flip + Sprint G verify) |
 
 ---
 
@@ -50,8 +50,8 @@ After ~2 min you'll have a URL like `https://govcon-web-xxxxx.vercel.app`. **Not
 Settings → Environment Variables → Production scope. Should ONLY have these 3 (delete anything else):
 
 ```
-NEXT_PUBLIC_SITE_URL=https://govcon-rouge.vercel.app
-NEXT_PUBLIC_APP_URL=https://govcon-web-xxxxx.vercel.app    ← from Phase 1
+NEXT_PUBLIC_SITE_URL=https://samrail.com
+NEXT_PUBLIC_APP_URL=https://app.samrail.com
 NEXT_PUBLIC_API_BASE=                                       ← empty until Phase 5 (VX1)
 ```
 
@@ -62,14 +62,30 @@ Same place, on the new project. Should have:
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://vvyxjdoenjujkxwbnzyl.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_u5ma_JhhAmWuC7RrunIMDA_ZtR62rUP
-NEXT_PUBLIC_SITE_URL=https://govcon-rouge.vercel.app
-NEXT_PUBLIC_APP_URL=https://govcon-web-xxxxx.vercel.app    ← this project's own URL
+NEXT_PUBLIC_SITE_URL=https://samrail.com
+NEXT_PUBLIC_APP_URL=https://app.samrail.com
 NEXT_PUBLIC_API_BASE=                                       ← empty until Phase 5
 ```
 
 ### Both projects: redeploy
 
 Per project: **Deployments → most recent → ⋯ menu → Redeploy → uncheck "Use existing build cache" → Redeploy.**
+
+### Supabase Auth URL configuration
+
+Supabase Studio → **Authentication** → **URL Configuration**:
+
+```
+Site URL: https://app.samrail.com
+Redirect URLs:
+  https://app.samrail.com/auth/callback
+  https://<current-web-vercel-domain>/auth/callback  # temporary, until app.samrail.com is live
+  http://localhost:3001/auth/callback
+```
+
+If `Site URL` or the deployed `/web` `NEXT_PUBLIC_APP_URL` is still localhost,
+the email link will verify through Supabase and then dump the browser onto
+localhost. Fix these values before testing magic links.
 
 ### NEVER set on Vercel (any project)
 
@@ -86,7 +102,7 @@ Per project: **Deployments → most recent → ⋯ menu → Redeploy → uncheck
 curl -s https://govcon-rouge.vercel.app/ | grep -oE 'href="[^"]*login[^"]*"' | head -3
 ```
 
-Should return `https://govcon-web-xxxxx.vercel.app/login` — not localhost, not the `govconbiddesk.com` fallback.
+Should return `https://govcon-web-xxxxx.vercel.app/login` — not localhost, not the `samrail.com` fallback.
 
 ---
 
@@ -102,28 +118,28 @@ Supabase's default SMTP throttles to **4 emails/hour** project-wide. That's not 
 2. Toggle **Enable Custom SMTP** ON
 3. Fill:
    - Sender email: `onboarding@resend.dev` (sandbox sender — only delivers to the Resend account-owner inbox until you verify a domain)
-   - Sender name: `GovCon Bid Desk`
+   - Sender name: `SamRail`
    - Host: `smtp.resend.com`
    - Port: `465`
    - Username: `resend`
-   - Password: `re_33wJTrVV_LjowisMRLJQjC6HWsK38Sbtc` (your `RESEND_API_KEY`)
+   - Password: your Resend API key with sending access
 4. Save
 
-### Optional: verify a domain (required for sending to non-account-owner addresses)
+### Verify `samrail.com` (required for sending to non-account-owner addresses)
 
 Sandbox sender (`onboarding@resend.dev`) only delivers to the Resend account owner. For real subscribers you need a verified domain.
 
 1. https://resend.com/domains → **Add domain**
-2. Enter your domain (you'll need a real one — see Phase 7)
+2. Enter `samrail.com`
 3. Add the SPF + DKIM × 3 + (optional) DMARC DNS records Resend shows you
 4. Wait for verification (~10 min)
-5. Update Studio SMTP sender email to `noreply@<your-domain>`
-6. Update `.env` (and prod `.env` later) `RESEND_FROM_EMAIL=GovCapture <noreply@<your-domain>>`
+5. Update Studio SMTP sender email to `noreply@samrail.com`
+6. Update `.env` (and prod `.env` later) `RESEND_FROM_EMAIL=SamRail <noreply@samrail.com>`
 
 ### Test
 
 Sign out of `/web`, request a magic link, confirm:
-- Email arrives within 60s from `noreply@<your-domain>` (or `onboarding@resend.dev` in sandbox)
+- Email arrives within 60s from `noreply@samrail.com` (or `onboarding@resend.dev` in sandbox)
 - Link works (lands in `/app` after click)
 - Resend dashboard → **Logs** shows a "delivered" event
 
@@ -141,11 +157,11 @@ Right now the weekly opportunity email job claims log slots and renders content 
 4. Smoke test: trigger the cron route manually and verify a real email arrives:
 
 ```bash
-curl -X POST https://api.<your-domain>/internal/cron/auto-pick-weekly-opportunity \
+curl -X POST https://api.samrail.com/internal/cron/auto-pick-weekly-opportunity \
   -H "Authorization: Bearer $INTERNAL_API_KEY"
 # Expect: {"week_key": "...", "picked_opportunity_id": "...", ...}
 
-curl -X POST https://api.<your-domain>/internal/cron/weekly-opportunity-email \
+curl -X POST https://api.samrail.com/internal/cron/weekly-opportunity-email \
   -H "Authorization: Bearer $INTERNAL_API_KEY"
 # Expect: {"sent": N, "skipped_already_sent": 0, "failed": 0, ...}
 ```
@@ -167,7 +183,7 @@ The FastAPI backend lives on a Vultr VX1 (16 vCPU, Ubuntu 24.04). Full step-by-s
 
 - Vultr → New Instance → **VX1**, Ubuntu 24.04 LTS, ~$96/mo
 - Upload SSH key, get the public IP
-- Decide the API hostname — e.g., `api.govcon.app` (you'll need a domain — see Phase 7)
+- API hostname: `api.samrail.com`
 
 ### Bootstrap
 
@@ -194,7 +210,7 @@ sudo -u govcapture editor /opt/govcapture/.env
 #   - RESEND_API_KEY (same as dev)
 #   - EMAIL_LEGAL_FOOTER_ADDRESS (real CAN-SPAM address now)
 #   - EMAIL_UNSUBSCRIBE_SECRET (FRESH, not the dev value: openssl rand -hex 32)
-#   - CORS_ALLOWED_ORIGINS=https://govcon-rouge.vercel.app,https://govcon-web-xxxxx.vercel.app
+#   - CORS_ALLOWED_ORIGINS=https://samrail.com,https://app.samrail.com
 #   - Keep EMAIL_DRY_RUN=true for first deploy
 ```
 
@@ -213,31 +229,30 @@ curl http://127.0.0.1:8000/healthz
 DNS first — point an A record at the VX1 IP for your API hostname, wait for propagation:
 
 ```bash
-dig +short api.<your-domain>      # should resolve to VX1 IP
+dig +short api.samrail.com      # should resolve to VX1 IP
 ```
 
 Then on the box:
 
 ```bash
 sudo cp /opt/govcapture/infra/nginx/govcapture.conf /etc/nginx/sites-available/
-sudo sed -i 's|api.your-domain.example|api.<your-domain>|g' /etc/nginx/sites-available/govcapture.conf
 sudo ln -sf /etc/nginx/sites-available/govcapture.conf /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 
-sudo certbot --nginx -d api.<your-domain> --redirect --agree-tos -m you@<your-domain> -n
+sudo certbot --nginx -d api.samrail.com --redirect --agree-tos -m you@samrail.com -n
 ```
 
 ### Verify from outside the box
 
 ```bash
-curl -s https://api.<your-domain>/healthz
+curl -s https://api.samrail.com/healthz
 # Expect: {"status":"ok","supabase":"ok","redis":"ok"}
 ```
 
 ### Update Vercel projects
 
-Now that the API is live, set `NEXT_PUBLIC_API_BASE=https://api.<your-domain>` on **both** Vercel projects (landing + web) and redeploy each.
+Now that the API is live, set `NEXT_PUBLIC_API_BASE=https://api.samrail.com` on **both** Vercel projects (landing + web) and redeploy each.
 
 ---
 
@@ -273,23 +288,23 @@ make sse-stub RUN_ID=<run-uuid>      # Mon-Fri tooling, replays 20 events throug
 
 ---
 
-## 7. (Optional) custom domain
+## 7. Custom domain
 
-You're currently on `*.vercel.app` URLs. When you buy a real domain (e.g., `govcon.app`):
+Use `samrail.com` for the public surfaces:
 
 | Surface | Custom domain |
 |---|---|
-| Landing | `govcon.app` (apex) or `www.govcon.app` |
-| `/web` | `app.govcon.app` |
-| API (VX1) | `api.govcon.app` |
+| Landing | `samrail.com` (apex) or `www.samrail.com` |
+| `/web` | `app.samrail.com` |
+| API (VX1) | `api.samrail.com` |
 
 Steps:
 
-1. Vercel landing project → Settings → Domains → add `govcon.app` → follow DNS instructions
-2. Vercel web project → same, add `app.govcon.app`
+1. Vercel landing project → Settings → Domains → add `samrail.com` → follow DNS instructions
+2. Vercel web project → same, add `app.samrail.com`
 3. Update env vars on both Vercel projects to use the real domain
-4. Update VX1 `.env`: `CORS_ALLOWED_ORIGINS=https://govcon.app,https://app.govcon.app`
-5. Update Resend `RESEND_FROM_EMAIL` to `noreply@govcon.app`, verify domain at resend.com/domains
+4. Update VX1 `.env`: `CORS_ALLOWED_ORIGINS=https://samrail.com,https://app.samrail.com`
+5. Update Resend `RESEND_FROM_EMAIL` to `noreply@samrail.com`, verify domain at resend.com/domains
 6. Redeploy everything
 
 No code change required — env-only swap.
@@ -306,10 +321,10 @@ uv run pytest api/tests/ -q                          # ≥ 206 passed
 uv run ruff check api && uv run mypy api             # both clean
 make eval && make fixtures-validate                  # both clean
 npm -w landing run build && npm -w web run build     # both clean
-curl -s https://api.<your-domain>/healthz            # 200 from outside the box
+curl -s https://api.samrail.com/healthz              # 200 from outside the box
 
 # Tag + push
-git tag -a v1.0.0 -m "GovCon Bid Desk v1.0.0 — first public release"
+git tag -a v1.0.0 -m "SamRail v1.0.0 — first public release"
 git push origin main --follow-tags
 ```
 
