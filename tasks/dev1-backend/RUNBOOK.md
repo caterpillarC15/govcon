@@ -10,7 +10,7 @@ A1 → P0.2 → A2 → A3 → A4 → A5 complete. **PRD bumped to v1.2.3** (Supa
 
 `.env` is **not yet populated**; tests use inline env vars (`ANTHROPIC_API_KEY=sk-ant-test ...`) and a `FakeLLM` stub so no Anthropic budget is consumed for CI. Live LLM smoke is deferred until you drop a real key into `.env`.
 
-**Database (v1.2.3):** Supabase Postgres in dev/prod via the **Direct Connection URL** (port 5432) — *not* the pgBouncer pooler at 6543, because asyncpg's prepared statements break transaction-mode pooling. The engine in `api/db/__init__.py` adds `connect_args={"ssl": "require"}` automatically for any non-localhost host. Local Postgres at `localhost:5432` still works as a dev fallback (no SSL, no Supabase needed).
+**Database (v1.2.3):** Supabase Postgres in dev/prod via the **Direct Connection URL** (port 5432) — *not* the pgBouncer pooler at 6543, because asyncpg's prepared statements break transaction-mode pooling. The engine in `api/db/__init__.py` adds `connect_args={"ssl": "require"}` automatically for any non-localhost host. **DDL:** `supabase/migrations/*.sql` + `supabase db push` (linked project). No Alembic.
 
 **Storage (v1.2.3):** Supabase bucket `govcapture-attachments`. `api/storage.py` wraps the REST API via httpx. `parse_pdf` keeps taking local paths; callers download from Storage to `/tmp` first.
 
@@ -23,8 +23,7 @@ A1 → P0.2 → A2 → A3 → A4 → A5 complete. **PRD bumped to v1.2.3** (Supa
 ### Local dev
 
 ```bash
-# Start native Postgres + Redis (idempotent; uses brew on macOS, systemctl on Linux).
-# One-time only after a reboot; they keep running in the background.
+# Start local Redis only (Postgres = Supabase remote).
 make services-up
 
 # Run the FastAPI app with --reload (foreground; logs go to this terminal)
@@ -33,10 +32,10 @@ make dev
 # Stop services when you're done for the day (optional)
 make services-down
 
-# Migrations (Alembic config lives in /api/alembic.ini; the Makefile cd's there)
-make migrate              # apply all migrations
-make migrate-down         # roll back one
-make migration MSG="describe change"  # autogenerate a new revision
+# Migrations (Supabase CLI; DDL under supabase/migrations/)
+make db-push              # apply pending migrations to linked remote
+make db-pull              # pull remote schema into a migration file (baseline)
+make db-new NAME=feature_xyz   # create empty migration; edit SQL, then db-push
 
 # Run the test suite (full / one file / one test)
 make test                                                # full
@@ -243,7 +242,7 @@ Common Hermes issues:
 | LLM cost runaway during prompt iteration | Default to Haiku. Tag tests that need Sonnet. Watch the cost dashboard. |
 | Forgetting §11.1 in score_fit | Two enforcement points: A6 deterministic check AND A12 eval assertion. Add a unit test asserting capability=high + decision=reject for the reject fixture. |
 | Postgres race conditions on concurrent agent runs | Use SERIALIZABLE only where needed; default to READ COMMITTED. Each agent run writes its own steps; no shared state to conflict on. |
-| Forgetting to migrate before running tests | `make migrate` is part of `make dev`. Add `make test` that depends on `migrate`. |
+| Forgetting to migrate before running tests | Run `supabase db push` (or ensure remote already has schema) before integration tests that hit the DB. |
 | Hermes runtime flakiness blocking demo | Demo defaults to seeded path (`DEMO_USE_SEEDED_ONLY=true`); pre-cached run in `/web/public/demo/` is the ultimate fallback. |
 | Backup script never tested until disaster | Test restore as part of A13. `pg_restore` from yesterday's dump into a clean DB. |
 

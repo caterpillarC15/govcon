@@ -74,17 +74,23 @@ sudo -u govcapture editor /opt/govcapture/.env
 #   ANTHROPIC_API_KEY           — sk-ant-...
 ```
 
-## 5. Install deps + migrate against Supabase + start
+## 5. Install deps + migrate Supabase + start
+
+Apply DDL from the repo with the Supabase CLI (linked project), **before** or **alongside**
+starting the API:
 
 ```bash
+# From your laptop (repo linked via supabase link): push migrations to remote Postgres.
+cd /path/to/govcon && supabase db push
+
+# On the box: sync Python deps and start the unit.
 sudo -u govcapture -H bash -lc 'cd /opt/govcapture && ~/.local/bin/uv sync'
-sudo -u govcapture -H bash -lc 'cd /opt/govcapture && ~/.local/bin/uv run alembic -c api/alembic.ini upgrade head'
 sudo systemctl enable --now govcapture-api.service
 sudo systemctl status govcapture-api --no-pager
 ```
 
-`alembic upgrade head` runs against Supabase (the engine adds SSL automatically
-for any non-localhost hostname — see `api/db/__init__.py`).
+Migrations live under `supabase/migrations/*.sql`. The FastAPI app connects with
+`DATABASE_URL` (Direct connection, port 5432); SSL is handled in `api/db/__init__.py`.
 
 Sanity check directly against gunicorn:
 
@@ -130,9 +136,8 @@ sudo systemctl restart govcapture-api
 sudo systemctl status govcapture-api --no-pager
 ```
 
-`deploy.sh` does `git reset --hard origin/main` + `uv sync --frozen` +
-`alembic upgrade head` (against Supabase). The systemd restart picks up the
-new code.
+`deploy.sh` does `git reset --hard origin/main` + `uv sync --frozen`.
+Run `supabase db push` when migration files changed, **before** `sudo systemctl restart govcapture-api`.
 
 ## 9. Operations
 
@@ -178,7 +183,7 @@ cd /opt/govcapture
 sudo -u govcapture git fetch origin
 sudo -u govcapture git reset --hard <good-commit-sha>
 sudo -u govcapture -H bash -lc '~/.local/bin/uv sync --frozen'
-sudo -u govcapture -H bash -lc '~/.local/bin/uv run alembic -c api/alembic.ini downgrade <prev-revision>'   # if a migration was bad
+# If a Supabase migration was bad: revert via dashboard SQL or a new corrective migration; then db push.
 sudo systemctl restart govcapture-api
 ```
 

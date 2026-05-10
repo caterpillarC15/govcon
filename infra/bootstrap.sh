@@ -99,9 +99,9 @@ Next (see infra/RUNBOOK.md for full detail):
        sudo -u ${APP_USER} editor ${REPO_DIR}/.env
        # Use the Direct Connection URL (port 5432), NOT the pooler (6543).
 
-  4. Install deps + run migrations against Supabase + start the API:
+  4. Install deps + apply Supabase migrations + start the API:
        sudo -u ${APP_USER} bash -lc 'cd ${REPO_DIR} && \$HOME/.local/bin/uv sync'
-       sudo -u ${APP_USER} bash -lc 'cd ${REPO_DIR} && \$HOME/.local/bin/uv run alembic -c api/alembic.ini upgrade head'
+       On a machine linked to Supabase: cd repo && supabase db push
        sudo systemctl enable --now govcapture-api.service
 
   5. Wire nginx + TLS (after DNS points to this box):

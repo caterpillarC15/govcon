@@ -1,35 +1,33 @@
-.PHONY: dev services-up services-down logs schemas migrate test typecheck lint format help
+.PHONY: dev services-up services-down schemas db-push db-pull db-new test typecheck lint format help
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?##"}; {printf "  %-18s %s\n", $$1, $$2}'
 
-dev: ## Run the FastAPI app with --reload (assumes services up)
+dev: ## Run the FastAPI app with --reload (Postgres = Supabase remote, Redis = local)
 	uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
-services-up: ## Start Redis (PRD v1.2.3 — Postgres is Supabase). Pass PG=1 to also start a local Postgres dev fallback.
+services-up: ## Start local Redis (Postgres is Supabase remote — nothing local for DB)
 	@if command -v brew >/dev/null 2>&1; then \
 	  brew services start redis; \
-	  [ "$(PG)" = "1" ] && brew services start postgresql@16 || true; \
 	else \
 	  sudo systemctl start redis-server; \
-	  [ "$(PG)" = "1" ] && sudo systemctl start postgresql || true; \
 	fi
 
-services-down: ## Stop Redis (and local Postgres dev fallback if started with PG=1).
+services-down: ## Stop local Redis
 	@if command -v brew >/dev/null 2>&1; then \
 	  brew services stop redis; \
-	  brew services stop postgresql@16 2>/dev/null || true; \
 	else \
 	  sudo systemctl stop redis-server; \
-	  sudo systemctl stop postgresql 2>/dev/null || true; \
 	fi
 
-logs: ## Tail local Postgres logs (only useful when running PG=1 fallback; Supabase logs live in the dashboard).
-	@if command -v brew >/dev/null 2>&1; then \
-	  tail -F "$$(brew --prefix)/var/log/postgresql@16.log"; \
-	else \
-	  journalctl -u postgresql -f; \
-	fi
+db-push: ## Apply pending Supabase migrations to the linked remote project
+	supabase db push
+
+db-pull: ## Pull current remote schema into supabase/migrations/ as a baseline
+	supabase db pull
+
+db-new: ## Create a new Supabase migration. Usage: make db-new NAME=add_feature_x
+	supabase migration new $(NAME)
 
 schemas: ## Regenerate Pydantic models from /schemas/*.json (and TS if /web exists)
 	@rm -rf api/schemas
@@ -58,15 +56,6 @@ schemas: ## Regenerate Pydantic models from /schemas/*.json (and TS if /web exis
 	else \
 	  echo "⚠ /web/ not present — skipping TS codegen (Dev 2 wires when /web exists)"; \
 	fi
-
-migrate: ## Apply Alembic migrations
-	cd api && uv run alembic upgrade head
-
-migrate-down: ## Roll back one Alembic migration
-	cd api && uv run alembic downgrade -1
-
-migration: ## Create a new Alembic revision (autogenerate). Usage: make migration MSG="describe change"
-	cd api && uv run alembic revision --autogenerate -m "$(MSG)"
 
 test: ## Run the test suite
 	uv run pytest -v api/tests

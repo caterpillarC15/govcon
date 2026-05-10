@@ -85,7 +85,7 @@ Postgres + object storage are managed via Supabase per PRD v1.2.3 §7.5.
 - [ ] Copy `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (server-only — bypasses RLS), and `SUPABASE_ANON_KEY` (web-safe) from Settings → API.
 - [ ] Create a Storage bucket named `govcapture-attachments` (private — no public read).
 - [ ] Optional: add a 30-day retention rule on the `raw/` prefix per PRD §17 Q6.
-- [ ] Confirm `make migrate` runs cleanly against Supabase. The engine in `api/db/__init__.py` auto-adds `ssl=require` for non-localhost hosts; no code change needed.
+- [ ] Confirm `supabase db push` applies migrations cleanly to the linked Supabase project. The engine in `api/db/__init__.py` auto-adds `ssl=require` for non-localhost hosts; no code change needed.
 - [ ] Local-PG-only dev still works for fast TDD loops — set `DATABASE_URL=postgresql+asyncpg://govcon@localhost:5432/govcon`.
 
 ## P0.6 — Hermes Agent install + wire project config
