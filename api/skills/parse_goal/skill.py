@@ -1,60 +1,34 @@
-"""parse_goal — Capture Lead's first move.
+"""parse_goal — input validator only (PRD v1.2.6).
 
-Converts a natural-language contracting goal into structured search criteria
-that the SAM search skill (and the planner) can use.
+Per the operating rule (devdocs/MICHAELA_SYSTEM_MODEL.md line 175 —
+"mechanics in tools, judgment in agents"), parsing the user's
+natural-language contracting goal into structured search criteria is
+judgment work. Michaela performs that extraction in her own LLM
+context before delegating to Scot for SAM discovery.
+
+This skill validates the input envelope and passes the goal + profile
+through unchanged. The downstream caller (Michaela's prompt) does the
+keyword/NAICS/geography extraction.
 """
 from __future__ import annotations
-from pathlib import Path
+
 from typing import Any
-from pydantic import BaseModel, Field
-from api.llm import LLM, LLMMetrics
 
-_PROMPT = (Path(__file__).parent / "prompt.txt").read_text()
+from pydantic import BaseModel
 
 
-class _ParseGoalOutput(BaseModel):
-    keywords: list[str] = Field(default_factory=list)
-    naics_hints: list[str] = Field(default_factory=list)
-    due_window_days: int = 30
-    set_aside_pref: str | None = None
-    geography: str | None = None
-    agencies: list[str] | None = None
-    opportunity_type: str = "any"
+class ParseGoalInput(BaseModel):
+    goal: str
+    company_profile: dict[str, Any] | None = None
 
 
-async def parse_goal(
-    payload: dict[str, Any],
-    *,
-    llm: LLM,
-) -> tuple[dict[str, Any], LLMMetrics]:
-    """Parse a goal string into structured search criteria.
+async def parse_goal(payload: ParseGoalInput) -> dict[str, Any]:
+    """Pass-through validator.
 
-    Input shape:
-        {
-          "goal": str,                  # natural-language goal
-          "company_profile": {...},     # used for context (NAICS, role, etc.)
-        }
-    Output:
-        ({
-          "keywords": list[str],
-          "naics_hints": list[str],
-          "due_window_days": int,
-          "set_aside_pref": str | None,
-          "geography": str | None,
-          "agencies": list[str] | None,
-          "opportunity_type": str,       # "any" | "rfp" | "rfi" | "sources_sought"
-        }, LLMMetrics)
+    Returns the goal text + company_profile context for Michaela to
+    consume in her agent context. No LLM call.
     """
-    profile_naics = payload.get("company_profile", {}).get("naics_codes", [])
-    user_prompt = (
-        f"Goal: {payload['goal']}\n"
-        f"Company NAICS codes: {profile_naics}\n\n"
-        "Return JSON per the schema."
-    )
-
-    result, metrics = await llm.complete_structured(
-        system=_PROMPT,
-        user=user_prompt,
-        output_model=_ParseGoalOutput,
-    )
-    return result.model_dump(), metrics
+    return {
+        "raw_goal": payload.goal,
+        "company_profile": payload.company_profile or {},
+    }

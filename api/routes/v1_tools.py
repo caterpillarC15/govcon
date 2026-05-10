@@ -34,7 +34,7 @@ from api.skills.extract_requirements.skill import extract_requirements
 from api.skills.fetch_attachment.skill import fetch_attachment
 from api.skills.generate_action_package.skill import generate_action_package
 from api.skills.load_seeded_opportunities.skill import load_seeded_opportunities
-from api.skills.parse_goal.skill import parse_goal
+from api.skills.parse_goal.skill import ParseGoalInput, parse_goal
 from api.skills.parse_pdf.skill import parse_pdf
 from api.skills.query_usaspending.skill import query_usaspending
 from api.skills.rank_opportunities.skill import rank_opportunities
@@ -49,10 +49,15 @@ router = APIRouter(prefix="/api/v1/tools", tags=["v1-tools"])
 async def parse_goal_route(
     payload: ParseGoalRequest,
     _actor: AgentActor = Depends(require_agent_or_internal),
-    llm=Depends(get_llm),
 ) -> ToolResponse:
-    data, metrics = await parse_goal(payload.model_dump(), llm=llm)
-    return ToolResponse(data=data, metrics=metrics)
+    # PRD v1.2.6: parse_goal is now a deterministic input validator.
+    data = await parse_goal(
+        ParseGoalInput(
+            goal=payload.goal,
+            company_profile=payload.company_profile,
+        ),
+    )
+    return ToolResponse(data=data, metrics=None)
 
 
 @router.post("/rank-opportunities", response_model=ToolResponse)

@@ -1,87 +1,49 @@
-"""parse_goal — natural-language goal → structured search criteria."""
+"""parse_goal — deterministic pass-through validator (PRD v1.2.6).
+
+The skill no longer calls an LLM. Michaela parses the natural-language
+goal in her own agent context; this skill only validates the envelope
+and returns {raw_goal, company_profile}.
+"""
 from __future__ import annotations
-from api.skills.parse_goal import parse_goal
-from api.tests.fakes import FakeLLM
+
+import pytest
+
+from api.skills.parse_goal.skill import ParseGoalInput, parse_goal
 
 
-async def test_parses_typical_goal():
-    """Happy path: typical govcon goal returns structured criteria."""
-    fake_llm = FakeLLM(payload={
-        "keywords": ["cybersecurity", "infosec"],
-        "naics_hints": ["541512", "541519"],
-        "due_window_days": 60,
-        "set_aside_pref": "small_business",
-        "geography": None,
-        "agencies": None,
-        "opportunity_type": "any",
-    })
-    out, _ = await parse_goal(
-        {
-            "goal": "Find cybersecurity opportunities we can pursue in the next 60 days.",
-            "company_profile": {"name": "DemoCo", "naics_codes": ["541512"]},
-        },
-        llm=fake_llm,
+@pytest.mark.asyncio
+async def test_returns_raw_goal_and_profile_unchanged():
+    payload = ParseGoalInput(
+        goal="Find cybersecurity opportunities we can pursue in the next 60 days.",
+        company_profile={"name": "DemoCo", "naics_codes": ["541512"]},
     )
-    assert "cybersecurity" in out["keywords"]
-    assert out["due_window_days"] == 60
-    assert out["set_aside_pref"] == "small_business"
-    assert fake_llm.call_count == 1
+    out = await parse_goal(payload)
+    assert out["raw_goal"] == payload.goal
+    assert out["company_profile"] == {
+        "name": "DemoCo",
+        "naics_codes": ["541512"],
+    }
 
 
-async def test_geography_extraction():
-    fake_llm = FakeLLM(payload={
-        "keywords": ["facilities maintenance"],
-        "naics_hints": [],
-        "due_window_days": 30,
-        "set_aside_pref": None,
-        "geography": "TX",
-        "agencies": None,
-        "opportunity_type": "any",
-    })
-    out, _ = await parse_goal(
-        {
-            "goal": "Find facilities maintenance contracts in Texas.",
-            "company_profile": {"naics_codes": []},
-        },
-        llm=fake_llm,
+@pytest.mark.asyncio
+async def test_company_profile_defaults_to_empty_dict():
+    payload = ParseGoalInput(goal="Find cloud opportunities.")
+    out = await parse_goal(payload)
+    assert out["raw_goal"] == "Find cloud opportunities."
+    assert out["company_profile"] == {}
+
+
+@pytest.mark.asyncio
+async def test_no_keyword_or_naics_extraction_in_skill():
+    """Verify the skill does NOT mutate the goal text — that's Michaela's job."""
+    payload = ParseGoalInput(
+        goal="Find facilities maintenance contracts in Texas.",
+        company_profile={"naics_codes": []},
     )
-    assert out["geography"] == "TX"
-
-
-async def test_defaults_due_window_to_30_when_unspecified():
-    """Should accept LLM's default of 30 when no time horizon stated."""
-    fake_llm = FakeLLM(payload={
-        "keywords": ["cloud"],
-        "naics_hints": ["541512"],
-        "due_window_days": 30,  # default
-        "set_aside_pref": None,
-        "geography": None,
-        "agencies": None,
-        "opportunity_type": "any",
-    })
-    out, _ = await parse_goal(
-        {"goal": "Find cloud opportunities.", "company_profile": {}},
-        llm=fake_llm,
-    )
-    assert out["due_window_days"] == 30
-
-
-async def test_named_agencies_extracted():
-    fake_llm = FakeLLM(payload={
-        "keywords": ["software development"],
-        "naics_hints": ["541511"],
-        "due_window_days": 90,
-        "set_aside_pref": None,
-        "geography": None,
-        "agencies": ["DOI", "VA"],
-        "opportunity_type": "rfp",
-    })
-    out, _ = await parse_goal(
-        {
-            "goal": "Find software RFPs at DOI or VA in the next 90 days.",
-            "company_profile": {"naics_codes": ["541511"]},
-        },
-        llm=fake_llm,
-    )
-    assert out["agencies"] == ["DOI", "VA"]
-    assert out["opportunity_type"] == "rfp"
+    out = await parse_goal(payload)
+    # No keywords/geography/agencies inferred — the agent owns extraction.
+    assert "keywords" not in out
+    assert "geography" not in out
+    assert "agencies" not in out
+    # Raw goal preserved verbatim for the agent to parse.
+    assert out["raw_goal"] == "Find facilities maintenance contracts in Texas."

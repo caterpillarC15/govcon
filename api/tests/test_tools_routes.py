@@ -120,19 +120,12 @@ async def test_all_tools_reject_unknown_fields(client, path) -> None:
 # ─── /tools/parse-goal ─────────────────────────────────────────────────────
 
 
-async def test_parse_goal_happy_path(client, fake_llm_factory) -> None:
-    fake_llm_factory(
-        {
-            "keywords": ["cybersecurity"],
-            "naics_hints": ["541512"],
-            "due_window_days": 30,
-            "set_aside_pref": None,
-            "geography": "TX",
-            "agencies": ["DHS"],
-            "opportunity_type": "any",
-        }
-    )
+async def test_parse_goal_happy_path(client) -> None:
+    """PRD v1.2.6: parse_goal is a deterministic pass-through validator.
 
+    Michaela does the keyword/NAICS/geography extraction in her own
+    agent context. This skill just echoes the goal + profile back.
+    """
     r = await client.post(
         "/tools/parse-goal",
         json={
@@ -143,8 +136,10 @@ async def test_parse_goal_happy_path(client, fake_llm_factory) -> None:
     )
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["data"]["keywords"] == ["cybersecurity"]
-    assert body["metrics"]["cost_usd"] == 0.0001
+    assert body["data"]["raw_goal"] == "Find cybersecurity contracts in Texas"
+    assert body["data"]["company_profile"] == {"naics_codes": ["541512"]}
+    # No LLM call → no metrics. Phase 7 drops the field entirely.
+    assert body["metrics"] is None
 
 
 # ─── /tools/rank-opportunities ─────────────────────────────────────────────
