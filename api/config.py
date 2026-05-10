@@ -20,18 +20,12 @@ class Settings(BaseSettings):
         "govcapture-attachments", alias="SUPABASE_STORAGE_BUCKET"
     )
 
-    hermes_home: str = Field(".hermes", alias="HERMES_HOME")
-    hermes_model: str = Field("claude-sonnet-4-6", alias="HERMES_MODEL")
-
     llm_dev_model: str = Field("claude-haiku-4-5-20251001", alias="LLM_DEV_MODEL")
     llm_synth_model: str = Field("claude-sonnet-4-6", alias="LLM_SYNTH_MODEL")
 
     run_budget_usd: float = Field(0.50, alias="RUN_BUDGET_USD")
     run_budget_steps: int = Field(40, alias="RUN_BUDGET_STEPS")
     run_budget_seconds: int = Field(360, alias="RUN_BUDGET_SECONDS")
-
-    demo_use_seeded_only: bool = Field(False, alias="DEMO_USE_SEEDED_ONLY")
-    demo_replay_trace: bool = Field(False, alias="DEMO_REPLAY_TRACE")
 
     internal_api_key: str = Field("", alias="INTERNAL_API_KEY")
     cors_allowed_origins: str = Field(

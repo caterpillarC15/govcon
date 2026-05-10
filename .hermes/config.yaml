@@ -5,7 +5,7 @@
 #
 # It is NOT loaded by FastAPI or by any production process — those read
 # api/config.py and .env directly. The orchestrator (Michaela) and the
-# worker bench (Scot, Lenny, Lance, Gabby, Happer, Roy) live in
+# worker bench (Scot, Lenny, Ledger, Gate, Happer, Roy) live in
 # /root/michealaai with their own ~/.hermes/.
 #
 # This file was previously hand-rolled with invented keys

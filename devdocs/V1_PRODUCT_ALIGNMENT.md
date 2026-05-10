@@ -61,9 +61,9 @@ shell/tool harness around it. Anthropic/OpenRouter are provider transports, not
 the product architecture.
 
 The bench is **Michaela (CEO) + Scot (discovery) + Lenny (fit ranking) +
-Gabby (eligibility) + Lance (competitive intel) + Happer (execution runner) +
-Roy (packaging)**. See `tasks/AGENT_ARCHITECTURE.md` and
-`devdocs/MICHAELA_SYSTEM_MODEL.md` for the canonical design.
+Gate (eligibility) + Ledger (competitive intel) + Happer (execution runner) +
+Roy (packaging)**. See `devdocs/MICHAELA_SYSTEM_MODEL.md` for the
+canonical design.
 
 OpenClaw is a channel/tool substrate when useful: browser work, web chat,
 WhatsApp, Slack, or other customer surfaces. It is not a second peer brain

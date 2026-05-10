@@ -1,6 +1,6 @@
 ---
 name: detect_risks_calibrated
-description: Gabby procedure for identifying risks across the 12 PRD §5.8 categories with calibrated severity. Cross-checks eligibility blockers; caps output at 8 actionable risks. Skipped for reject decisions.
+description: Gate procedure for identifying risks across the 12 PRD §5.8 categories with calibrated severity. Cross-checks eligibility blockers; caps output at 8 actionable risks. Skipped for reject decisions.
 version: 1.0.0
 metadata:
   hermes:
@@ -11,13 +11,13 @@ metadata:
 
 # Detect Risks (Calibrated Severity)
 
-Gabby's risk-calibration procedure. Take profile + requirements + fit_score → produce calibrated `RiskFlag[]`.
+Gate's risk-calibration procedure. Take profile + requirements + fit_score → produce calibrated `RiskFlag[]`.
 
 **Skipped for reject decisions** by Michaela's branching logic (the per-opportunity orchestration recipe lives in `/root/michealaai`, not in this pack). You only run when decision ∈ {strong_pursue, pursue, maybe}.
 
 ## When to Use
 
-- You are Gabby.
+- You are Gate.
 - You've been delegated with `(profile, requirements, fit_score)` context.
 - The opportunity is NOT a reject — Michaela already filtered.
 
@@ -29,7 +29,7 @@ Gabby's risk-calibration procedure. Take profile + requirements + fit_score → 
    ```
    Returns up to 8 `RiskFlag` items. The skill enforces the cap; if the LLM produced more, the wrapper truncates by severity priority.
 
-2. **Cross-check Gabby's blockers (the wrapper handles this; verify):**
+2. **Cross-check Gate's blockers (the wrapper handles this; verify):**
    - For each entry in `fit_score.blockers[]`, ensure a corresponding `RiskFlag` with `severity == "critical_blocker"` exists.
    - If the LLM missed one, the wrapper deterministically appends it. Verify post-call.
 
@@ -82,7 +82,7 @@ Use these definitions, not your gut:
 
 - **Over-flagging.** Models tend to surface every conceivable risk. The cap-at-8 rule and post-truncation handle this, but you should produce relevant risks, not exhaustive ones.
 - **Severity inflation.** "Major" for things that are "moderate." Use the calibration table.
-- **Forgetting the cross-check.** If a Gabby blocker doesn't appear here as a critical_blocker risk, the wrapper adds it. Don't rely on the wrapper as a crutch — produce them yourself.
+- **Forgetting the cross-check.** If a Gate blocker doesn't appear here as a critical_blocker risk, the wrapper adds it. Don't rely on the wrapper as a crutch — produce them yourself.
 - **Mitigation hallucination.** Mitigations like "obtain SCIF facility" are obvious; don't invent specific government processes.
 - **Running on a reject opportunity.** You shouldn't be running. If your context says decision == reject, return `[]` with a log message — Michaela should not have delegated risk calibration to you.
 
@@ -94,4 +94,4 @@ Use these definitions, not your gut:
 - For reject fixture (if you somehow run on it): 1+ critical_blocker matching the eligibility issue. But Michaela SHOULD NOT have delegated; flag this in standup if it happens.
 - Every critical_blocker has `requires_human_review: true`.
 - Every risk has a non-empty `mitigation` field.
-- Every Gabby blocker appears as a critical_blocker risk in your output.
+- Every Gate blocker appears as a critical_blocker risk in your output.

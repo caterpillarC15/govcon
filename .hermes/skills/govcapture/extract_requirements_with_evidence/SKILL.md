@@ -1,6 +1,6 @@
 ---
 name: extract_requirements_with_evidence
-description: Gabby procedure for converting parsed solicitation chunks into structured requirements with hard evidence-binding rules. Every medium/high confidence requirement must include a verbatim source quote and page number.
+description: Gate procedure for converting parsed solicitation chunks into structured requirements with hard evidence-binding rules. Every medium/high confidence requirement must include a verbatim source quote and page number.
 version: 1.0.0
 metadata:
   hermes:
@@ -11,11 +11,11 @@ metadata:
 
 # Extract Requirements with Evidence Binding
 
-Gabby's first procedure. Convert parsed PDF text into structured requirements per PRD §10.1, with mandatory source quotes for every confident extraction.
+Gate's first procedure. Convert parsed PDF text into structured requirements per PRD §10.1, with mandatory source quotes for every confident extraction.
 
 ## When to Use
 
-- You are Gabby.
+- You are Gate.
 - You've received `parsed_chunks` from Happer or Michaela's opportunity branch.
 - Output: §10.1 `RequirementExtractionOutput` with full evidence binding.
 
@@ -64,4 +64,4 @@ Gabby's first procedure. Convert parsed PDF text into structured requirements pe
 
 ## Cross-skill note
 
-This skill produces input for `score_fit_with_eligibility_check`. The two skills run in sequence within Gabby's turn. The §11.1 short-circuit lives in the next skill's deterministic logic — your job here is faithful, evidence-bound extraction.
+This skill produces input for `score_fit_with_eligibility_check`. The two skills run in sequence within Gate's turn. The §11.1 short-circuit lives in the next skill's deterministic logic — your job here is faithful, evidence-bound extraction.

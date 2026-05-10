@@ -1,7 +1,7 @@
 [project]
 name = "govcapture"
 version = "0.1.0"
-description = "GovCapture FastAPI proxy + Hermes integration"
+description = "GovCon Bid Desk capability-pack API"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",

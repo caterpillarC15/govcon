@@ -91,7 +91,7 @@ This procedure is deterministic — `generate_action_package` with `mode="reject
 ## Cross-skill note
 
 This skill is invoked by Michaela on the reject branch of her per-opportunity orchestration recipe (which lives in `/root/michealaai`, not this pack). The §11.1 chain depends on:
-1. Gabby correctly returning `decision = "reject"` (via `score_fit_with_eligibility_check`).
+1. Gate correctly returning `decision = "reject"` (via `score_fit_with_eligibility_check`).
 2. Michaela correctly branching on the reject and calling THIS skill (not `generate_full_action_package`).
 3. This skill returning the slim shape without re-running the LLM (which might be tempted to pad with optimistic prose).
 

@@ -26,6 +26,7 @@ type AgentRun = {
   id: string
   goal: string
   status: 'pending' | 'running' | 'complete' | 'partial' | 'failed'
+  steps: TraceEvent[]
   opportunities: string[]
   selected_opportunity_id?: string | null
   action_package_id?: string | null
@@ -116,12 +117,12 @@ export default function AppConsole() {
   const [profileForm, setProfileForm] = useState<ProfileFormState>(defaultProfile)
   const [goal, setGoal] = useState(defaultGoal)
   const [run, setRun] = useState<AgentRun | null>(null)
-  const [events, setEvents] = useState<TraceEvent[]>([])
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [actionPackage, setActionPackage] = useState<ActionPackage | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const traceEvents = run?.steps ?? []
 
   async function authedFetch(path: string, init: RequestInit = {}) {
     const session =
@@ -217,7 +218,6 @@ export default function AppConsole() {
     setBusy(true)
     setError('')
     setNotice('')
-    setEvents([])
     setOpportunities([])
     setActionPackage(null)
     try {
@@ -230,55 +230,27 @@ export default function AppConsole() {
       })
       const created = (await response.json()) as AgentRun
       setRun(created)
-      setNotice('Michaela run started.')
-      void streamRun(created.id)
+      setNotice(
+        'Run request queued for Michaela. The external orchestrator writes trace events and results.',
+      )
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start run.')
+      setError(err instanceof Error ? err.message : 'Could not queue run.')
+    } finally {
       setBusy(false)
     }
   }
 
-  async function streamRun(runId: string) {
+  async function refreshCurrentRun() {
+    if (!run) return
+    setBusy(true)
+    setError('')
+    setNotice('')
     try {
-      const session =
-        token ??
-        (await supabase.auth.getSession()).data.session?.access_token ??
-        null
-      if (!session) throw new Error('Supabase session is missing.')
-
-      const response = await fetch(`${apiBase}/agent-runs/${runId}/stream`, {
-        headers: { Authorization: `Bearer ${session}` },
-      })
-      if (!response.ok || !response.body) throw new Error('Could not open run stream.')
-
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { value, done } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        let boundary = buffer.indexOf('\n\n')
-        while (boundary !== -1) {
-          const chunk = buffer.slice(0, boundary)
-          buffer = buffer.slice(boundary + 2)
-          const dataLine = chunk
-            .split('\n')
-            .find((line) => line.startsWith('data: '))
-          if (dataLine) {
-            const event = JSON.parse(dataLine.slice(6)) as TraceEvent
-            setEvents((current) => [...current, event].slice(-80))
-            if (event.type === 'run_completed') {
-              await refreshRun(runId)
-              setBusy(false)
-            }
-          }
-          boundary = buffer.indexOf('\n\n')
-        }
-      }
+      await refreshRun(run.id)
+      setNotice('Run refreshed.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Run stream failed.')
+      setError(err instanceof Error ? err.message : 'Could not refresh run.')
+    } finally {
       setBusy(false)
     }
   }
@@ -294,6 +266,8 @@ export default function AppConsole() {
     if (nextRun.action_package_id) {
       const packageResponse = await authedFetch(`/action-packages/${nextRun.action_package_id}`)
       setActionPackage((await packageResponse.json()) as ActionPackage)
+    } else {
+      setActionPackage(null)
     }
   }
 
@@ -412,7 +386,7 @@ export default function AppConsole() {
         <div className="rounded-[20px] border border-white/80 bg-white/76 p-5 shadow-[0_20px_60px_-44px_rgba(15,23,42,0.5)] backdrop-blur-2xl">
           <div className="flex items-center gap-2 text-sm font-medium text-blue-900">
             <Play size={16} aria-hidden />
-            Seeded run
+            Run request
           </div>
           <div className="mt-4 space-y-3">
             <label className="block">
@@ -446,8 +420,19 @@ export default function AppConsole() {
               className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-blue-900 px-4 text-sm font-medium text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {busy ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Play size={15} aria-hidden />}
-              Start seeded run
+              Queue run request
             </button>
+            {run && (
+              <button
+                type="button"
+                onClick={refreshCurrentRun}
+                disabled={busy}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {busy ? <Loader2 size={15} className="animate-spin" aria-hidden /> : null}
+                Refresh run
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -482,11 +467,13 @@ export default function AppConsole() {
             )}
           </div>
           <div className="mt-4 max-h-[360px] overflow-auto rounded-2xl border border-slate-200 bg-white">
-            {events.length === 0 ? (
-              <p className="p-4 text-sm text-slate-500">No events yet.</p>
+            {traceEvents.length === 0 ? (
+              <p className="p-4 text-sm text-slate-500">
+                No trace events yet. Michaela has not written results for this run.
+              </p>
             ) : (
               <ol className="divide-y divide-slate-100">
-                {events.map((event, index) => (
+                {traceEvents.map((event, index) => (
                   <li key={`${event.type}-${index}`} className="p-3">
                     <p className="text-sm font-medium text-slate-900">{eventLabel(event)}</p>
                     <p className="mt-1 text-xs text-slate-500">{event.type}</p>

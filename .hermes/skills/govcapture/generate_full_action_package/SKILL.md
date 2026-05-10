@@ -48,7 +48,7 @@ Roy's primary procedure for non-reject decisions. Produces the §10.3 deliverabl
 ## Section-by-section guidance
 
 ### `executive_summary`
-3-4 sentences. Decision, rationale headline, top action. Cite specialist verdicts ("Gabby found no blockers; Lenny scored 88; first action: confirm SAM registration").
+3-4 sentences. Decision, rationale headline, top action. Cite specialist verdicts ("Gate found no blockers; Lenny scored 88; first action: confirm SAM registration").
 
 ### `compliance_matrix`
 One row per high/medium-confidence requirement. Status:
@@ -60,7 +60,7 @@ One row per high/medium-confidence requirement. Status:
 Determine status deterministically when possible. Use LLM only for "unclear" judgments and to fill `next_action` and `owner`.
 
 ### `risk_register`
-Pass-through from Gabby/Lance risk output, filtered to severity ≥ moderate. Don't re-rank or re-severity.
+Pass-through from Gate/Ledger risk output, filtered to severity ≥ moderate. Don't re-rank or re-severity.
 
 ### `proposal_checklist`
 Concrete actions, ordered by deadline. Dated where possible.

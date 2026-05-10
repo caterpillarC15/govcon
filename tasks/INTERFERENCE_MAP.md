@@ -9,6 +9,12 @@
 > - `supabase/migrations/*.sql` — schema source of truth (PRD v1.2.4).
 > - `api/auth.py` — JWT + InternalActor verification.
 > - `api/repositories/{profile,waitlist}.py` — new resources (2026-05-09).
+>
+> **PRD v1.2.5 removal.** `api/agent/` (the in-repo orchestration code:
+> `hermes_runner`, `hermes_bridge`, `replay`) is gone. Michaela's
+> orchestrator + worker bench live in `/root/michealaai`. File ownership
+> in this repo now centers on `api/skills/`, `api/routes/`,
+> `supabase/migrations/`, `web/`, `fixtures/`.
 
 File ownership, shared-file protocols, and conflict-resolution rules.
 
@@ -131,7 +137,7 @@ Concrete things that have killed past parallel hackathon teams. Each has a mitig
 | Fixture written to a not-yet-existent schema | Schema PRs merge before fixture PRs depending on them |
 | Both devs editing `/infra/**` (bootstrap, systemd, nginx) | Single owner (A) |
 | LLM cost runaway during dev | `LLM_DEV_MODEL=claude-haiku-4-5-20251001` default; Sonnet only on tagged tests |
-| Hermes runtime issues block demo | Demo defaults to seeded path (`DEMO_USE_SEEDED_ONLY=true`); pre-cached run in `/web/public/demo/` is the ultimate fallback |
+| Michaela runtime issues block demo | Use a pre-cached run or fixture-only orchestrator path outside this repo; `/web` should not pretend to run agents locally |
 | Fixture PDFs mis-author so parser fails | A and B jointly draft fixture-PDF guidelines in P0.4; A reviews each fixture PR |
 | First end-to-end test happens during stage | S2 + S3 + S5 are mandatory |
 | Forgotten env var on VX1 | A13 verifies all `.env.example` keys are set in prod |

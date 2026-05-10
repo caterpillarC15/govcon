@@ -3,15 +3,33 @@
 ## Product Requirements Document
 
 **Product name:** GovCapture Agent
-**Document status:** MVP PRD v1.2.4
+**Document status:** MVP PRD v1.2.5
 **Primary track:** Agents Track
 **Primary objective:** Build an autonomous AI capture agent that turns a small business profile and government contracting goal into a useful federal opportunity analysis package by searching opportunities, parsing solicitation documents, extracting requirements, scoring fit, detecting blockers, and producing actionable next steps with human approval gates.
 
+> **Changelog v1.2.4 → v1.2.5** (2026-05-09)
+> - **Repo boundary corrected.** This repo is now the GovCon Bid Desk
+>   capability pack: tools, schemas, Supabase data layer, FastAPI routes,
+>   landing, and `/web`. Michaela's workloop, worker bench, task queue, and
+>   orchestration recipes live in `/root/michealaai`.
+> - **In-repo orchestration removed.** `api/agent/` seeded bridge/replay code
+>   was deleted. `POST /agent-runs` creates a run-request row; it does not
+>   start a local Hermes subprocess. The external Michaela orchestrator writes
+>   trace events and generated artifacts back through this pack's contracts.
+> - **Bench names corrected to the latest system language.** Michaela owns the
+>   board; workers are Scot, Lenny, Ledger, Gate, Happer, and Roy. Legacy
+>   `Lance`/`Gabby` labels are deprecated in active docs.
+> - **Env contract narrowed.** `DEMO_USE_SEEDED_ONLY` and
+>   `DEMO_REPLAY_TRACE` are not read by this repo. Seeded/demo routing belongs
+>   to Michaela's runtime or a fixture harness outside this repo.
+> - **New docs:** `devdocs/MICHAELA_SYSTEM_MODEL.md` and
+>   `devdocs/CAPABILITY_PACK_INTEGRATION.md` define the layer boundary.
+>
 > **Changelog v1.2.3 → v1.2.4** (2026-05-09)
 > - **Postgres tooling removed.** SQLAlchemy 2.0, asyncpg, and Alembic are gone from `pyproject.toml` and from the codebase. The data layer is now `supabase-py`'s `AsyncClient` talking to Supabase **PostgREST**. Schemas live as versioned SQL under `supabase/migrations/` and are applied with `supabase db push`. `DATABASE_URL` is no longer an env var.
 > - **Auth + ownership added.** Two auth roles: `AuthenticatedUser` (Supabase JWT verified through `/auth/v1/user`) for user-facing routes; `InternalActor` (X-Internal-API-Key header) for sub-agent writebacks. New `INTERNAL_API_KEY` env var. New `owner_profile_id` column on user-facing tables; `get_owned()` repository methods scope reads by JWT identity. RLS enabled on every table.
 > - **New resources:** `/profiles` (one row per Supabase Auth user; FK into `auth.users`), `/waitlist` (marketing capture), and the Michaela-layer tables (`opportunity_matches`, `documents`, `document_chunks`, `run_events`).
-> - **Michaela 7-agent bench named.** The Michaela system uses a CEO + 6 worker agents: Michaela (orchestrator), Scot (discovery), Lenny (fit ranking), Gabby (eligibility), Lance (competitive intel), Happer (execution runner), Roy (packaging). Hermes is the runtime shell around this bench, not the product architecture. Replaces the prior 5-agent design (Capture Lead / Analyst / Compliance Officer / Risk Analyst / Proposal Strategist). The §11.1 chain, source-binding, no-fabrication, and approval-gate rules carry over unchanged. See `tasks/AGENT_ARCHITECTURE.md`.
+> - **Michaela 7-agent bench named.** The Michaela system uses a CEO + 6 worker agents: Michaela (orchestrator), Scot (discovery), Lenny (fit ranking), Gate (eligibility), Ledger (competitive intel), Happer (execution runner), Roy (packaging). Hermes is the runtime shell around this bench, not the product architecture. Replaces the prior 5-agent design (Capture Lead / Analyst / Compliance Officer / Risk Analyst / Proposal Strategist). The §11.1 chain, source-binding, no-fabrication, and approval-gate rules carry over unchanged. See `devdocs/MICHAELA_SYSTEM_MODEL.md`.
 > - §7.5 simplified: "Supabase project provisioned via the Supabase CLI; SQL migrations in `supabase/migrations/`." No mention of asyncpg or Direct Connection URL — irrelevant now.
 > - §9 endpoints: writeback POSTs (`/opportunities/{id}/{requirements,fit-score,risks}`, `/action-packages`) require `InternalActor`; everything else requires `AuthenticatedUser`. Healthz, waitlist signup are public.
 > - Deferred items still deferred: Supabase Realtime (Redis stays for SSE pub/sub), cross-run agent memory.
@@ -34,7 +52,7 @@
 > - §4.5 updated: planner loop, tool registry, and budgeting now reference Hermes' built-ins. Our additions are the domain skills, the §11.1 enforcement (which lives inside `score_fit` and `generate_action_package`), and the trace bridge. The decision-policy and error-recovery semantics are unchanged contractually.
 > - §7.3 updated: OpenClaw is no longer a peer agent brain. Michaela owns the product workloop; Hermes provides runtime memory, skills/tools, provider config, and delegation support. OpenClaw may still serve as a bounded channel/tool substrate for browser-bound work, web chat, WhatsApp, or Slack when that accelerates the V1 bid-desk worker.
 > - Model defaults remain Claude Sonnet 4.6 (synthesis) and Haiku 4.5 (cheap passes), configured via `hermes model`. Hermes' model-agnosticism means we can swap providers later without code changes.
-> - See `HERMES.md` (repo root) and `tasks/AGENT_ARCHITECTURE.md` for the integration spec, agent bench, toolset map, and §11.1 enforcement chain.
+> - See `HERMES.md` (repo root), `devdocs/MICHAELA_SYSTEM_MODEL.md`, and `devdocs/CAPABILITY_PACK_INTEGRATION.md` for the integration spec, agent bench, toolset map, and §11.1 enforcement chain.
 >
 > **Changelog v1.2 → v1.2.1**
 > - Added §7.6 Deployment Target — locks in Vultr VX1 (16 vCPU / 64 GB RAM / 960 GB NVMe / Ubuntu 24.04 LTS) as the single-box MVP host with a concrete service allocation table, sizing notes, and operational hygiene checklist.
@@ -180,10 +198,10 @@ Each tool has a JSON-schema input and output, validated before invocation and af
 | `fetch_attachment` | Happer / FastAPI or Hermes HTTP toolset | Download solicitation attachments |
 | `verify_source_page` | Happer / Hermes browser or HTTP toolset | Confirm source metadata when API data is partial |
 | `parse_pdf` | Happer / FastAPI toolset | Extract page-level text + metadata from a PDF |
-| `extract_requirements` | Gabby / AI + FastAPI toolset | Run requirement extraction over parsed chunks; returns structured requirements with evidence |
-| `score_fit` | Lenny + Gabby / AI + FastAPI toolset | Apply §5.7 rubric and §11.1 hard eligibility short-circuit |
-| `detect_risks` | Gabby / AI + FastAPI toolset | Apply §5.8 categories; returns risk flags with severity |
-| `query_usaspending` | Lance / planned toolset | Find incumbents, prior awards, recompete history |
+| `extract_requirements` | Gate / AI + FastAPI toolset | Run requirement extraction over parsed chunks; returns structured requirements with evidence |
+| `score_fit` | Lenny + Gate / AI + FastAPI toolset | Apply §5.7 rubric and §11.1 hard eligibility short-circuit |
+| `detect_risks` | Gate / AI + FastAPI toolset | Apply §5.8 categories; returns risk flags with severity |
+| `query_usaspending` | Ledger / planned toolset | Find incumbents, prior awards, recompete history |
 | `generate_action_package` | Roy / AI + FastAPI toolset | Synthesize §5.11 package from extracted requirements + score + risks |
 | `request_human_review` | Michaela / FastAPI | Halt and surface a question to the user when confidence is below threshold |
 
@@ -746,7 +764,6 @@ Chosen (v1.2.3):
 
 ```txt
 Python FastAPI on Vultr VX1 (native systemd, no Docker)
-Hermes runtime as subprocess of FastAPI
 Redis on VX1 (SSE pub/sub bridge)
 Supabase Postgres (managed; replaces native PG)
 Supabase Storage (managed; replaces /var/lib/govcapture/{raw,parsed})
@@ -754,7 +771,7 @@ Supabase Storage (managed; replaces /var/lib/govcapture/{raw,parsed})
 
 Backend responsibilities:
 
-* Agent run orchestration
+* Agent run request persistence and result reads
 * Opportunity loading/search
 * Document parsing
 * Requirement extraction
@@ -763,6 +780,10 @@ Backend responsibilities:
 * Action package generation
 * API endpoints
 
+Michaela orchestration is no longer owned by this repo. The external
+`/root/michealaai` runtime picks up run requests and writes trace/results
+back through this pack's contracts.
+
 ---
 
 ## 7.3 Agent / Automation Layer
@@ -770,24 +791,25 @@ Backend responsibilities:
 Chosen:
 
 ```txt
-Michaela system on Hermes runtime
-Project-local .hermes bench: Michaela, Scot, Lenny, Gabby, Lance, Happer, Roy
+Michaela system on Hermes runtime in /root/michealaai
+This repo's .hermes directory is pack-local tool context only
 Optional browser/channel substrate when needed
 ```
 
 Michaela owns the board and product workloop. Hermes is the runtime shell that
 loads project-local context, skills, memory, provider config, and worker
-delegation. The project-local `.hermes/` folder defines the seven named agents
-and their SKILL.md procedures. FastAPI owns deterministic domain tools, schema
-validation, persistence, and the public API surface.
+delegation. Michaela's repo defines the seven named agents and orchestration
+recipes. This repo's `.hermes/` folder only carries tool-procedure context for
+isolated testing of the GovCon pack. FastAPI owns deterministic domain tools,
+schema validation, persistence, and the public API surface.
 
 Bench responsibilities:
 
 * Michaela: orchestration, priority setting, final user-facing answer
 * Scot: SAM.gov discovery / seeded fallback
 * Lenny: fit ranking and pursue/monitor/skip decision support
-* Gabby: eligibility blocker checks and §11.1 hard reject gate
-* Lance: USASpending / incumbent / award-history intelligence
+* Gate: eligibility blocker checks and §11.1 hard reject gate
+* Ledger: USASpending / incumbent / award-history intelligence
 * Happer: repeatable execution, attachment fetches, PDF parsing
 * Roy: bid memo, capability statement, CO email, action package
 
@@ -862,13 +884,13 @@ VX1 hosts the application stack natively; **Postgres and object storage are exte
 | Service | Role | Notes |
 |---------|------|-------|
 | Next.js (built, served by Node or behind nginx) | Frontend | Could also be deployed to Vercel; keep both options open |
-| FastAPI (uvicorn + gunicorn workers, under systemd) | Backend / agent orchestration | 4–8 workers; scale with vCPU |
+| FastAPI (uvicorn + gunicorn workers, under systemd) | Capability-pack API | 4–8 workers; scale with vCPU |
 | Redis (apt-installed, native systemd unit) | SSE pub/sub bridge for the agent run trace | Single instance, persistence on |
-| Hermes runtime (subprocess of FastAPI) | Michaela bench orchestration (§7.3) | Planner, memory, delegation, skill procedures |
 | nginx | TLS termination + reverse proxy | Let's Encrypt via certbot |
 | systemd | Service supervision | One unit per long-running process (`govcapture-api`, `redis-server`, `nginx`); no Docker, no compose |
 | **Supabase Postgres** (external) | Structured data (§8) | Connected over SSL; managed backups; no on-box pg install |
 | **Supabase Storage** (external) | Raw + parsed solicitation files | Bucket-level retention policy implements §17 Q6 |
+| Michaela / Hermes runtime (separate) | Orchestration and worker bench | Lives in `/root/michealaai`; calls this pack |
 
 ### Sizing notes
 
@@ -1367,6 +1389,10 @@ The MVP is not acceptable if:
 ## 13.1 Demo Script
 
 A 3-minute live demo for hackathon judging. The demo runs against the §5.4 seeded fixtures so SAM.gov rate limits or network issues cannot break the pitch.
+
+In the v1.2.5 split, the live run must be driven by the external Michaela
+runtime. `/web` may queue the run request and display/refresh outputs, but it
+does not execute agents inside this repo.
 
 **0:00 – 0:30 — Problem framing.** "Small businesses leave billions in federal contracts on the table because qualifying an opportunity takes hours of PDF reading, eligibility-checking, and compliance-matrix building. We built an autonomous capture analyst that does the first-pass work in minutes."
 

@@ -1,24 +1,34 @@
 # Contracts
 
-This document is the single source of truth for everything that both tracks must agree on: repo layout, schemas, event shapes, env vars, tool registry, and codegen rules. Schema drift is the #1 risk for parallel work — read this carefully and treat it as canonical.
+This document is the single source of truth for repo layout, schemas,
+event shapes, env vars, tool registry, and codegen rules. Schema drift
+is the highest-impact risk for parallel work — treat this as canonical.
 
 ---
 
 ## 1. Repo layout
 
+> The Track A / Track B labels from the original two-track build plan
+> are retired (PRD v1.2.5). Active development happens on `main` with
+> per-feature branches. Layout below is the current capability-pack
+> shape.
+
 ```
-/api          — FastAPI proxy + Hermes integration + domain skills              [Track A]
-/api/skills   — Hermes skills: parse_pdf, extract_requirements, score_fit, ...  [Track A]
-/infra        — bootstrap.sh, systemd units, nginx.conf, certbot setup          [Track A]
-/web          — Next.js frontend, Tailwind, shadcn/ui                           [Track B]
-/fixtures     — seeded opportunity manifests + PDFs                             [Shared]
+/api          — FastAPI capability-pack API (CRUD + tool-call HTTP)
+/api/skills   — GovCon tools: parse_pdf, extract_requirements, score_fit, ...
+/infra        — bootstrap.sh, systemd units, nginx.conf, certbot setup
+/web          — Next.js product UI (authenticated shell + console)
+/landing      — Next.js marketing site
+/fixtures     — seeded opportunity manifests + PDFs
               └─ <slug>/manifest.json
               └─ <slug>/attachments/*.pdf
-/schemas      — JSON Schema source of truth for ALL data structures             [Shared, locked in P0]
-PRD.md        — product spec, current v1.2.4                                    [Joint edit only]
-Makefile      — top-level targets (schemas, eval, dev, services-up, deploy)     [Shared]
-.env.example  — env var contract                                                [Joint, append-only]
-tasks/        — this folder; build plan + standups                              [Joint]
+/schemas      — JSON Schema source of truth for ALL data structures
+/supabase/migrations — versioned SQL applied via `supabase db push`
+PRD.md        — product spec, current v1.2.5
+Makefile      — top-level targets (schemas, eval, dev, services-up, deploy)
+.env.example  — env var contract (append-only)
+tasks/        — reference docs (contracts, fixtures, demo, landing brief)
+devdocs/      — system-model + capability-pack-integration + canvas docs
 ```
 
 ---
@@ -59,7 +69,11 @@ pulling any schema change that touches Python API contracts.
 
 ## 3. Trace event taxonomy
 
-The agent emits these events via SSE on `GET /agent-runs/:id/stream`. B's timeline (B5) renders them. The taxonomy is a discriminated union on `type`.
+The external Michaela orchestrator emits these events. This API forwards
+them via SSE on `GET /agent-runs/:id/stream` when another process publishes
+to Redis channel `agent-run:{id}`. `/web` can also render the persisted
+`agent_runs.steps` array after a refresh. The taxonomy is a discriminated
+union on `type`.
 
 **Event types:**
 
@@ -92,9 +106,14 @@ The agent emits these events via SSE on `GET /agent-runs/:id/stream`. B's timeli
 { "type": "needs_human", "run_id": "uuid", "question": "string", "context": { /* free-form */ }, "ts": "..." }
 ```
 
-**Examples for B's local dev:** `/schemas/trace-event.example.jsonl` — committed in P0.3, contains a recorded successful run with one of each event type at human-readable cadence (~500ms–2s gaps). B can replay this in dev when A's agent isn't running.
+**Examples for local dev:** `/schemas/trace-event.example.jsonl` is a shape
+reference only if present. This repo no longer ships an in-repo replay
+runner; demo/pre-cached playback belongs to the Michaela runtime or a
+separate fixture harness.
 
-**SSE framing:** each event is one SSE message: `event: <type>\ndata: <json-line>\n\n`. The mock server (P0.6) and the real server emit the same framing.
+**SSE framing:** each event is one SSE message:
+`event: <type>\ndata: <json-line>\n\n`. The FastAPI endpoint preserves this
+framing for events it receives from Redis.
 
 ---
 
@@ -127,18 +146,11 @@ REDIS_URL=redis://localhost:6379/0
 INTERNAL_API_KEY=
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:5173
 
-# Hermes runtime. Project-isolated; do not depend on a user's global ~/.hermes.
-HERMES_HOME=.hermes
-HERMES_MODEL=claude-sonnet-4-6
-
 # Agent budgets (PRD §4.5, §17 Q1)
 RUN_BUDGET_USD=0.50
 RUN_BUDGET_STEPS=40
 RUN_BUDGET_SECONDS=360
 
-# Demo mode flags
-DEMO_USE_SEEDED_ONLY=false   # true forces planner to skip live SAM and Hermes browser tools
-DEMO_REPLAY_TRACE=false      # true enables canned trace replay; never present as a real Hermes run
 ```
 
 **Rules:**
@@ -155,9 +167,13 @@ DEMO_REPLAY_TRACE=false      # true enables canned trace replay; never present a
 
 ---
 
-## 5. Skill registry (under Hermes)
+## 5. Tool registry
 
-Mirrors PRD §4.5 (v1.2.4). All skills run inside the Hermes runtime. Each skill's input/output is a Pydantic model on the API side and a zod schema on the web side. All inputs validated before the call; all outputs validated after. See `HERMES.md` and `tasks/HERMES.md` for runtime details.
+Mirrors PRD §4.5 (v1.2.5). The mechanics live in this repo under
+`api/skills/`; Michaela's workers decide when to call them. Each tool's
+input/output is validated on the API side. TypeScript/zod codegen is still
+planned, not wired. See `HERMES.md` and
+`devdocs/CAPABILITY_PACK_INTEGRATION.md` for the runtime boundary.
 
 | Skill | Owner | Input schema | Output schema |
 |-------|-------|--------------|---------------|
@@ -181,8 +197,8 @@ Michaela bench ownership:
 | Michaela | Orchestration, final user-facing answer, `parse_goal`, `summarize_run`, delegation |
 | Scot | SAM.gov discovery and seeded fallback |
 | Lenny | Fit ranking / pursue-monitor-skip support |
-| Gabby | Eligibility blocker checks and §11.1 reject gate |
-| Lance | USASpending / incumbent / award-history intelligence |
+| Gate | Eligibility blocker checks and §11.1 reject gate |
+| Ledger | USASpending / incumbent / award-history intelligence |
 | Happer | Repeatable execution, attachment fetches, PDF parsing, file/status work |
 | Roy | Bid memo, capability statement, contracting-officer email, action package |
 
@@ -198,7 +214,7 @@ GET    /company-profiles                  → CompanyProfile[]
 GET    /company-profiles/:id              → CompanyProfile
 GET    /profiles/me                       → Profile
 POST   /profiles/me                       → Profile
-POST   /agent-runs                        → AgentRun (accepts inline profile or profile_id)
+POST   /agent-runs                        → AgentRun request row (accepts inline profile or profile_id; does not start local runner)
 GET    /agent-runs/:id                    → AgentRun
 GET    /agent-runs/:id/stream             → SSE stream of TraceEvent
 GET    /agent-runs/:id/opportunities      → Opportunity[]

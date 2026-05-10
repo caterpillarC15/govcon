@@ -1,17 +1,18 @@
-# Vultr VX1 Deployment Runbook (v1.2.4)
+# Vultr VX1 Deployment Runbook (v1.2.5)
 
 Native (no Docker) deploy of the FastAPI backend per PRD §7.6. Supabase
 manages Postgres and object storage (PRD v1.2.3 §7.5; PRD v1.2.4 dropped
-the on-box ORM/Alembic toolchain). The VX1 hosts the app, the agent
-runtime, the SSE pub/sub, and the TLS terminator.
+the on-box ORM/Alembic toolchain). The VX1 hosts the capability-pack API,
+Redis pub/sub, and the TLS terminator. Michaela/Hermes orchestration runs
+separately and calls this API.
 
 | Component | Where it runs |
 |---|---|
 | FastAPI (gunicorn + UvicornWorker × 4) | systemd unit `govcapture-api.service`, listens on `127.0.0.1:8000` |
-| Hermes runtime (Michaela + bench) | subprocess of FastAPI (same `govcapture` user) |
 | Redis | system `redis-server.service` — SSE pub/sub bridge (PRD §7.5) |
 | nginx (TLS terminator + reverse proxy) | system `nginx.service` |
 | **Supabase project** (external) | Postgres + Storage + Auth (GoTrue) |
+| Michaela/Hermes runtime (external) | `/root/michealaai` or its deployment target; not started by this API unit |
 
 ## 0. Prerequisites
 
@@ -76,7 +77,7 @@ sudo -u govcapture editor /opt/govcapture/.env
 #   SUPABASE_SERVICE_ROLE_KEY   — server-only; bypasses RLS for internal writes
 #   SUPABASE_ANON_KEY           — used by the JWT verifier
 #   SUPABASE_STORAGE_BUCKET     — govcapture-attachments
-#   INTERNAL_API_KEY            — long random; required for sub-agent writeback routes
+#   INTERNAL_API_KEY            — long random; mirror to Michaela for internal writebacks
 #   CORS_ALLOWED_ORIGINS        — your prod web origins, comma-separated
 ```
 
@@ -162,7 +163,7 @@ sudo tail -F /var/log/nginx/access.log              # nginx
 **Supabase handles Postgres backups** — Pro tier has point-in-time restore;
 Free tier has 7-day rolling. No on-box pg_dump cron.
 
-**Storage backups** are out of scope for v1.2.4 (the bucket is the system of
+**Storage backups** are out of scope for v1.2.5 (the bucket is the system of
 record for raw PDFs; parsed text is regeneratable from `document_chunks`).
 If you want belt-and-suspenders, use Supabase Storage replication or
 `aws s3 sync` against the S3-compatible endpoint.
@@ -204,7 +205,7 @@ Schema rollback is handled in Supabase: revert the offending migration in
 |---|---|---|
 | `502 Bad Gateway` from nginx | API unit not running | `sudo systemctl status govcapture-api`; check journalctl |
 | `401 Unauthorized` on user routes | Missing or expired Supabase JWT | Have the caller refresh through `auth.signInWith…` and retry. Check `SUPABASE_ANON_KEY` matches the project. |
-| `401 Unauthorized` on writeback routes | Missing `X-Internal-API-Key` header or wrong value | Sub-agent toolset must send `INTERNAL_API_KEY` from `.env`. User JWTs cannot reach those routes by design. |
+| `401 Unauthorized` on writeback routes | Missing `X-Internal-API-Key` header or wrong value | Michaela worker/tool calls must send `INTERNAL_API_KEY`. User JWTs cannot reach those routes by design. |
 | `503 Supabase auth is not configured` | `SUPABASE_URL` empty | Drop a real value into `.env`, restart the unit. |
 | `503 Internal API key is not configured` | `INTERNAL_API_KEY` empty | Generate a long random; mirror to the bench's environment. |
 | `SUPABASE_SERVICE_ROLE_KEY is not configured` from `api/storage.py` | `.env` missing the var | Add it; the FastAPI service-role mediates Storage access |
