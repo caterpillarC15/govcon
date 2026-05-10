@@ -222,7 +222,7 @@ async def test_action_package_post_and_get(client) -> None:
         "risk_register": [],
         "proposal_checklist": [],
         "timeline": [],
-        "approval_required": [],
+        "approval_required": ["Human approval required before execution"],
     }
     r = await client.post("/action-packages", json=payload, headers=INTERNAL_HEADERS)
     assert r.status_code == 201, r.text
@@ -231,6 +231,27 @@ async def test_action_package_post_and_get(client) -> None:
     g = await client.get(f"/action-packages/{pkg_id}")
     assert g.status_code == 200
     assert g.json()["executive_summary"] == "Strong fit."
+
+
+async def test_action_package_post_rejects_empty_approval_required(client) -> None:
+    opp_id = str(uuid.uuid4())
+    pr = await client.post("/company-profiles", json={"name": "Package Co"})
+    profile_id = pr.json()["id"]
+    payload = {
+        "opportunity_id": opp_id,
+        "company_profile_id": profile_id,
+        "executive_summary": "Strong fit.",
+        "decision": "strong_pursue",
+        "fit_score": 88,
+        "fit_rationale": "aligned",
+        "compliance_matrix": [],
+        "risk_register": [],
+        "proposal_checklist": [],
+        "timeline": [],
+        "approval_required": [],
+    }
+    r = await client.post("/action-packages", json=payload, headers=INTERNAL_HEADERS)
+    assert r.status_code == 422
 
 
 async def test_action_package_404(client) -> None:

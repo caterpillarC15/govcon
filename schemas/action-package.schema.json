@@ -110,6 +110,7 @@
     "approval_required": {
       "type": "array",
       "description": "Mirrors §10.3 human_approval_required — items requiring human gate before execution.",
+      "minItems": 1,
       "items": { "type": "string" }
     },
     "created_at": { "type": "string", "format": "date-time" }

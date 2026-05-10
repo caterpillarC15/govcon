@@ -217,7 +217,7 @@ _TABLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "timeline": [],
         "partner_suggestions": [],
         "outreach_draft": None,
-        "approval_required": [],
+        "approval_required": ["Human approval required before execution"],
     },
     "profiles": {
         "email": "tester@example.com",

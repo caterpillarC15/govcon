@@ -78,4 +78,4 @@ class ActionPackageCreate(BaseModel):
     timeline: list[TimelineItem]
     partner_suggestions: list[PartnerSuggestion] | None = None
     outreach_draft: OutreachDraft | None = None
-    approval_required: list[str]
+    approval_required: list[str] = Field(..., min_length=1)

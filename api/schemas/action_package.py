@@ -82,5 +82,6 @@ class ActionPackage(BaseModel):
     approval_required: list[str] = Field(
         ...,
         description='Mirrors §10.3 human_approval_required — items requiring human gate before execution.',
+        min_length=1,
     )
     created_at: AwareDatetime
