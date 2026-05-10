@@ -29,6 +29,7 @@ from api.schemas.tool_requests import (
     LoadSeededOpportunitiesRequest,
     ParseGoalRequest,
     ParsePdfRequest,
+    QueryUsaspendingRequest,
     RankOpportunitiesRequest,
     ScoreFitRequest,
     SearchSamRequest,
@@ -40,6 +41,7 @@ from api.skills.generate_action_package.skill import generate_action_package
 from api.skills.load_seeded_opportunities.skill import load_seeded_opportunities
 from api.skills.parse_goal.skill import parse_goal
 from api.skills.parse_pdf.skill import parse_pdf
+from api.skills.query_usaspending.skill import query_usaspending
 from api.skills.rank_opportunities.skill import rank_opportunities
 from api.skills.score_fit.skill import score_fit
 from api.skills.search_sam.skill import search_sam_opportunities
@@ -151,3 +153,12 @@ async def load_seeded_opportunities_route(
 ) -> ToolResponse:
     data = await load_seeded_opportunities(payload.model_dump(), client=client)
     return ToolResponse(data=data)
+
+
+@router.post("/query-usaspending", response_model=ToolResponse)
+async def query_usaspending_route(
+    payload: QueryUsaspendingRequest,
+    _actor: InternalActor = Depends(require_internal_actor),
+) -> ToolResponse:
+    out = await query_usaspending(payload.model_dump(exclude_none=False))
+    return ToolResponse(data=out)

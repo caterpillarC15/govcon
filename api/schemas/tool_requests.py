@@ -82,3 +82,9 @@ class RankOpportunitiesRequest(_Strict):
 
 class LoadSeededOpportunitiesRequest(_Strict):
     slugs: list[str] | None = None
+
+
+class QueryUsaspendingRequest(_Strict):
+    naics: str | None = None
+    agency: str | None = None
+    limit: int = Field(25, ge=1, le=100)

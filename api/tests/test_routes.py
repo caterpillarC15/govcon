@@ -342,3 +342,113 @@ async def test_post_risk_persists_and_returns_201(client, fake_supabase) -> None
     assert body["category"] == "deadline_too_close"
     assert body["severity"] == "major"
     assert body["requires_human_review"] is True
+
+
+# ─── /opportunities/{id}/competitors ───────────────────────────────────────
+
+
+def _seed_opportunity(fake_supabase, opp_id: str) -> None:
+    fake_supabase._store["opportunities"] = {
+        opp_id: {
+            "id": opp_id,
+            "slug": "competitor-opp",
+            "source": "seed",
+            "active": True,
+            "title": "Competitor RFP",
+            "agency": "DoD",
+            "solicitation_number": "COMP-001",
+            "attachments": [],
+            "resource_links": [],
+            "opportunity_status": "open",
+            "created_at": "2026-05-09T14:00:00Z",
+            "updated_at": "2026-05-09T14:00:00Z",
+        }
+    }
+
+
+async def test_post_competitor_persists_and_returns_201(
+    client, fake_supabase
+) -> None:
+    opp_id = str(uuid.uuid4())
+    _seed_opportunity(fake_supabase, opp_id)
+    payload = {
+        "owner_profile_id": str(TEST_USER_ID),
+        "incumbent_name": "Tetra Tech",
+        "awards": [
+            {
+                "recipient_name": "Tetra Tech",
+                "award_amount": 1234567.89,
+                "award_id": "ABC-123",
+            }
+        ],
+        "total_obligated_usd": 1234567.89,
+        "win_difficulty": "moderate",
+        "evidence_url": "https://www.usaspending.gov/award/CONT_AWD_ABC-123",
+    }
+    r = await client.post(
+        f"/opportunities/{opp_id}/competitors",
+        json=payload,
+        headers=INTERNAL_HEADERS,
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["incumbent_name"] == "Tetra Tech"
+    assert body["win_difficulty"] == "moderate"
+    assert body["opportunity_id"] == opp_id
+
+
+async def test_post_competitor_404_on_unknown_opportunity(client) -> None:
+    payload = {
+        "owner_profile_id": str(TEST_USER_ID),
+        "incumbent_name": "Tetra Tech",
+        "awards": [],
+    }
+    r = await client.post(
+        f"/opportunities/{uuid.uuid4()}/competitors",
+        json=payload,
+        headers=INTERNAL_HEADERS,
+    )
+    assert r.status_code == 404
+
+
+async def test_post_competitor_rejects_missing_internal_key(client) -> None:
+    r = await client.post(
+        f"/opportunities/{uuid.uuid4()}/competitors",
+        json={"owner_profile_id": str(TEST_USER_ID), "awards": []},
+    )
+    assert r.status_code == 401
+
+
+async def test_list_competitors_owner_scoped(client, fake_supabase) -> None:
+    opp_id = str(uuid.uuid4())
+    _seed_opportunity(fake_supabase, opp_id)
+    # Insert one row owned by TEST_USER_ID and one owned by another user.
+    other_owner = str(uuid.uuid4())
+    payload_owned = {
+        "owner_profile_id": str(TEST_USER_ID),
+        "incumbent_name": "MyVendor",
+        "awards": [],
+    }
+    r1 = await client.post(
+        f"/opportunities/{opp_id}/competitors",
+        json=payload_owned,
+        headers=INTERNAL_HEADERS,
+    )
+    assert r1.status_code == 201, r1.text
+    payload_other = {
+        "owner_profile_id": other_owner,
+        "incumbent_name": "OtherVendor",
+        "awards": [],
+    }
+    r2 = await client.post(
+        f"/opportunities/{opp_id}/competitors",
+        json=payload_other,
+        headers=INTERNAL_HEADERS,
+    )
+    assert r2.status_code == 201, r2.text
+
+    listed = await client.get(f"/opportunities/{opp_id}/competitors")
+    assert listed.status_code == 200, listed.text
+    rows = listed.json()
+    assert len(rows) == 1
+    assert rows[0]["incumbent_name"] == "MyVendor"

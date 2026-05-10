@@ -5,9 +5,15 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 
 from api.auth import AuthenticatedUser, InternalActor, require_internal_actor, require_user
-from api.deps import get_company_profile_repo, get_opportunity_repo
+from api.deps import (
+    get_company_profile_repo,
+    get_competitor_history_repo,
+    get_opportunity_repo,
+)
 from api.repositories.company_profile import CompanyProfileRepository
+from api.repositories.competitor_history import CompetitorHistoryRepository
 from api.repositories.opportunity import OpportunityRepository
+from api.schemas.competitor_history import CompetitorHistory
 from api.schemas.extracted_requirement import ExtractedRequirement
 from api.schemas.extracted_requirement_create import ExtractedRequirementCreate
 from api.schemas.fit_score import FitScore
@@ -124,3 +130,36 @@ async def create_risk(
         raise HTTPException(404, "Opportunity not found")
     row = await repo.create_risk(opportunity_id, payload.model_dump())
     return RiskFlag.model_validate(row)
+
+
+@router.get(
+    "/{opportunity_id}/competitors",
+    response_model=list[CompetitorHistory],
+)
+async def list_competitors(
+    opportunity_id: uuid.UUID,
+    user: AuthenticatedUser = Depends(require_user),
+    repo: CompetitorHistoryRepository = Depends(get_competitor_history_repo),
+) -> list[CompetitorHistory]:
+    rows = await repo.list_for_opportunity_owned(opportunity_id, user.id)
+    return [CompetitorHistory.model_validate(r) for r in rows]
+
+
+@router.post(
+    "/{opportunity_id}/competitors",
+    response_model=CompetitorHistory,
+    status_code=201,
+)
+async def create_competitor(
+    opportunity_id: uuid.UUID,
+    payload: dict,  # codegen does not produce CompetitorHistoryCreate; v1 accepts dict
+    _actor: InternalActor = Depends(require_internal_actor),
+    opportunity_repo: OpportunityRepository = Depends(get_opportunity_repo),
+    repo: CompetitorHistoryRepository = Depends(get_competitor_history_repo),
+) -> CompetitorHistory:
+    if await opportunity_repo.get(opportunity_id) is None:
+        raise HTTPException(404, "Opportunity not found")
+    body = dict(payload)
+    body["opportunity_id"] = str(opportunity_id)
+    row = await repo.create(body)
+    return CompetitorHistory.model_validate(row)

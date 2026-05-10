@@ -32,6 +32,7 @@ from plugins.govcapture.tools import (
     GOVCAPTURE_LOAD_SEEDED_OPPORTUNITIES_SCHEMA,
     GOVCAPTURE_PARSE_GOAL_SCHEMA,
     GOVCAPTURE_PARSE_PDF_SCHEMA,
+    GOVCAPTURE_QUERY_USASPENDING_SCHEMA,
     GOVCAPTURE_RANK_OPPORTUNITIES_SCHEMA,
     GOVCAPTURE_SCORE_FIT_SCHEMA,
     GOVCAPTURE_SEARCH_SAM_SCHEMA,
@@ -43,6 +44,7 @@ from plugins.govcapture.tools import (
     _handle_load_seeded_opportunities,
     _handle_parse_goal,
     _handle_parse_pdf,
+    _handle_query_usaspending,
     _handle_rank_opportunities,
     _handle_score_fit,
     _handle_search_sam,
@@ -59,6 +61,7 @@ _TOOLS = (
     ("govcapture_fetch_attachment",            GOVCAPTURE_FETCH_ATTACHMENT_SCHEMA,            _handle_fetch_attachment,            "⬇️"),
     ("govcapture_rank_opportunities",          GOVCAPTURE_RANK_OPPORTUNITIES_SCHEMA,          _handle_rank_opportunities,          "📊"),
     ("govcapture_load_seeded_opportunities",   GOVCAPTURE_LOAD_SEEDED_OPPORTUNITIES_SCHEMA,   _handle_load_seeded_opportunities,   "🌱"),
+    ("govcapture_query_usaspending",           GOVCAPTURE_QUERY_USASPENDING_SCHEMA,           _handle_query_usaspending,           "💰"),
 )
 
 

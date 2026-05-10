@@ -11,6 +11,7 @@ from api.llm import LLM
 from api.repositories.action_package import ActionPackageRepository
 from api.repositories.agent_run import AgentRunRepository
 from api.repositories.company_profile import CompanyProfileRepository
+from api.repositories.competitor_history import CompetitorHistoryRepository
 from api.repositories.opportunity import OpportunityRepository
 from api.repositories.profile import ProfileRepository
 from api.repositories.waitlist import WaitlistRepository
@@ -55,6 +56,12 @@ def get_waitlist_repo(
     client: AsyncClient = Depends(get_supabase),
 ) -> WaitlistRepository:
     return WaitlistRepository(client)
+
+
+def get_competitor_history_repo(
+    client: AsyncClient = Depends(get_supabase),
+) -> CompetitorHistoryRepository:
+    return CompetitorHistoryRepository(client)
 
 
 @lru_cache

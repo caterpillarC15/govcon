@@ -221,6 +221,19 @@ GOVCAPTURE_LOAD_SEEDED_OPPORTUNITIES_SCHEMA = {
     },
 }
 
+GOVCAPTURE_QUERY_USASPENDING_SCHEMA = {
+    "name": "govcapture_query_usaspending",
+    "description": "Query USASpending.gov for competitive intel on prior awards. Filters by NAICS and/or top-tier agency name. Returns normalized award records, deduped incumbent list, and total obligated dollars. Degrades gracefully on rate-limit / 5xx.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "naics": {"type": "string", "description": "NAICS code"},
+            "agency": {"type": "string", "description": "Top-tier agency name"},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100, "description": "Default 25."},
+        },
+    },
+}
+
 
 # ─── handlers ──────────────────────────────────────────────────────────────
 
@@ -263,3 +276,7 @@ def _handle_rank_opportunities(args: dict, **_kw) -> str:
 
 def _handle_load_seeded_opportunities(args: dict, **_kw) -> str:
     return _post_tool("load-seeded-opportunities", args)
+
+
+def _handle_query_usaspending(args: dict, **_kw) -> str:
+    return _post_tool("query-usaspending", args)

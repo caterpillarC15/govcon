@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://govcapture.example/schemas/competitor-history.schema.json",
+  "title": "CompetitorHistory",
+  "description": "Per-opportunity competitive-intel writeback emitted by Ledger from query_usaspending. One row per (opportunity, owner) per Ledger run.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "opportunity_id", "owner_profile_id", "awards", "created_at"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "opportunity_id": { "type": "string", "format": "uuid" },
+    "owner_profile_id": { "type": "string", "format": "uuid" },
+    "incumbent_name": { "type": ["string", "null"] },
+    "awards": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "Normalized USASpending records: Recipient Name, Award Amount, Period of Performance Start Date, Award ID."
+    },
+    "total_obligated_usd": { "type": ["number", "null"] },
+    "win_difficulty": {
+      "type": ["string", "null"],
+      "enum": ["easy", "moderate", "hard", "incumbent_lock", null]
+    },
+    "evidence_url": { "type": ["string", "null"], "format": "uri" },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

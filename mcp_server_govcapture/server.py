@@ -221,6 +221,22 @@ def load_seeded_opportunities(
     return _post("load-seeded-opportunities", {"slugs": slugs})
 
 
+@mcp.tool()
+def query_usaspending(
+    naics: str | None = None,
+    agency: str | None = None,
+    limit: int = 25,
+) -> dict[str, Any]:
+    """Query USASpending.gov for prior awards by NAICS and/or top-tier
+    agency. Returns normalized awards, deduped incumbents, and
+    total_obligated_usd. Degrades gracefully on rate-limit / 5xx /
+    network error."""
+    return _post(
+        "query-usaspending",
+        {"naics": naics, "agency": agency, "limit": limit},
+    )
+
+
 def main() -> None:
     mcp.run()
 

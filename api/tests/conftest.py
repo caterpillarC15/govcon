@@ -241,6 +241,13 @@ _TABLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "last_used_at": None,
         "revoked_at": None,
     },
+    "competitor_history": {
+        "incumbent_name": None,
+        "awards": [],
+        "total_obligated_usd": None,
+        "win_difficulty": None,
+        "evidence_url": None,
+    },
 }
 
 

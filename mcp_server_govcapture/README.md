@@ -1,6 +1,6 @@
 # mcp-server-govcapture
 
-MCP server exposing GovCon Bid Desk's 10 tools. Wraps the pack's public
+MCP server exposing GovCon Bid Desk's 11 tools. Wraps the pack's public
 HTTP surface (`/api/v1/tools/<name>`) — same architectural pattern as the
 Hermes plugin (lower latency than reading raw OpenAPI; full type hints).
 
@@ -43,7 +43,7 @@ explicitly to point at a dev instance:
 
 ## Tools
 
-All 10 routes from the pack's `/api/v1/tools/<name>` surface:
+All 11 routes from the pack's `/api/v1/tools/<name>` surface:
 
 | Tool | Purpose |
 |---|---|
@@ -57,6 +57,7 @@ All 10 routes from the pack's `/api/v1/tools/<name>` surface:
 | `fetch_attachment` | URL → Supabase Storage |
 | `rank_opportunities` | deterministic sort by decision band |
 | `load_seeded_opportunities` | fixture manifests → opportunities table |
+| `query_usaspending` | USASpending.gov prior-awards lookup with degraded fallback |
 
 Responses share the envelope `{"data": ..., "metrics": LLMMetrics | null}`.
 The wrapper passes the envelope through unchanged so the agent sees the
