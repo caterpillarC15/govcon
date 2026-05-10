@@ -115,7 +115,6 @@ async def test_parse_goal_happy_path(client) -> None:
     assert body["data"]["raw_goal"] == "Find cybersecurity contracts in Texas"
     assert body["data"]["company_profile"] == {"naics_codes": ["541512"]}
     # No LLM call → no metrics. Phase 7 drops the field entirely.
-    assert body["metrics"] is None
 
 
 # ─── /tools/rank-opportunities ─────────────────────────────────────────────
@@ -132,7 +131,6 @@ async def test_rank_opportunities_happy_path(client) -> None:
     r = await client.post("/tools/rank-opportunities", json=payload, headers=INTERNAL_HEADERS)
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["metrics"] is None
     ranked = body["data"]["ranked"]
     assert [row["opportunity_id"] for row in ranked] == ["b", "c", "a"]
 
@@ -159,7 +157,6 @@ async def test_parse_pdf_returns_unparseable_for_missing_file(client, tmp_path) 
     )
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["metrics"] is None
     assert body["data"]["unparseable"] is True
     assert body["data"]["error"] == "file_not_found"
 
@@ -201,7 +198,6 @@ async def test_extract_requirements_unparseable_short_circuit(client) -> None:
     assert body["data"]["chunks"] == []
     assert body["data"]["missing_fields"] == ["all"]
     assert body["data"]["requirements"] == []
-    assert body["metrics"] is None
 
 
 # ─── /tools/score-fit ──────────────────────────────────────────────────────
@@ -229,7 +225,6 @@ async def test_score_fit_eligibility_short_circuit(client) -> None:
     body = r.json()
     assert body["data"]["decision"] == "reject"
     assert body["data"]["total_score"] == 0
-    assert body["metrics"] is None
 
 
 # ─── /tools/detect-risks ───────────────────────────────────────────────────
@@ -258,7 +253,6 @@ async def test_detect_risks_happy_path(client) -> None:
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["data"]["risks"][0]["category"] == "deadline_too_close"
-    assert body["metrics"] is None
 
 
 # ─── /tools/generate-action-package ────────────────────────────────────────
@@ -279,7 +273,6 @@ async def test_generate_action_package_reject_summary(client) -> None:
     body = r.json()
     assert body["data"]["decision"] == "reject"
     assert body["data"]["human_approval_required"]
-    assert body["metrics"] is None
 
 
 async def test_generate_action_package_rejects_unknown_mode(client) -> None:
@@ -313,7 +306,6 @@ async def test_search_sam_returns_degraded_envelope(client, monkeypatch) -> None
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["data"]["degraded"] is True
-    assert body["metrics"] is None
 
 
 async def test_search_sam_requires_internal_key(client) -> None:
@@ -356,7 +348,6 @@ async def test_fetch_attachment_happy_path(client, monkeypatch) -> None:
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["data"]["storage_path"] == "raw/run-1/rfp.pdf"
-    assert body["metrics"] is None
 
 
 # ─── /tools/load-seeded-opportunities ──────────────────────────────────────
@@ -371,7 +362,6 @@ async def test_load_seeded_opportunities_happy_path(client) -> None:
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["data"]["opportunities"][0]["slug"] == "maybe"
-    assert body["metrics"] is None
 
 
 # ─── /tools/load-seeded-opportunities ──────────────────────────────────────
@@ -397,7 +387,6 @@ async def test_load_seeded_returns_loaded_list(client, monkeypatch) -> None:
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["data"]["opportunities"][0]["slug"] == "strong-pursue"
-    assert body["metrics"] is None
 
 
 async def test_load_seeded_requires_internal_key(client) -> None:

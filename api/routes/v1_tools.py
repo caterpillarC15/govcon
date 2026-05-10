@@ -57,7 +57,7 @@ async def parse_goal_route(
             company_profile=payload.company_profile,
         ),
     )
-    return ToolResponse(data=data, metrics=None)
+    return ToolResponse(data=data)
 
 
 @router.post("/rank-opportunities", response_model=ToolResponse)
@@ -85,7 +85,7 @@ async def extract_requirements_route(
 ) -> ToolResponse:
     # PRD v1.2.6: skill is deterministic. See tools.py for flow notes.
     data = await extract_requirements(payload.to_skill_input())
-    return ToolResponse(data=data, metrics=None)
+    return ToolResponse(data=data)
 
 
 @router.post("/score-fit", response_model=ToolResponse)
@@ -95,7 +95,7 @@ async def score_fit_route(
 ) -> ToolResponse:
     # PRD v1.2.6: deterministic. See tools.py for flow notes.
     data = await score_fit(payload.model_dump())
-    return ToolResponse(data=data, metrics=None)
+    return ToolResponse(data=data)
 
 
 @router.post("/detect-risks", response_model=ToolResponse)
@@ -105,7 +105,7 @@ async def detect_risks_route(
 ) -> ToolResponse:
     # PRD v1.2.6: validator only.
     data = await detect_risks(payload.model_dump())
-    return ToolResponse(data=data, metrics=None)
+    return ToolResponse(data=data)
 
 
 @router.post("/generate-action-package", response_model=ToolResponse)
@@ -115,7 +115,7 @@ async def generate_action_package_route(
 ) -> ToolResponse:
     # PRD v1.2.6: deterministic. See tools.py.
     data = await generate_action_package(payload.model_dump())
-    return ToolResponse(data=data, metrics=None)
+    return ToolResponse(data=data)
 
 
 @router.post("/search-sam", response_model=ToolResponse)

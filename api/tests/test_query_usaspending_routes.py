@@ -40,7 +40,6 @@ async def test_internal_route_happy_path(client, monkeypatch) -> None:
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["data"]["degraded"] is False
-    assert body["metrics"] is None
 
 
 async def test_v1_route_happy_path(client, monkeypatch) -> None:

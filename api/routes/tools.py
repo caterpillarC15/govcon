@@ -1,12 +1,8 @@
 """Internal HTTP surface for the GovCon skills.
 
 Every endpoint POST /tools/<name> requires X-Internal-API-Key (InternalActor).
-Responses share a uniform `{"data": ..., "metrics": null}` envelope.
-
-Per PRD v1.2.6, every skill is deterministic — `metrics` is always
-None. Phase 7 of the skills-deterministic-only plan drops the field
-entirely; for now it stays as a placeholder so cross-repo callers
-(`/root/michealaai`) keep parsing the envelope without breaking.
+Responses share a uniform `{"data": ...}` envelope (per PRD v1.2.6 —
+every skill is deterministic, no `metrics` field).
 
 Routes intentionally hold no business logic — they validate input via
 api.schemas.tool_requests, dispatch to the underlying skill, and return.
@@ -53,9 +49,6 @@ router = APIRouter(prefix="/tools", tags=["tools"])
 
 class ToolResponse(BaseModel):
     data: Any
-    # PRD v1.2.6: every skill is deterministic; field always None.
-    # Phase 7 will drop the field. Callers must stop reading it.
-    metrics: None = None
 
 
 @router.post("/parse-goal", response_model=ToolResponse)
@@ -71,7 +64,7 @@ async def parse_goal_route(
             company_profile=payload.company_profile,
         ),
     )
-    return ToolResponse(data=data, metrics=None)
+    return ToolResponse(data=data)
 
 
 @router.post("/rank-opportunities", response_model=ToolResponse)
@@ -101,7 +94,7 @@ async def extract_requirements_route(
     #  - omit `requirements` → returns chunks for Gate's agent context
     #  - include `requirements` → returns §11-validated set
     data = await extract_requirements(payload.to_skill_input())
-    return ToolResponse(data=data, metrics=None)
+    return ToolResponse(data=data)
 
 
 @router.post("/score-fit", response_model=ToolResponse)
@@ -112,7 +105,7 @@ async def score_fit_route(
     # PRD v1.2.6: deterministic. §11.1 short-circuit + decision-band
     # normalizer. Lenny supplies total_score for non-blocker scoring.
     data = await score_fit(payload.model_dump())
-    return ToolResponse(data=data, metrics=None)
+    return ToolResponse(data=data)
 
 
 @router.post("/detect-risks", response_model=ToolResponse)
@@ -122,7 +115,7 @@ async def detect_risks_route(
 ) -> ToolResponse:
     # PRD v1.2.6: skill validates Gate-emitted risks; no LLM.
     data = await detect_risks(payload.model_dump())
-    return ToolResponse(data=data, metrics=None)
+    return ToolResponse(data=data)
 
 
 @router.post("/generate-action-package", response_model=ToolResponse)
@@ -133,7 +126,7 @@ async def generate_action_package_route(
     # PRD v1.2.6: deterministic. reject_summary mode unchanged;
     # full mode validates Roy's content + enforces §5.13.
     data = await generate_action_package(payload.model_dump())
-    return ToolResponse(data=data, metrics=None)
+    return ToolResponse(data=data)
 
 
 @router.post("/search-sam", response_model=ToolResponse)
