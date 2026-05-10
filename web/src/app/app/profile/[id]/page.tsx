@@ -105,7 +105,7 @@ export default async function ProfileDetailPage({
 
       <div className="flex gap-3">
         <Link
-          href="/app/goal"
+          href={`/app/goal?profileId=${profile.id}`}
           className="inline-flex h-10 items-center gap-2 rounded-full bg-blue-900 px-4 text-sm font-medium text-white transition hover:bg-blue-800"
         >
           Start a run with this profile

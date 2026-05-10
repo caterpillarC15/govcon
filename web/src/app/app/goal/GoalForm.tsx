@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { Loader2, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -10,10 +10,25 @@ import type { CompanyProfile } from '@/lib/types'
 const DEFAULT_GOAL =
   'Find cybersecurity and cloud migration opportunities in the next 90 days.'
 
+function pickInitialProfile(
+  profiles: CompanyProfile[],
+  requested: string | null,
+): string {
+  // Honor ?profileId=… when it points at one of the user's owned profiles.
+  // Otherwise fall back to the first profile (preserves prior behavior).
+  if (requested && profiles.some((p) => p.id === requested)) {
+    return requested
+  }
+  return profiles[0]?.id ?? ''
+}
+
 export function GoalForm({ profiles }: { profiles: CompanyProfile[] }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
-  const [profileId, setProfileId] = useState(profiles[0]?.id ?? '')
+  const [profileId, setProfileId] = useState(() =>
+    pickInitialProfile(profiles, searchParams.get('profileId')),
+  )
   const [goal, setGoal] = useState(DEFAULT_GOAL)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')

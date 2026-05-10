@@ -10,6 +10,18 @@ import type {
   RiskFlag,
 } from './types'
 
+/**
+ * Payload accepted by POST /company-profiles.
+ *
+ * Omits server-generated fields. If a caller passes id/created_at/
+ * updated_at, the API rejects with 422 — having a separate type
+ * surfaces that mistake at compile-time instead.
+ */
+export type CreateCompanyProfilePayload = Omit<
+  CompanyProfile,
+  'id' | 'created_at' | 'updated_at'
+>
+
 export function getApiBase() {
   return (process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8000').replace(
     /\/$/,
@@ -63,7 +75,7 @@ export const api = {
     request<CompanyProfile[]>('/company-profiles', token),
   getCompanyProfile: (token: string, id: string) =>
     request<CompanyProfile>(`/company-profiles/${id}`, token),
-  createCompanyProfile: (token: string, payload: Partial<CompanyProfile>) =>
+  createCompanyProfile: (token: string, payload: CreateCompanyProfilePayload) =>
     request<CompanyProfile>('/company-profiles', token, {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -71,7 +83,7 @@ export const api = {
 
   createAgentRun: (
     token: string,
-    payload: { goal: string; profile_id?: string; profile?: Partial<CompanyProfile> },
+    payload: { goal: string; profile_id?: string; profile?: CreateCompanyProfilePayload },
   ) =>
     request<AgentRun>('/agent-runs', token, {
       method: 'POST',

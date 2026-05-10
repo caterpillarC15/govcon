@@ -72,8 +72,8 @@ export default function AgentsPage() {
           <DiscoveryCard
             icon={<KeyRound size={20} />}
             title="Auth"
-            href="/login"
-            description="Sign in to mint a per-agent key (gck_…) — coming soon. Internal callers use X-Internal-API-Key today."
+            href="/app/keys"
+            description="Per-agent keys (gck_…) live at /app/keys. Sign in to mint and revoke. Internal callers may continue using X-Internal-API-Key server-to-server."
           />
         </section>
 
@@ -107,8 +107,9 @@ curl https://api.govcapture.example/.well-known/llms.txt
 curl https://api.govcapture.example/openapi.json | jq '.paths | keys'
 
 # Call a tool (rank a few scored opportunities — pure deterministic)
+# Mint $GCK_TOKEN at /app/keys (or use X-Internal-API-Key server-to-server)
 curl -X POST https://api.govcapture.example/tools/rank-opportunities \\
-  -H "X-Internal-API-Key: $INTERNAL_API_KEY" \\
+  -H "Authorization: Bearer $GCK_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{
     "scored": [
