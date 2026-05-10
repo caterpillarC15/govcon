@@ -13,7 +13,7 @@ metadata:
 
 Gabby's risk-calibration procedure. Take profile + requirements + fit_score → produce calibrated `RiskFlag[]`.
 
-**Skipped for reject decisions** by Michaela's branching logic (see `analyze_opportunity_e2e` SKILL §4). You only run when decision ∈ {strong_pursue, pursue, maybe}.
+**Skipped for reject decisions** by Michaela's branching logic (the per-opportunity orchestration recipe lives in `/root/michealaai`, not in this pack). You only run when decision ∈ {strong_pursue, pursue, maybe}.
 
 ## When to Use
 
