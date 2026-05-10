@@ -50,7 +50,7 @@ the finish-it-all execution session (`93e396b`, `0f03693`, `6827594`,
 | Check | Result |
 |-------|--------|
 | Branch | `main`, working tree clean, up-to-date with `origin/main` |
-| `uv run pytest api/tests/` | **186 passed** (183 baseline + 3 from action_package approve route) |
+| `uv run pytest api/tests/` | **206 passed** (186 + 20 from §5.14 weekly opportunity email + the v1.2.6 deterministic-skill suite) |
 | `uv run ruff check api` | All checks passed |
 | `uv run mypy api` | Success: no issues found in **76 source files** |
 | `uv run python -c "from api.main import app; print(sum(1 for r in app.routes if hasattr(r,'path')))"` | **53** routes — 11 `/api/v1/tools/<name>` + 11 `/tools/<name>` + 3 `/api/keys` + 4 `/agent-runs` + 3 `/company-profiles` + 2 `/profiles/me` + 9 `/opportunities*` + 2 `/action-packages` + 2 `/.well-known/*` + 1 `/healthz` + 1 `/waitlist` + 4 FastAPI auto |
@@ -97,10 +97,13 @@ Verified live (2026-05-10) via `api/db.get_client`:
 - `competitor_history` table queryable
 - `action_packages.approved_at` + `approved_by` columns accessible
 
-**Still placeholder in `.env`** (won't block /healthz or DB calls — needed only when LLM-backed skills are exercised end-to-end):
+**Still placeholder in `.env`** (won't block /healthz or DB calls):
 
-- `ANTHROPIC_API_KEY=sk-ant-test-placeholder` — replace with a real key from console.anthropic.com to exercise LLM skills.
 - `SAM_API_KEY=` — optional; empty falls back to `load_seeded_opportunities`.
+
+> **PRD v1.2.6 note:** This pack no longer reads `ANTHROPIC_API_KEY`.
+> The model-provider boundary moved entirely to `/root/michealaai`;
+> skills here are deterministic-only.
 
 ---
 
@@ -210,13 +213,12 @@ the legacy labels.
 
 | ID | Decision | Status |
 |----|----------|--------|
-| D1 | Provider route for this pack: **direct Anthropic** (`provider: anthropic`, `default: claude-sonnet-4-6`, reads `ANTHROPIC_API_KEY`). OpenRouter is a future routing option only. | Confirmed |
 | D2 | Hermes home for dev testing: **`HERMES_HOME=$(pwd)/.hermes` (project-isolated)**. Does not touch user's `~/.hermes/`. | Confirmed |
 | D3 | Data layer: **Supabase via `supabase-py` AsyncClient (PostgREST)**. SQLAlchemy / asyncpg / Alembic dropped (PRD v1.2.4). Schema = `supabase/migrations/*.sql` applied via `supabase db push`. | Done |
 | D4 | Auth: **Supabase JWT (`AuthenticatedUser`) for users + X-Internal-API-Key (`InternalActor`) for sub-agent writebacks**. RLS on every table. `owner_profile_id` on user-facing tables; `get_owned()` repo methods. | Done |
 | D5 | Hosting: **Vultr VX1 + nginx + systemd** (no Docker). Vercel for `/web` + `/landing`. Supabase manages DB/Auth/Storage. The Michaela orchestrator runs separately (its own deployment target). | Pending VX1 deploy |
 | D6 | Tooling: `uv` for Python deps; `bun` for michealaai TS; `make` targets canonical for common workflows. | Done |
-| D7 | Worker names: **Gate (eligibility), Ledger (competitive intel)**. Scot/Lenny/Happer/Roy/Michaela unchanged. | Locked PRD v1.2.5 |
+| D7 | Worker names: **Gate (eligibility), Ledger (competitive intel)**. Scot/Lenny/Happer/Roy/Michaela unchanged. NOTE: Michaela's runtime introduces these as Gabby and Lance respectively — bench-naming reconciliation is open work; see active plan Phase 2.1. | Locked PRD v1.2.5 |
 | D8 | Fixtures: 4 sets — `strong-pursue`, `maybe-needs-partner`, `reject`, `adversarial-image-pdf`. PDFs + manifests committed. | Done |
 | D9 | This repo's identity: **GovCon Bid Desk capability pack**, NOT the orchestrator. Orchestrator lives in /root/michealaai. | PRD v1.2.5 |
 | D10 | In-repo orchestration removed: `api/agent/` is gone. `POST /agent-runs` only persists a row; the external orchestrator picks it up out of band. | PRD v1.2.5 |
@@ -226,11 +228,11 @@ the legacy labels.
 
 ## 5. Provider / key conventions for THIS repo
 
+> **PRD v1.2.6:** This pack carries no LLM credential. The
+> model-provider boundary moved entirely to `/root/michealaai`. The
+> env vars below are the ONLY credentials the FastAPI service reads.
+
 ```
-ANTHROPIC_API_KEY     → server-side, used by api/llm.py for skill-internal
-                         LLM calls. Set in .env (gitignored). Required for
-                         LLM-backed skills (extract_requirements, score_fit,
-                         detect_risks, generate_action_package) to work.
 SAM_API_KEY           → optional; empty falls back to load_seeded_opportunities.
 SUPABASE_URL          → real (vvyxjdoenjujkxwbnzyl.supabase.co)
 SUPABASE_SERVICE_ROLE_KEY → real (sb_secret_…). Server-only. Bypasses RLS.
@@ -246,19 +248,19 @@ NEXT_PUBLIC_API_BASE  → http://localhost:8000 in dev; prod URL in prod
 REDIS_URL             → redis://localhost:6379/0 in dev
 HERMES_HOME           → "$(pwd)/.hermes" for dev testing only; not loaded
                          by this repo's runtime
-HERMES_MODEL          → claude-sonnet-4-6 (default)
-LLM_DEV_MODEL         → claude-haiku-4-5-20251001
-LLM_SYNTH_MODEL       → claude-sonnet-4-6
-RUN_BUDGET_USD/STEPS/SECONDS → 0.50 / 40 / 360 (PRD §4.5 budgets)
 CORS_ALLOWED_ORIGINS  → http://localhost:3000,http://localhost:3001,
                          http://localhost:5173 in dev; prod origins in prod
 ```
 
 **Removed env vars** (don't add back without a logged decision):
 `DATABASE_URL`, `OPENAI_*`, `NEXT_PUBLIC_APP_NAME`, `DEMO_REPLAY_TRACE`,
-`DEMO_USE_SEEDED_ONLY`. The first three were dropped at PRD v1.2.4
-(Postgres tooling rip-out + Supabase pivot). The `DEMO_*` pair was
-dropped at PRD v1.2.5 (orchestration moved out of this repo).
+`DEMO_USE_SEEDED_ONLY`, `ANTHROPIC_API_KEY`, `HERMES_MODEL`,
+`LLM_DEV_MODEL`, `LLM_SYNTH_MODEL`, `RUN_BUDGET_USD/STEPS/SECONDS`. The
+first three were dropped at PRD v1.2.4 (Postgres tooling rip-out +
+Supabase pivot). The `DEMO_*` pair was dropped at PRD v1.2.5
+(orchestration moved out of this repo). The LLM credentials and budget
+knobs were dropped at PRD v1.2.6 (deterministic-only skills; provider
+boundary lives in `/root/michealaai`).
 
 `.env.example` is the committed template; `.env` is gitignored. Both
 match `api/config.py` keys exactly.
@@ -347,8 +349,9 @@ match `api/config.py` keys exactly.
 │   ├── CAPABILITY_PACK_INTEGRATION.md ← Hermes plugin + HTTP API spec
 │   └── HANDOFF_PROMPT.md            ← THIS FILE
 └── docs/superpowers/plans/          ← active execution plans
-    ├── 2026-05-10-finish-it-all.md       ← consolidated runway → v1.0.0
-    └── 2026-05-10-frontend-cleanup-fixes.md  ← in-flight FE hyperanalysis fixes
+    ├── README.md                              ← active vs archived index
+    ├── 2026-05-10-everything-to-v1.0.0.md     ← drift cleanup + launch finish
+    └── _archive/                              ← finish-it-all, frontend-cleanup, skills-deterministic
 ```
 
 **Files NO LONGER present** (deleted in the v1.2.5 repositioning + the
@@ -405,475 +408,12 @@ front.
 
 ---
 
-## 8. Sprint A — `hermes_plugin_govcapture/` (3–5 days)
-
-### Goal
-
-A pip-installable Python package that, when present in a Hermes
-runtime's environment, exposes this repo's `api.skills.<name>` async
-functions as native Hermes tools — bundled into toolsets that match
-the bench's delegation envelope (`gov_discovery`, `gov_compliance`,
-`gov_proposals`, `gov_intel`, `gov_documents`, `meta`).
-
-### Files to create
-
-```
-hermes_plugin_govcapture/
-├── __init__.py
-├── pyproject.toml              ← entry_points: hermes.plugins
-├── plugin.py                   ← register(ctx) entrypoint
-├── adapters/
-│   ├── __init__.py
-│   ├── gov_discovery.py        ← search_sam, load_seeded_opportunities
-│   ├── gov_documents.py        ← parse_pdf, fetch_attachment
-│   ├── gov_compliance.py       ← extract_requirements, score_fit, detect_risks
-│   ├── gov_proposals.py        ← generate_action_package
-│   ├── gov_intel.py            ← (placeholder) query_usaspending — see Sprint E
-│   └── meta.py                 ← parse_goal, summarize_run, request_human_review
-└── tests/
-    ├── __init__.py
-    └── test_register.py
-```
-
-### Concrete steps
-
-1. **Research Hermes plugin spec (30–60 min).** Read `~/.hermes/`
-   docs or run `hermes plugins --help` to confirm the plugin
-   discovery mechanism. The two most likely shapes are (a)
-   `entry_points = {"hermes.plugins": ["govcapture = hermes_plugin_govcapture.plugin:register"]}` and (b) drop a `plugin.py` into a
-   well-known dir. **Don't guess** — ask the user to confirm or
-   provide a Hermes plugin example before coding.
-2. **Scaffold the package** (`pyproject.toml` with the plugin entry
-   point; `__init__.py` exposing `register`).
-3. **Adapter pattern.** Each adapter module exports a function
-   `register(ctx)` that calls `ctx.register_tool(name, callable, ...)`.
-   The callable is a thin wrapper:
-   ```python
-   async def parse_pdf_tool(input_json: str) -> str:
-       payload = ParsePdfInput.model_validate_json(input_json)
-       result = await api_skills.parse_pdf.skill.run(payload)
-       return result.model_dump_json()
-   ```
-   String-in / string-out matches Hermes' tool-call envelope; the
-   adapter handles serialization so the underlying skill keeps its
-   typed Pydantic interface.
-4. **Test in isolation:** `cd hermes_plugin_govcapture && uv run pytest`.
-5. **Test in Hermes:** `HERMES_HOME=$(pwd)/.hermes hermes /skills`
-   should list the new tools under their toolset bundles.
-6. **Don't change `api/skills/<name>/skill.py`.** Adapters stay in
-   the plugin; skills stay provider-agnostic.
-
-### Verification gates
-
-- `uv run pytest hermes_plugin_govcapture/tests/` — green.
-- `uv run pytest api/tests/` — still 112 (no regression).
-- `HERMES_HOME=$(pwd)/.hermes hermes /skills` — lists ≥10 tools.
-- `HERMES_HOME=$(pwd)/.hermes hermes` REPL — `parse_goal` callable
-  end-to-end against a sample goal.
-
-### Ask first
-
-- Hermes plugin discovery mechanism (entry_points vs. file drop).
-- Whether `gov_intel.query_usaspending` should be stubbed or skipped
-  until Sprint E lands.
-- Where to install the plugin into `/root/michealaai`'s Hermes (path
-  may matter for the entry_point pickup).
-
-### Estimated effort
-
-3–5 days. Day 1: research + scaffold. Day 2: adapters + register. Day
-3: tests + Hermes REPL exercise. Day 4–5: integration with
-michealaai's Hermes home; iterate on toolset boundaries.
-
----
-
-## 9. Sprint B — HTTP `POST /tools/<name>` parity (1–2 days)
-
-### Goal
-
-Each `api.skills.<name>` is callable through a thin HTTP endpoint
-guarded by `InternalActor`. Lets any non-Hermes caller (TypeScript
-shim from /root/michealaai, Codex, Cursor, curl) drive the tools
-without learning the Hermes plugin spec.
-
-### Files to create / modify
-
-```
-api/routes/tools.py              ← NEW
-api/main.py                      ← include the router
-api/tests/test_tools_routes.py   ← NEW
-```
-
-### Routes
-
-All POST, all `InternalActor`-protected (X-Internal-API-Key required).
-JSON in / JSON out.
-
-```
-POST /tools/parse-goal
-POST /tools/parse-pdf
-POST /tools/extract-requirements
-POST /tools/score-fit                ← §11.1 short-circuit applies
-POST /tools/detect-risks
-POST /tools/generate-action-package
-POST /tools/search-sam
-POST /tools/fetch-attachment
-POST /tools/rank-opportunities
-POST /tools/load-seeded-opportunities
-```
-
-### Concrete steps
-
-1. **Pattern per route:**
-   ```python
-   @router.post("/parse-pdf")
-   async def parse_pdf_route(
-       payload: ParsePdfInput,
-       _actor: InternalActor = Depends(require_internal),
-   ) -> ParsePdfOutput:
-       return await api.skills.parse_pdf.skill.run(payload)
-   ```
-   Reuse the existing Pydantic input/output schemas. No business
-   logic in the route — just dispatch.
-2. **Tests cover** (a) happy-path with valid X-Internal-API-Key and
-   minimal payload, (b) 401 without the header, (c) 422 with a
-   malformed payload, (d) one skill that internally raises (e.g.,
-   `parse_pdf` on a corrupt PDF) returns a structured error.
-3. **Update `tasks/CONTRACTS.md` §6** to list the new endpoints under
-   "Internal only".
-4. **Update `devdocs/CURRENT_STATE.md` §7 (API surface)** to add the
-   new rows.
-5. **Update `devdocs/CAPABILITY_PACK_INTEGRATION.md`** to mark the
-   HTTP surface as "live" (currently described as planned).
-
-### Verification gates
-
-- `uv run pytest api/tests/test_tools_routes.py` — all green.
-- `uv run pytest api/tests/` — 112 + new count, no regressions.
-- `uv run ruff check api && uv run mypy api` — clean.
-- `curl -X POST http://localhost:8000/tools/parse-goal -H 'X-Internal-API-Key: <key>' -H 'Content-Type: application/json' -d '{"goal":"find SOC contracts"}'` — returns structured JSON.
-- App route count goes from 24 → ~34.
-
-### Ask first
-
-- Whether to use one router file (`api/routes/tools.py`) or one per
-  toolset bundle (mirrors Sprint A's adapter layout).
-- Whether to add a trailing rate-limit guard (probably no for
-  internal-only).
-
-### Estimated effort
-
-1–2 days. Day 1: routes + tests + docs. Day 2 (optional): observability
-(latency_ms, cost_usd surfaced on each response) + load test.
-
----
-
-## 10. Sprint C — `/web` product UI build-out (3–5 days)
-
-### Goal
-
-Take `/web` from "authenticated shell + seeded console" to a real
-end-to-end product surface a small contractor can use: enter their
-profile, set a goal, watch a run, review an opportunity, approve a
-bid memo.
-
-### Surfaces to build
-
-| Route | Purpose |
-|-------|---------|
-| `/app/profile/new` | Company profile form (writes `company_profiles`) |
-| `/app/profile` | View / edit current profile |
-| `/app/goal` | Goal entry; `POST /agent-runs`; redirect to run page |
-| `/app/runs/[id]` | Run timeline (SSE) + matched opportunities list |
-| `/app/opportunities/[id]` | Per-opportunity: requirements, fit, risks |
-| `/app/action-packages/[id]` | Action package + approval gate UI |
-
-### Concrete steps
-
-1. **Audit existing `/web/` console** — most of these surfaces have a
-   seeded prototype in `web/src/app/app/AppConsole.tsx`. Decompose
-   into route-segment-driven pages.
-2. **API client** — `web/src/lib/api.ts` already exists; extend with
-   typed fetchers per endpoint.
-3. **SSE client** — `EventSource` against
-   `/agent-runs/{id}/stream`. Render trace events as a timeline; auto-
-   close on `run_completed`.
-4. **Approval gate** — render `human_approval_required[]` as required
-   checkboxes; "Submit" disabled until all are checked. Note: this
-   pack does not enforce approval server-side; it ships the gate
-   metadata. The UI is the enforcement point until/unless an external
-   submission tool is added.
-5. **Loading and error states** for every fetch; never render a
-   blank "Loading..." for >2s without a skeleton.
-6. **Type safety** — keep `npm run typecheck:web` green.
-7. **No business logic in the UI.** If the UI starts deciding pursue
-   vs. skip, you're rebuilding Lenny in the browser. Stop.
-
-### Verification gates
-
-- `npm run typecheck:web` — clean.
-- `npm run build:web` — clean.
-- `npm -w web run lint` — clean.
-- Manual: log in (Supabase magic-link); create profile; start run;
-  see SSE events; view opportunity; see action package.
-- The system-prompt rule: **"For UI or frontend changes, start the
-  dev server and use the feature in a browser before reporting the
-  task as complete."** Honor it. Type checks ≠ feature correctness.
-
-### Ask first
-
-- Whether to introduce a component library (shadcn/ui is mentioned in
-  CONTRACTS.md but not installed). If yes, which one.
-- Whether mobile breakpoints matter for the first launch.
-- Whether to render the UI even when the external orchestrator isn't
-  emitting events (graceful "waiting for runner…" state).
-
-### Dependency on Sprint G
-
-Without an orchestrator emitting SSE events into Redis channel
-`agent-run:{run_id}`, the timeline page renders an empty stream. Either
-build a thin local stub for development (a Python script that
-publishes seeded events on a 500ms cadence) or coordinate with
-michealaai to land at least a hello-world emitter.
-
-### Estimated effort
-
-3–5 days. Day 1: profile + goal pages. Day 2: run timeline + SSE.
-Day 3: opportunity detail + action package view. Day 4: approval gate
-+ polish. Day 5: edge cases + integration with real runner.
-
----
-
-## 11. Sprint D — Vultr VX1 production deploy (4–8 hours)
-
-### Goal
-
-A reachable production URL serving `/healthz` 200 and ready to receive
-real traffic, with TLS and a systemd-managed FastAPI process.
-
-### Concrete steps (per `infra/RUNBOOK.md`)
-
-1. **Provision** Vultr VX1, Ubuntu 24.04, root SSH.
-2. **Run `infra/bootstrap.sh`** — installs apt deps, ufw, redis,
-   `govcapture` user, systemd unit. Idempotent.
-3. **Clone repo** to `/opt/govcapture` (deploy key if private).
-4. **Drop `.env`** with prod values:
-   ```
-   ANTHROPIC_API_KEY        — sk-ant-…
-   SUPABASE_URL             — https://<ref>.supabase.co
-   SUPABASE_SERVICE_ROLE_KEY
-   SUPABASE_ANON_KEY
-   SUPABASE_STORAGE_BUCKET  — govcapture-attachments
-   INTERNAL_API_KEY         — long random; mirror to /root/michealaai
-   CORS_ALLOWED_ORIGINS     — https://app.govcapture.example,…
-   REDIS_URL                — redis://localhost:6379/0
-   HERMES_HOME              — /opt/govcapture/.hermes (if Hermes runs here)
-   HERMES_MODEL             — claude-sonnet-4-6
-   LLM_DEV_MODEL            — claude-haiku-4-5-20251001
-   LLM_SYNTH_MODEL          — claude-sonnet-4-6
-   RUN_BUDGET_USD/STEPS/SECONDS
-   ```
-5. **`uv sync`** as the `govcapture` user.
-6. **`systemctl enable --now govcapture-api.service`** and check
-   `systemctl status`.
-7. **`curl 127.0.0.1:8000/healthz`** — must return `{"status":"ok"}`.
-8. **nginx + certbot** — TLS for `api.<your-domain>`, reverse proxy
-   to `127.0.0.1:8000`.
-9. **DNS A record** at `api.<your-domain>`. Wait for propagation.
-10. **`curl https://api.<your-domain>/healthz`** — 200 OK.
-11. **Set `NEXT_PUBLIC_API_BASE`** on Vercel to the prod URL. Redeploy.
-
-### Verification gates
-
-- `systemctl is-active govcapture-api.service` — `active`.
-- `curl https://api.<your-domain>/healthz` from outside the box — 200.
-- `journalctl -u govcapture-api -n 50` — no tracebacks.
-- `nginx -t` — syntax OK.
-- `certbot certificates` — cert valid > 30 days.
-
-### Ask first
-
-- Domain to use (`api.govcapture.example` is a placeholder).
-- Whether the Michaela orchestrator deploys to the **same** VX1 box
-  (separate systemd unit, shared `INTERNAL_API_KEY`) or to its own
-  host. If same box, allocate ports + memory carefully.
-- Whether to set up Vultr snapshots / nightly Supabase backups.
-
-### Estimated effort
-
-4–8 hours, contiguous. Don't start late in the day; DNS propagation
-adds non-deterministic wait.
-
----
-
-## 12. Sprint E — `query_usaspending` skill for Ledger (1–2 days)
-
-### Goal
-
-Today, Ledger's competitive-intel outputs ride on `risk_flags` with
-`category="competitor_history"`. That's a workaround. Give Ledger a
-proper skill + writeback table.
-
-### Files
-
-```
-api/skills/query_usaspending/
-├── __init__.py
-├── prompt.txt             ← optional, if any LLM synthesis happens
-└── skill.py
-api/repositories/competitor_history.py   ← NEW
-api/routes/opportunities.py              ← extend with /competitors POST/GET
-api/schemas/competitor_history.py        ← generated from new schema
-schemas/competitor-history.schema.json   ← NEW
-supabase/migrations/<timestamp>_add_competitor_history.sql  ← NEW
-```
-
-### Concrete steps
-
-1. **Schema first** — add `competitor-history.schema.json` with fields
-   like `opportunity_id`, `incumbent_name`, `awards[]`, `total_obligated_usd`,
-   `win_difficulty`, `evidence_url`. Run `make schemas`.
-2. **Migration** — `supabase/migrations/<ts>_add_competitor_history.sql`
-   with columns matching the schema; RLS; `owner_profile_id`. Apply
-   with `supabase db push`.
-3. **Skill** — `api/skills/query_usaspending/skill.py` — async fetch
-   from USASpending API (no LLM needed for the basic shape; consider
-   one for narrative summary). Returns `CompetitorHistory[]`.
-4. **Repository + routes** — mirror the pattern in
-   `api/repositories/risk_flag.py` and the per-opportunity routes.
-5. **Adapter additions** — extend `gov_intel.py` (Sprint A) and
-   `tools.py` (Sprint B) if they're already shipped.
-6. **Backfill or migrate** existing `risk_flags` rows with
-   `category="competitor_history"` to the new table (or leave them
-   and document the cutover date in `CURRENT_STATE.md`).
-
-### Verification gates
-
-- `uv run pytest api/tests/test_query_usaspending.py` — green.
-- `make schemas` — no diff after re-run (idempotent).
-- `supabase db push` — applies cleanly to a fresh project.
-- `mypy + ruff` — clean.
-
-### Ask first
-
-- USASpending API key (if any) — most endpoints are unauth, but rate
-  limits matter; confirm before scaling.
-- Whether to backfill from `risk_flags`.
-
-### Estimated effort
-
-1–2 days. Half a day on schema + migration + repo. Half on skill +
-tests + docs.
-
----
-
-## 13. Sprint F — `eval/` harness (2–3 days)
-
-### Goal
-
-Fixture-driven regression tests for the LLM-backed skills
-(extract_requirements, score_fit, detect_risks,
-generate_action_package). Catches model-version drift and prompt
-regressions before they reach a customer.
-
-### Files
-
-```
-eval/
-├── runner/
-│   ├── __init__.py
-│   ├── runner.py              ← run a fixture through a skill, diff vs golden
-│   └── differs.py             ← structured comparison (allow score drift ±X)
-├── goldens/
-│   ├── strong-pursue/
-│   │   ├── extract_requirements.golden.json
-│   │   ├── score_fit.golden.json
-│   │   └── …
-│   ├── maybe-needs-partner/
-│   ├── reject/
-│   └── adversarial-image-pdf/
-└── README.md
-```
-
-### Concrete steps
-
-1. **Define the diff tolerance.** LLM outputs aren't bit-stable.
-   Specify per-field tolerance: `decision` must match exactly;
-   `total_score` ±5; `evidence_snippet` substring match; etc.
-2. **Bootstrap goldens** by running each skill on each fixture once
-   under the canonical model versions and committing the output.
-3. **`make eval`** target that runs the harness; exits non-zero on
-   any out-of-tolerance diff.
-4. **CI integration** — run on PRs that touch `api/skills/`,
-   `api/llm.py`, fixtures, or migrations.
-
-### Verification gates
-
-- `make eval` — passes against committed goldens.
-- Deliberately break a skill (mutate a constant), re-run — fails.
-- Re-bootstrap a single golden — `make eval` passes again.
-
-### Ask first
-
-- How strict the tolerance should be. Strict catches drift but
-  flickers; loose hides regressions.
-- Whether to run on every PR or only nightly.
-
-### Estimated effort
-
-2–3 days. Day 1: runner + differ. Day 2: bootstrap goldens. Day 3:
-CI wiring + tolerance tuning.
-
----
-
-## 14. Sprint G — Cross-repo coordination with `/root/michealaai` (1–2 days)
-
-### Goal
-
-This pack and the orchestrator project must agree on the contract for
-how Michaela picks up `agent_runs` rows, calls our tools, and emits
-trace events. Otherwise Sprint A/B/C produce a working pack that
-nobody talks to.
-
-### Concrete deliverables (in this repo)
-
-1. **Document the run-row pickup contract** in
-   `devdocs/CAPABILITY_PACK_INTEGRATION.md`:
-   - When the orchestrator polls / subscribes for new `agent_runs`.
-   - How it claims a row (Postgres advisory lock? `started_at` set?
-     a `worker_id` column?).
-   - How it marks completion / failure.
-2. **Document the trace event format** in `tasks/CONTRACTS.md §3`
-   (already partly there; verify it matches what the orchestrator
-   actually emits).
-3. **Lock the `INTERNAL_API_KEY` provisioning** — exact env var name,
-   how michealaai obtains it (shared secrets manager? mirrored .env?).
-
-### What's NOT in this repo's scope
-
-- The orchestrator's pickup loop implementation.
-- Michaela's prompts, persona, work-loop logic.
-- Worker bench definitions.
-
-### Verification gates
-
-- A real `agent_runs` row created via `POST /agent-runs` from `/web`
-  is picked up by `/root/michealaai`'s orchestrator within N seconds.
-- Trace events flow back through Redis and render in `/web`.
-- An action package row appears with `owner_profile_id` matching the
-  caller.
-
-### Ask first (always)
-
-- Whether `/root/michealaai` has a checked-out branch / commit that
-  matches the contract you're documenting. Stale orchestrator =
-  stale contract.
-- Who owns the schema changes if the contract requires a new column
-  on `agent_runs` (e.g., `worker_id`, `claimed_at`).
-
-### Estimated effort
-
-1–2 days. Most is spec-writing + a single integration test.
+## 8 · Active work
+
+The active plan is `docs/superpowers/plans/2026-05-10-everything-to-v1.0.0.md`.
+Sprint-specific menus that previously lived in §§8–14 of this file
+are archived in commit history; their outcomes shipped in commits
+listed under `devdocs/CURRENT_STATE.md` §10.
 
 ---
 
@@ -945,41 +485,9 @@ nobody talks to.
 | GL7 | old-name scan over live docs/code (exclude archive; allow PRD changelog deprecation note only) | no live legacy-label usage |
 | GL8 | `HERMES_HOME=$(pwd)/.hermes hermes config show` | no unknown-key warnings |
 
-### Sprint A (Hermes plugin)
-
-- Plugin tests pass; `hermes /skills` lists ≥10 tools; main repo
-  pytest unchanged.
-
-### Sprint B (HTTP /tools/)
-
-- Route count goes 24 → ~34; new tests pass; happy + auth-fail + bad-payload
-  paths covered.
-
-### Sprint C (Web UI)
-
-- `typecheck:web` + `build:web` clean; manual browser flow completes
-  without a console error.
-
-### Sprint D (Deploy)
-
-- `https://<prod>/healthz` returns 200 from outside the box; cert
-  valid > 30 days; `journalctl -u govcapture-api -n 50` has no
-  tracebacks since unit start.
-
-### Sprint E (USASpending)
-
-- New skill tests pass; `make schemas` idempotent;
-  `supabase db push` clean against fresh project.
-
-### Sprint F (Eval harness)
-
-- `make eval` passes against committed goldens; deliberate breakage
-  fails it; rebootstrap restores green.
-
-### Sprint G (Cross-repo)
-
-- End-to-end `agent_runs` round-trip from `/web` through Michaela
-  back to `/web` (action-package render).
+Per-sprint gates (formerly listed here for Sprints A–G) are
+superseded; current phase-by-phase gates live in
+`docs/superpowers/plans/2026-05-10-everything-to-v1.0.0.md`.
 
 ---
 
@@ -989,30 +497,26 @@ Stop and surface to the user before doing any of these:
 
 1. **Renaming or moving files outside the explicit list in the chosen
    sprint section.**
-2. **Branching strategy** — main vs. feature branch — at sprint start
-   if not already settled.
-3. **Schema changes** — anything touching `schemas/*.json`,
+2. **Schema changes** — anything touching `schemas/*.json`,
    `supabase/migrations/`, or breaking field renames in
    `api/schemas/`. These need joint-edit ack.
-4. **Modifying `api/repositories/`** beyond adding methods needed by
+3. **Modifying `api/repositories/`** beyond adding methods needed by
    the sprint. Repo refactors are their own sprint.
-5. **Touching `web/` or `landing/`** unless the chosen sprint is C or
+4. **Touching `web/` or `landing/`** unless the chosen sprint is C or
    the change is a single bug fix you can name.
-6. **Pushing to a git remote** — never without explicit "push".
-7. **Adding a Python or JS dependency** — `uv add <pkg>` or
+5. **Pushing to a git remote** — never without explicit "push".
+6. **Adding a Python or JS dependency** — `uv add <pkg>` or
    `npm install <pkg>`. Confirm before, including a one-line reason.
-8. **Running anything that costs money** (Anthropic API beyond a few
-   test calls, OpenRouter, paid SAM tier) — confirm budget.
-9. **Encountering a concurrent edit or hook intervention that
+7. **Running anything that costs money** (paid SAM tier, etc.) —
+   confirm budget. (LLM credentials no longer live in this repo per
+   PRD v1.2.6.)
+8. **Encountering a concurrent edit or hook intervention that
    contradicts this handoff** — re-read, then surface the conflict
    (the previous session had this when a hook reverted legacy labels
    to Gate/Ledger; surfacing fixed it cleanly).
-10. **Cross-repo work in `/root/michealaai`** — this handoff covers
+9. **Cross-repo work in `/root/michealaai`** — this handoff covers
     only `/Volumes/CS_Stuff/govcon`. Any work in the orchestrator
     repo is a separate session.
-11. **Removing `DEMO_*` from anywhere they still appear** — those env
-    vars are dropped from this repo's runtime but the PRD changelog
-    references them historically. Don't strip the references.
 
 ---
 
@@ -1021,14 +525,12 @@ Stop and surface to the user before doing any of these:
 | # | Risk | Mitigation |
 |---|------|------------|
 | R1 | Concurrent edits (user or linter) cause merge thrash. | Re-read each file just before writing. The previous session got 5+ edit-collision errors; recover by re-reading and trying again. Don't fight the linter. |
-| R2 | Hermes plugin spec turns out to differ from what's assumed in Sprint A. | Don't write adapters before confirming with `hermes plugins --help` or a working plugin example. 30 min of research saves 2 days of rework. |
-| R3 | `/web` UI built against a contract Michaela doesn't meet (Sprint C without G). | Build a local stub publisher (a 30-line Python script) for SSE events; iterate on UI without orchestrator dependency. Wire to real orchestrator only after Sprint G. |
+| R3 | `/web` UI rendered against a contract Michaela doesn't meet (web ships before orchestrator wires up). | Run `make sse-stub` to publish seeded run events into Redis; iterate on UI without orchestrator dependency. Wire to the real orchestrator only after `/root/michealaai` confirms the pickup contract. |
 | R4 | VX1 deploy late in the day → DNS propagation drags. | Start before noon local; have a rollback plan (`systemctl stop govcapture-api`; restore previous `/opt/govcapture` worktree). |
 | R5 | New env var added in code but not `.env.example`. | Append-only protocol per `tasks/CONTRACTS.md §4`. Always update both files in the same commit. |
 | R6 | `INTERNAL_API_KEY` leaks. | Never print it in logs. `.env*` gitignored. If leaked, rotate immediately and update both this repo and `/root/michealaai`. |
 | R7 | Schema PR in this repo lands before michealaai consumes the new field. | Use additive migrations (new columns nullable; new tables empty). Never ALTER COLUMN DROP NOT NULL or DROP TABLE without coordinating. |
-| R8 | A sub-agent writes through a user JWT instead of `InternalActor`. | Tests on `tools.py` routes (Sprint B) must include the 401-without-key case. Run on every PR. |
-| R9 | LLM call cost runaway during dev (running real Sonnet on every test). | `LLM_DEV_MODEL=claude-haiku-4-5-20251001` is the default; Sonnet only on tagged tests. Budget ceiling per run is `$0.50` (PRD §17 Q1). |
+| R8 | A sub-agent writes through a user JWT instead of `InternalActor`. | Tests on the internal `/tools/<name>` routes must include the 401-without-key case. Run on every PR. |
 | R10 | The user expects you to update `/root/michealaai`. | You can't (different repo). Surface immediately: "this work is in this pack; the orchestrator side needs a separate session in `/root/michealaai`."|
 
 ---
