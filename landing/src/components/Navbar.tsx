@@ -6,10 +6,33 @@ import { NAV } from '../data/copy'
 import { cn } from '../lib/cn'
 
 // NEXT_PUBLIC_APP_URL is inlined at build time and is identical on server
-// and client, so this can't drift across hydration. Set it per-env;
-// localhost default keeps `next dev` working out of the box.
-const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'http://localhost:3001'
+// and client, so this can't drift across hydration. Set it per-env.
+// Prod-build fallback is the real app origin (app.samrail.com) so a
+// missing Vercel env var doesn't ship a localhost <a href> to users.
+// Dev fallback is localhost so `next dev` works out of the box.
+//
+// Defense: an env var entered without the `https://` prefix (e.g.
+// "app.samrail.com") is invalid as a URL and the browser would treat
+// the resulting href as a same-origin relative path — sending users
+// from samrail.com to samrail.com/login (404). Validate the scheme;
+// fall back if missing.
+function resolveAppUrl(): string {
+  const isProd = process.env.NODE_ENV === 'production'
+  const fallback = isProd ? 'https://app.samrail.com' : 'http://localhost:3001'
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, '')
+  if (!raw) return fallback
+  if (!/^https?:\/\//i.test(raw)) {
+    // Malformed (no scheme). Refuse rather than ship a broken link.
+    if (typeof console !== 'undefined') {
+      console.warn(
+        `[landing] NEXT_PUBLIC_APP_URL="${raw}" missing scheme; using fallback "${fallback}".`,
+      )
+    }
+    return fallback
+  }
+  return raw
+}
+const APP_URL = resolveAppUrl()
 const SIGN_IN_HREF = `${APP_URL}/login`
 
 function Mark() {
@@ -102,15 +125,9 @@ export default function Navbar() {
             <div className="ml-auto flex items-center gap-1">
               <a
                 href={SIGN_IN_HREF}
-                className="hidden sm:inline-flex items-center rounded-full px-3 py-1 text-[13px] font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-white/40 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-              >
-                Sign in
-              </a>
-              <a
-                href="#waitlist"
                 className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[var(--color-ink)] text-white pl-3.5 pr-1 py-1 text-[13px] font-medium hover:bg-[#1e293b] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
               >
-                Request access
+                Sign in
                 <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/15">
                   <ArrowRight size={12} strokeWidth={2.25} aria-hidden />
                 </span>
@@ -180,23 +197,6 @@ export default function Navbar() {
                     className="text-[var(--color-ink-subtle)]"
                     aria-hidden
                   />
-                </a>
-                <div className="glass-rule mx-2 my-2" aria-hidden />
-                <a
-                  href="#waitlist"
-                  onClick={close}
-                  className={cn(
-                    'flex items-center justify-center gap-2 h-12 rounded-full',
-                    'bg-[var(--color-ink)] text-white text-[14.5px] font-medium',
-                    'hover:bg-[#1e293b] active:bg-[#020617] transition-colors',
-                    'shadow-[0_1px_2px_rgba(15,23,42,0.18),0_8px_24px_-12px_rgba(15,23,42,0.45)]',
-                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]',
-                  )}
-                >
-                  Request access
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/15">
-                    <ArrowRight size={12} strokeWidth={2.25} aria-hidden />
-                  </span>
                 </a>
               </nav>
             </div>
