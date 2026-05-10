@@ -44,10 +44,9 @@ The product truth is `PRD.md` v1.2.5. The layer model is
 
 ## Local setup
 
-> **For the full walkthrough** — prerequisites, Supabase setup,
-> migration apply, three-terminal dev workflow, dev-skip login, and
-> deployment overview — see **`devdocs/SETUP.md`**. The block below
-> is the ~30-second TL;DR for someone already-set-up.
+> Already-set-up? Skip to the run commands below. **What's still left
+> to ship to v1.0.0 (Vercel /web deploy, prod SMTP, VX1, tag) is
+> tracked in `devdocs/SETUP.md`.**
 
 ```bash
 npm install
