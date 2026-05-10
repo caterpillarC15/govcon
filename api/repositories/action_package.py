@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 from typing import Any, cast
 
 from supabase import AsyncClient
@@ -46,3 +47,24 @@ class ActionPackageRepository:
     async def create(self, data: dict[str, Any]) -> dict[str, Any]:
         resp = await self.client.table("action_packages").insert(data).execute()
         return cast(dict[str, Any], resp.data[0])
+
+    async def approve(
+        self,
+        package_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> dict[str, Any] | None:
+        """Mark package approved by user.
+
+        Caller is expected to have already validated ownership via
+        get_owned; this method updates the row unconditionally and
+        returns the updated row, or None if the id doesn't exist.
+        """
+        now = datetime.now(timezone.utc).isoformat()
+        resp = await (
+            self.client.table("action_packages")
+            .update({"approved_at": now, "approved_by": str(user_id)})
+            .eq("id", str(package_id))
+            .execute()
+        )
+        rows = resp.data or []
+        return cast(dict[str, Any], rows[0]) if rows else None

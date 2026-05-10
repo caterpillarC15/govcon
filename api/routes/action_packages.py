@@ -33,3 +33,24 @@ async def create_action_package(
 ) -> ActionPackage:
     row = await repo.create(payload.model_dump())
     return ActionPackage.model_validate(row)
+
+
+@router.post("/{package_id}/approve", response_model=ActionPackage)
+async def approve_action_package(
+    package_id: uuid.UUID,
+    user: AuthenticatedUser = Depends(require_user),
+    repo: ActionPackageRepository = Depends(get_action_package_repo),
+) -> ActionPackage:
+    """Persist user's approval of the action package.
+
+    The orchestrator (in /root/michealaai) reads approved_at to gate
+    downstream actions like CO email or submission. This route only
+    writes the field; gate enforcement is the orchestrator's job.
+    """
+    existing = await repo.get_owned(package_id, user.id)
+    if existing is None:
+        raise HTTPException(404, "Action package not found")
+    updated = await repo.approve(package_id, user.id)
+    if updated is None:
+        raise HTTPException(404, "Action package not found")
+    return ActionPackage.model_validate(updated)

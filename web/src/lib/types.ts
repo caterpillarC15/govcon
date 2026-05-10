@@ -125,6 +125,8 @@ export type ActionPackage = {
   }> | null
   outreach_draft?: { subject: string; body: string } | null
   approval_required: string[]
+  approved_at?: string | null
+  approved_by?: string | null
   created_at: string
 }
 

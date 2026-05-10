@@ -105,6 +105,10 @@ export const api = {
 
   getActionPackage: (token: string, id: string) =>
     request<ActionPackage>(`/action-packages/${id}`, token),
+  approveActionPackage: (token: string, id: string) =>
+    request<ActionPackage>(`/action-packages/${id}/approve`, token, {
+      method: 'POST',
+    }),
 
   listApiKeys: (token: string) => request<ApiKey[]>('/api/keys', token),
 

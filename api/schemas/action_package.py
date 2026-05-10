@@ -84,4 +84,9 @@ class ActionPackage(BaseModel):
         description='Mirrors §10.3 human_approval_required — items requiring human gate before execution.',
         min_length=1,
     )
+    # PRD v1.2.5+: persisted approval state. Hand-added (not in JSON
+    # schema) so the model accepts the new columns; schemas/ stays
+    # unchanged for the broader codegen pipeline.
+    approved_at: AwareDatetime | None = None
+    approved_by: UUID | None = None
     created_at: AwareDatetime

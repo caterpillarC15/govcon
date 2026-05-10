@@ -181,11 +181,16 @@ export default async function ActionPackagePage({
       <Card>
         <p className="text-sm font-medium text-blue-900">Approval gate</p>
         <p className="mt-1 text-xs text-slate-500">
-          All gates must be acknowledged before any external action. The pack
-          does not enforce server-side; this UI is the gate.
+          All gates must be acknowledged before any external action. Approval
+          is persisted; the orchestrator reads it to gate downstream work.
         </p>
         <div className="mt-4">
-          <ApprovalGate items={pkg.approval_required} />
+          <ApprovalGate
+            packageId={pkg.id}
+            token={token}
+            items={pkg.approval_required}
+            initialApprovedAt={pkg.approved_at ?? null}
+          />
         </div>
       </Card>
     </div>
