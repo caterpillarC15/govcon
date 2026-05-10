@@ -223,6 +223,7 @@ next squash.
 | `POST /opportunities/{id}/{requirements,fit-score,risks}` | **InternalActor** (X-Internal-API-Key) | Sub-agent writebacks |
 | `GET  /action-packages/{id}`                 | JWT (owner)   | Read a Roy-produced package                              |
 | `POST /action-packages`                      | **InternalActor** | Roy writeback                                        |
+| `POST /tools/<name>` (×10)                   | **InternalActor** | Direct skill dispatch for non-Hermes callers (Sprint B) |
 
 User-facing routes use Supabase JWT; sub-agent writebacks use a
 separate internal API key so no human bearer token can reach the
@@ -290,7 +291,8 @@ recipes — those live in `/root/michealaai`.
 - Auth: `AuthenticatedUser` + `InternalActor`
 - 4 user-facing repositories (opportunity, agent_run, company_profile,
   action_package) + 2 user resources (profile, waitlist)
-- 11+ FastAPI routes across 8 router files
+- 29 FastAPI path operations across 8 router modules, including 10
+  internal `/tools/<name>` skill dispatches added 2026-05-09
 - 10 skills (parse_goal, parse_pdf, extract_requirements, score_fit,
   detect_risks, generate_action_package, search_sam, fetch_attachment,
   rank_opportunities, load_seeded)
@@ -306,7 +308,6 @@ recipes — those live in `/root/michealaai`.
 - Ledger's `query_usaspending` skill (separate writeback table)
 - `hermes_plugin_govcapture/` — register tool adapters with Hermes for
   Michaela's workers (per `devdocs/CAPABILITY_PACK_INTEGRATION.md`)
-- HTTP-API parity: `POST /tools/<name>` endpoints for non-Hermes callers
 - Eval harness (`eval/runner/`, `eval/goldens/`)
 - `/web` product UI beyond the authenticated shell
 

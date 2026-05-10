@@ -7,7 +7,7 @@ untouched.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -53,7 +53,7 @@ class DetectRisksRequest(_Strict):
 
 
 class GenerateActionPackageRequest(_Strict):
-    mode: str = "full"
+    mode: Literal["full", "reject_summary"] = "full"
     company_profile: dict[str, Any] = Field(default_factory=dict)
     opportunity: dict[str, Any] = Field(default_factory=dict)
     requirements: list[dict[str, Any]] = Field(default_factory=list)

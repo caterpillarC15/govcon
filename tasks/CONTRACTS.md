@@ -188,7 +188,11 @@ planned, not wired. See `HERMES.md` and
 | `generate_action_package` | Domain skill (A8) | `GenerateActionPackageInput` | §10.3 ActionPackageOutput |
 | `request_human_review` | Hermes built-in (A9) | `{question, context}` | event emission (no return) |
 
-Each tool also reports `latency_ms` and `cost_usd` (0 for non-LLM tools). The planner uses these for budget tracking.
+LLM-backed tools report `latency_ms` and `cost_usd` through
+`LLMMetrics`; deterministic short-circuits may report a synthetic
+zero-cost metrics block. HTTP `POST /tools/<name>` wrappers return a
+uniform `{"data": ..., "metrics": ...}` envelope, with `metrics: null`
+for pure non-LLM mechanics that do not emit metrics.
 
 Michaela bench ownership:
 
@@ -233,8 +237,28 @@ GET    /healthz                           → { status: "ok" }
 
 Public: `GET /healthz`, `POST /waitlist`, landing page.
 Authenticated user: profile creation/read, agent-run creation/read, run outputs.
-Internal only: requirements, fit scores, risks, action packages writes through
-`X-Internal-API-Key`.
+Internal only: requirements, fit scores, risks, action packages, and tool
+calls through `X-Internal-API-Key`.
+
+### `POST /tools/<name>` — internal-only skill surface (Sprint B)
+
+All routes require `X-Internal-API-Key`. Response envelope:
+`{"data": ..., "metrics": LLMMetrics | null}`. `metrics` is null for non-LLM skills.
+
+| Route | Skill module | LLM | Notes |
+|---|---|---|---|
+| POST `/tools/parse-goal` | `api.skills.parse_goal` | yes | Goal → search criteria |
+| POST `/tools/parse-pdf` | `api.skills.parse_pdf` | no | Server-local filesystem path |
+| POST `/tools/extract-requirements` | `api.skills.extract_requirements` | yes | §10.1 contract; evidence-binding post-validation |
+| POST `/tools/score-fit` | `api.skills.score_fit` | conditional | §11.1 short-circuit skips LLM on eligibility blockers |
+| POST `/tools/detect-risks` | `api.skills.detect_risks` | yes | §5.8 taxonomy; silent-drops unknown categories |
+| POST `/tools/generate-action-package` | `api.skills.generate_action_package` | conditional | `mode: "reject_summary"` skips LLM |
+| POST `/tools/search-sam` | `api.skills.search_sam` | no | Reads `SAM_API_KEY`; degraded fallback on rate-limit/5xx |
+| POST `/tools/fetch-attachment` | `api.skills.fetch_attachment` | no | Writes to Supabase Storage `raw/<run_id>/<filename>` |
+| POST `/tools/rank-opportunities` | `api.skills.rank_opportunities` | no | Pure deterministic sort |
+| POST `/tools/load-seeded-opportunities` | `api.skills.load_seeded_opportunities` | no | Idempotent on slug |
+
+Request schemas: `api/schemas/tool_requests.py`. Routes hold no business logic; each is a thin dispatch into the underlying skill function.
 
 ---
 

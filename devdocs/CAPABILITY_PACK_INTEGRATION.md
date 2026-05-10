@@ -26,15 +26,40 @@ Michaela or a service process may call FastAPI routes directly.
 
 - Public: `GET /healthz`, `POST /waitlist`
 - User JWT: profiles, company profiles, agent-run reads, run outputs
-- Internal service key: requirements, fit scores, risks, action packages
+- Internal service key: requirements, fit scores, risks, action packages,
+  and `POST /tools/<name>` skill wrappers
 
-Internal writebacks must include:
+Internal writebacks and tool calls must include:
 
 ```http
 X-Internal-API-Key: <INTERNAL_API_KEY>
 ```
 
 Browser user tokens cannot write generated analysis artifacts.
+
+#### `POST /tools/<name>` — direct skill dispatch (live 2026-05-09)
+
+Any caller that doesn't run Hermes (TypeScript shim from `/root/michealaai`,
+Codex, Cursor, curl) can drive the pack's skills through ten POST endpoints
+under `/tools/<name>`. Each route requires `X-Internal-API-Key` and accepts a
+typed JSON body matching the schema in `api/schemas/tool_requests.py`.
+
+Responses share the uniform envelope:
+
+```json
+{ "data": <skill output>, "metrics": <LLMMetrics | null> }
+```
+
+`metrics` is null for non-LLM skills (parse_pdf, rank_opportunities,
+search_sam, fetch_attachment, load_seeded_opportunities) and populated with
+token counts and cost for LLM-backed skills (parse_goal,
+extract_requirements, score_fit, detect_risks, generate_action_package).
+The full table of routes lives in `tasks/CONTRACTS.md` §6.
+
+This is parity with — not a replacement for — the planned Hermes plugin
+(Sprint A). The plugin gives Michaela's Hermes-hosted workers native tool
+calls with lower latency; this HTTP surface gives every other caller a
+zero-research integration path.
 
 ### Agent Run Rows
 

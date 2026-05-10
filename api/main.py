@@ -13,6 +13,7 @@ from api.routes import (
     healthz,
     opportunities,
     profiles,
+    tools,
     waitlist,
 )
 
@@ -42,3 +43,4 @@ app.include_router(company_profiles.router)
 app.include_router(agent_runs.router)
 app.include_router(opportunities.router)
 app.include_router(action_packages.router)
+app.include_router(tools.router)

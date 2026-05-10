@@ -3,8 +3,9 @@
 > **Read top to bottom before doing anything.** This single file is
 > designed to be pasted into a fresh Claude Code, Codex, or comparable
 > agent session running against `/Volumes/CS_Stuff/govcon`. It picks up
-> where the **2026-05-09 capability-pack repositioning** left off
-> (PRD v1.2.5; final commit `7ff9f11`). Predecessor:
+> where the **2026-05-09 capability-pack repositioning** left off, with
+> Sprint B HTTP `/tools` parity now added on top of PRD v1.2.5.
+> Predecessor:
 > `devdocs/_archive/HANDOFF_2026-05-09.md`.
 
 ---
@@ -42,17 +43,18 @@ auth wired, env files gitignored, full test suite green.
 
 ## 1. Verified state at handoff (what's true RIGHT NOW)
 
-These were directly verified in the session that wrote this file
-(2026-05-09, ending at commit `7ff9f11`).
+These were directly verified after Sprint B shipped
+(2026-05-09; final state pending one consolidating commit per the
+"hold commits to the end" preference).
 
 | Check | Result |
 |-------|--------|
-| Branch | `main` at `7ff9f11` |
-| Working tree | clean |
-| `uv run pytest api/tests/` | **112 passed** (was 113 before SSE-replay test was deleted with the orchestrator) |
+| Branch | `main`, ahead of `origin/main` by 4+ commits (Sprint B work pending) |
+| Working tree | Sprint B implementation pending one consolidating commit (routes + tests + docs) |
+| `uv run pytest api/tests/` | **154 passed** (113 baseline + 41 new for `/tools/<name>` routes) |
 | `uv run ruff check api` | All checks passed |
-| `uv run mypy api` | Success: no issues found in 63 source files |
-| `uv run python -c "from api.main import app; print(sum(1 for r in app.routes if hasattr(r,'path')))"` | **24** routes |
+| `uv run mypy api` | Success: no issues found in 66 source files |
+| `uv run python -c "from api.main import app; print(sum(1 for r in app.routes if hasattr(r,'path')))"` | **34** routes (24 user-facing + 10 internal `/tools/<name>`) |
 | `HERMES_HOME=$(pwd)/.hermes hermes config show` | Reads model.provider=anthropic, default=claude-sonnet-4-6; no unknown-key warnings |
 | `find api/agent -type f` | (empty — directory gone) |
 | `grep -rn 'from api\.agent' api/` | (empty) |
@@ -165,10 +167,10 @@ exact names.
 | 6 | Roy    | Packaging / handoff | "Bid memo ready • capability statement drafted • email ready" |
 
 **Naming history (do not relitigate):** the previous handoff suggested
-renaming Gate→Gabby and Ledger→Lance. That direction is **wrong** — it
-was reverted mid-session. The canonical names are **Gate** and
-**Ledger**. The PRD v1.2.5 changelog explicitly deprecates the
-Lance/Gabby labels.
+renaming Gate and Ledger to legacy alternate labels. That direction is
+**wrong** — it was reverted mid-session. The canonical names are
+**Gate** and **Ledger**. The PRD v1.2.5 changelog explicitly deprecates
+the legacy labels.
 
 ---
 
@@ -342,7 +344,7 @@ A and C.
 | ID | Sprint | Effort | Unblocks | Depends on |
 |----|--------|--------|----------|------------|
 | **A** | `hermes_plugin_govcapture/` Python plugin so Michaela's Hermes-hosted workers native-call our tools | 3–5 days | Native delegation from /root/michealaai workers; better latency than HTTP | None |
-| **B** | HTTP `POST /tools/<name>` parity for non-Hermes callers (TS, Codex, Cursor) | 1–2 days | Any orchestrator that doesn't run Hermes | None |
+| ~~**B**~~ | ~~HTTP `POST /tools/<name>` parity for non-Hermes callers (TS, Codex, Cursor)~~ — **DONE 2026-05-09** (10 routes live; 34 routes total; 154 tests; plan: `docs/superpowers/plans/2026-05-09-sprint-b-http-tools-parity.md`) | 1–2 days | Any orchestrator that doesn't run Hermes | None |
 | **C** | `/web` product UI build-out (profile create → goal entry → run timeline → opportunity detail → action-package review) | 3–5 days | Public demo; first-customer trial | A or B (something must produce real artifacts) |
 | **D** | Vultr VX1 production deploy | 4–8 hours | Public URL; hosted /healthz | A or B working locally |
 | E | `query_usaspending` skill for Ledger (separate writeback table) | 1–2 days | Real competitive-intel content (today rides on `risk_flags` w/ category convention) | Schema PR ack |
@@ -896,7 +898,7 @@ nobody talks to.
 | GL4 | `git status` | clean (no unintended changes) |
 | GL5 | `find api/agent -type f` | empty (orchestration must stay out) |
 | GL6 | `grep -rn 'from api\.agent' api/` | empty |
-| GL7 | `grep -rn 'Gabby\|\bLance\b' --include='*.md' --include='*.yaml' --include='*.py' . \| grep -v _archive \| grep -v 'deprecated'` | only the PRD changelog "deprecated" hit |
+| GL7 | old-name scan over live docs/code (exclude archive; allow PRD changelog deprecation note only) | no live legacy-label usage |
 | GL8 | `HERMES_HOME=$(pwd)/.hermes hermes config show` | no unknown-key warnings |
 
 ### Sprint A (Hermes plugin)
@@ -959,7 +961,7 @@ Stop and surface to the user before doing any of these:
    test calls, OpenRouter, paid SAM tier) — confirm budget.
 9. **Encountering a concurrent edit or hook intervention that
    contradicts this handoff** — re-read, then surface the conflict
-   (the previous session had this when a hook reverted Gabby/Lance
+   (the previous session had this when a hook reverted legacy labels
    to Gate/Ledger; surfacing fixed it cleanly).
 10. **Cross-repo work in `/root/michealaai`** — this handoff covers
     only `/Volumes/CS_Stuff/govcon`. Any work in the orchestrator
