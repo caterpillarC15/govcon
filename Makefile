@@ -112,3 +112,7 @@ eval: ## run LLM-skill regression eval against committed goldens
 
 eval-bootstrap: ## (re)write goldens by running real LLM calls — costs Anthropic tokens
 	uv run python -m eval.runner.runner --bootstrap
+
+sse-stub: ## Publish a stub trace to Redis (RUN_ID=<uuid>) — exercises /web SSE without orchestrator
+	@if [ -z "$(RUN_ID)" ]; then echo "Usage: make sse-stub RUN_ID=<run-uuid> [DELAY_MS=500]"; exit 2; fi
+	uv run python scripts/sse_stub_publisher.py "$(RUN_ID)" --delay-ms $${DELAY_MS:-500}
