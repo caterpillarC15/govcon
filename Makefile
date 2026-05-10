@@ -1,4 +1,4 @@
-.PHONY: dev services-up services-down schemas db-push db-new db-pull migrate fixtures-validate test typecheck lint format help
+.PHONY: dev services-up services-down schemas db-push db-new db-pull migrate fixtures-validate test typecheck lint format eval eval-bootstrap help
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?##"}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -79,3 +79,9 @@ lint: ## Run ruff
 
 format: ## Format with ruff
 	uv run ruff format api
+
+eval: ## run LLM-skill regression eval against committed goldens
+	uv run python -m eval.runner.runner
+
+eval-bootstrap: ## (re)write goldens by running real LLM calls — costs Anthropic tokens
+	uv run python -m eval.runner.runner --bootstrap
