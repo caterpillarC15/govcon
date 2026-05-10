@@ -313,17 +313,21 @@ recipes — those live in `/root/michealaai`.
 - Landing site (Next 15 glassmorphism) with SEO (robots.txt, JSON-LD SoftwareApplication)
 - Product `/web` with authenticated shell + loading skeletons + error boundaries + SSE stream upgrade
 - MCP server package (`mcp-server-govcapture` wrapping `/api/v1/tools`)
-- Eval harness scaffolding (`eval/runner/`, `eval/goldens/`, differs + tolerance) — goldens not yet bootstrapped
-- 183 passing tests (baseline 113 + 70 new across phases 1–5 + Hermes-plugin / MCP-server award_type_codes fixes)
+- Eval harness scaffolding (`eval/runner/`, differs + tolerance) — goldens not yet bootstrapped (Phase 8.2 owed)
+- Eval inputs authored across all 4 fixtures (15 fixture × skill slots; `make eval-bootstrap` ready when ANTHROPIC_API_KEY is real)
+- ApprovalGate server-side persistence: `POST /action-packages/{id}/approve` + `approved_at`/`approved_by` columns + frontend wire-up (commit `93e396b`)
+- SSE polish: RunTimeline memoize + dedupe + partial badge (commit `0f03693`)
+- Auth hardening: `getSession`→`getUser` via `requireUser` helper across 9 web routes + middleware (commit `6827594`)
+- `make schemas` idempotent + scoped to generated-only files; 6 hand-written modules preserved (commit `c74a9ce`)
+- 186 passing tests (baseline 113 + 70 new across phases 1–5 + Hermes-plugin / MCP-server award_type_codes fixes + 3 approval tests)
 
-**Next (this repo's queue):**
+**Next (this repo's queue) — all gated on external action:**
 
-- Sprint C Phases 1.3/1.4/1.5: mobile sweep + a11y full pass + copy pass (user-driven)
-- Eval goldens bootstrap (`make eval-bootstrap`; costs Anthropic tokens; user-driven)
-- Sprint D: VX1 production deploy (external infra)
-- Sprint G e2e: cross-repo verification with `/root/michealaai` (michealaai's scope)
-- Phase 6: Resend SMTP production email (Supabase Studio account access required)
-- v1.0.0 git tag (gated by Phase 7 + Sprint G verification)
+- Phase 5: Resend SMTP production email (Resend account + DNS records + Supabase Studio access)
+- Phase 6: Vultr VX1 production deploy (Vultr account + DNS + Vercel env)
+- Phase 7: Sprint G cross-repo e2e (coordination with `/root/michealaai`)
+- Phase 8.2–8.4: Run `make eval-bootstrap` (real ANTHROPIC_API_KEY in `.env` + ~$0.40–$0.60 budget) → hand-review goldens → lock as regression gate
+- Phase 9: v1.0.0 git tag (gated on 5/6/7/8 above)
 
 **Schema state (verified 2026-05-10 via `supabase migration list` — all applied):**
 

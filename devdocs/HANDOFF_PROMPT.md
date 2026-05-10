@@ -42,14 +42,15 @@ auth wired, env files gitignored, full test suite green.
 
 ## 1. Verified state at handoff (what's true RIGHT NOW)
 
-Verified 2026-05-10 after the launch-runway sprint and the
-post-runway frontend/agent fix patch (commits `5ff99cb`, `310bb`,
-`a03591f`, `f5a2e48`).
+Verified 2026-05-10 after the launch-runway sprint, the post-runway
+frontend/agent fix patch (`5ff99cb`, `310bb`, `a03591f`, `f5a2e48`), and
+the finish-it-all execution session (`93e396b`, `0f03693`, `6827594`,
+`c74a9ce`, `47ba676`, `435acac`).
 
 | Check | Result |
 |-------|--------|
 | Branch | `main`, working tree clean, up-to-date with `origin/main` |
-| `uv run pytest api/tests/` | **183 passed** (113 baseline + 70 new across api_keys, v1_tools, rate_limit, query_usaspending, eval fixtures, Hermes-plugin/MCP award_type_codes fixes) |
+| `uv run pytest api/tests/` | **186 passed** (183 baseline + 3 from action_package approve route) |
 | `uv run ruff check api` | All checks passed |
 | `uv run mypy api` | Success: no issues found in **76 source files** |
 | `uv run python -c "from api.main import app; print(sum(1 for r in app.routes if hasattr(r,'path')))"` | **53** routes — 11 `/api/v1/tools/<name>` + 11 `/tools/<name>` + 3 `/api/keys` + 4 `/agent-runs` + 3 `/company-profiles` + 2 `/profiles/me` + 9 `/opportunities*` + 2 `/action-packages` + 2 `/.well-known/*` + 1 `/healthz` + 1 `/waitlist` + 4 FastAPI auto |
