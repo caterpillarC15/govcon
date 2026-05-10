@@ -325,7 +325,7 @@ recipes — those live in `/root/michealaai`.
 - Phase 6: Resend SMTP production email (Supabase Studio account access required)
 - v1.0.0 git tag (gated by Phase 7 + Sprint G verification)
 
-**Schema state (verified 2026-05-10 via `supabase migration list`):**
+**Schema state (verified 2026-05-10 via `supabase migration list` — all applied):**
 
 | Local timestamp | Remote timestamp | Status |
 |---|---|---|
@@ -334,17 +334,19 @@ recipes — those live in `/root/michealaai`.
 | 20260509140333 | 20260509140333 | applied (Michaela MVP layer) |
 | 20260509140838 | 20260509140838 | applied (ownership + provenance) |
 | 20260509203000 | 20260509203000 | applied (waitlist) |
-| (none) | 20260510021500 | **REMOTE-ONLY drift** — applied to Supabase outside this repo |
-| (none) | 20260510024000 | **REMOTE-ONLY drift** — applied to Supabase outside this repo |
-| 20260510120000 | (none) | **LOCAL-ONLY** — `api_keys` (commit `b334c20`); needs `supabase db push` |
-| 20260510120100 | (none) | **LOCAL-ONLY** — `competitor_history` (commit `ec7eb5f`); needs `supabase db push` |
+| 20260510021500 | 20260510021500 | applied (remote-drift placeholder; see below) |
+| 20260510024000 | 20260510024000 | applied (remote-drift placeholder; see below) |
+| 20260510092040 | 20260510092040 | applied (action_package approval columns) |
+| 20260510120000 | 20260510120000 | applied (api_keys table) |
+| 20260510120100 | 20260510120100 | applied (competitor_history table) |
 
-The two LOCAL-ONLY migrations gate `/api/keys` minting and the Ledger
-`competitor_history` writebacks against the production project — push
-before exercising those routes against real Supabase. The two
-REMOTE-ONLY rows are unexpected drift; reconcile with
-`supabase db pull` and decide whether to vendor them into this repo's
-`supabase/migrations/`.
+Two timestamps (`20260510021500`, `20260510024000`) were applied to the
+linked Supabase project outside this repo (likely Studio edits). They
+exist locally as **empty placeholder files** so the Supabase CLI sees
+local + remote histories as synchronized. A fresh project provisioned
+from `supabase/migrations/` would NOT have whatever those two
+migrations did; resolve in a post-v1 schema squash by inspecting via
+Studio and authoring equivalent migrations.
 
 **Owned by `/root/michealaai`, not us:**
 

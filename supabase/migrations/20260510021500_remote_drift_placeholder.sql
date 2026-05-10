@@ -1,0 +1,8 @@
+-- Empty placeholder: this timestamp was applied to the linked Supabase
+-- project on 2026-05-10 02:15:00 UTC outside this repo (likely a Studio
+-- edit). The actual schema change lives in remote; this file exists only
+-- so the Supabase CLI sees local + remote migration histories as
+-- synchronized. A fresh project provisioned from supabase/migrations/
+-- would NOT have whatever this migration did. Resolve in a post-v1
+-- schema squash by inspecting via Studio and authoring an equivalent
+-- migration.

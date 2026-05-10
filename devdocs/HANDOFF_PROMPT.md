@@ -65,11 +65,9 @@ post-runway frontend/agent fix patch (commits `5ff99cb`, `310bb`,
 | `git check-ignore .env` | matches `.env` (real keys safely uncommitted) |
 | Bucket `govcapture-attachments` | created (private) |
 
-### Schema state (Supabase) — drift requires action
+### Schema state (Supabase) — all migrations applied
 
-`supabase migration list` (2026-05-10) shows the local
-`supabase/migrations/` folder and the linked project
-(`vvyxjdoenjujkxwbnzyl`) are NOT identical:
+`supabase migration list` (2026-05-10) shows local + remote synchronized:
 
 | Local | Remote | Status |
 |---|---|---|
@@ -78,21 +76,24 @@ post-runway frontend/agent fix patch (commits `5ff99cb`, `310bb`,
 | 20260509140333 | 20260509140333 | applied (Michaela MVP layer) |
 | 20260509140838 | 20260509140838 | applied (ownership + provenance) |
 | 20260509203000 | 20260509203000 | applied (waitlist) |
-| (none) | 20260510021500 | **REMOTE-ONLY drift** — applied to Supabase outside this repo |
-| (none) | 20260510024000 | **REMOTE-ONLY drift** — applied to Supabase outside this repo |
-| 20260510120000 | (none) | **LOCAL-ONLY** — `api_keys` (commit `b334c20`) |
-| 20260510120100 | (none) | **LOCAL-ONLY** — `competitor_history` (commit `ec7eb5f`) |
+| 20260510021500 | 20260510021500 | applied (remote-drift placeholder, empty SQL locally — actual change lives in remote DB) |
+| 20260510024000 | 20260510024000 | applied (remote-drift placeholder, empty SQL locally — actual change lives in remote DB) |
+| 20260510092040 | 20260510092040 | applied (action_package approval columns) |
+| 20260510120000 | 20260510120000 | applied (api_keys table) |
+| 20260510120100 | 20260510120100 | applied (competitor_history table) |
 
-Two consequences:
+Two timestamps (`20260510021500`, `20260510024000`) were applied to the
+linked Supabase project outside this repo (likely Studio edits). They
+exist locally as empty placeholder files so the Supabase CLI sees local
++ remote histories as synchronized. **A fresh project provisioned from
+`supabase/migrations/` would NOT have whatever those two migrations did**
+— resolve in a post-v1 schema squash by inspecting via Studio and
+authoring equivalent migrations.
 
-1. **`/api/keys` minting and `/opportunities/{id}/competitors` writebacks
-   will 4xx/5xx against the linked Supabase** until `supabase db push`
-   applies `20260510120000` and `20260510120100`.
-2. **The two remote-only migrations were applied to Supabase outside
-   this repo's migration folder.** Run `supabase db pull` to inspect
-   what they did and decide whether to vendor them locally; until then,
-   any fresh project provisioned from this repo's migrations is missing
-   that schema.
+Verified live (2026-05-10) via `api/db.get_client`:
+- `api_keys` table queryable
+- `competitor_history` table queryable
+- `action_packages.approved_at` + `approved_by` columns accessible
 
 **Still placeholder in `.env`** (won't block /healthz or DB calls — needed only when LLM-backed skills are exercised end-to-end):
 
