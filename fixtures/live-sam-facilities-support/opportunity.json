@@ -1,0 +1,100 @@
+{
+  "agency": "DEPT OF DEFENSE.US SPECIAL OPERATIONS COMMAND (USSOCOM).HQ USSOCOM",
+  "attachments": [
+    {
+      "local_path": "attachments/SF30_-_H9240026RE001_Amd_0002.pdf",
+      "parseable": true,
+      "url": "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/1257950a28e44e0faf35d75ed28bc5ee/download"
+    }
+  ],
+  "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=fcc9945b5e2f4ecf95b5967050f586a3",
+  "due_date": "2026-05-28",
+  "id": "fcc9945b5e2f4ecf95b5967050f586a3",
+  "naics": "541611",
+  "notice_id": "fcc9945b5e2f4ecf95b5967050f586a3",
+  "place_of_performance": "Tampa, Florida, UNITED STATES",
+  "posted_date": "2026-05-08",
+  "raw_payload": {
+    "active": "Yes",
+    "additionalInfoLink": null,
+    "archiveDate": "2026-09-10",
+    "archiveType": "autocustom",
+    "award": null,
+    "baseType": "Solicitation",
+    "classificationCode": "R499",
+    "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=fcc9945b5e2f4ecf95b5967050f586a3",
+    "fullParentPathCode": "097.97ZS.H92400",
+    "fullParentPathName": "DEPT OF DEFENSE.US SPECIAL OPERATIONS COMMAND (USSOCOM).HQ USSOCOM",
+    "links": [
+      {
+        "href": "https://api.sam.gov/prod/opportunities/v2/search?noticeid=fcc9945b5e2f4ecf95b5967050f586a3&limit=1",
+        "rel": "self"
+      }
+    ],
+    "naicsCode": "541611",
+    "naicsCodes": [
+      "541611"
+    ],
+    "noticeId": "fcc9945b5e2f4ecf95b5967050f586a3",
+    "officeAddress": {
+      "city": "TAMPA",
+      "countryCode": "USA",
+      "state": "FL",
+      "zipcode": "33621-5323"
+    },
+    "organizationType": "OFFICE",
+    "placeOfPerformance": {
+      "city": {
+        "code": "71000",
+        "name": "Tampa"
+      },
+      "country": {
+        "code": "USA",
+        "name": "UNITED STATES"
+      },
+      "state": {
+        "code": "FL",
+        "name": "Florida"
+      },
+      "zip": "33621"
+    },
+    "pointOfContact": [
+      {
+        "email": "sherri.ashby@socom.mil",
+        "fax": "",
+        "fullName": "Sherri Ashby",
+        "phone": "",
+        "title": null,
+        "type": "primary"
+      }
+    ],
+    "postedDate": "2026-05-08",
+    "resourceLinks": [
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/1257950a28e44e0faf35d75ed28bc5ee/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/4cdfd93e46a14cc2b4a1e231d3bfaea8/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/5aed6af59e464d4fbe00f145eb247b9c/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/5d1c796a430e406089c9de97f28072c2/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/69a03c3d4470408eb9291a1623658388/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/6ad130caf3f546f9ab60d80b27617777/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/7430680bef054035bb8222eb716ce15a/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/747c5d3295a840e5845aea7d8c936b6f/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/a6ad96b47c79406188533392a8641eef/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/ae44b830a9a34d7aaced6db8a8250ac8/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/b39fd0499d294542bdaf9e8ff7400580/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d2e3e83c24be485dbc0deb63932e410b/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e4c5208c01ce4f57a73d022af9351250/download",
+      "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/fb5aba2259af40b8a2271e52a013c53b/download"
+    ],
+    "responseDeadLine": "2026-05-28T22:00:00-04:00",
+    "solicitationNumber": "H9240026RE001",
+    "title": "SOF Global Services Delivery (SOFGSD)",
+    "type": "Solicitation",
+    "typeOfSetAside": "SBA",
+    "typeOfSetAsideDescription": "Total Small Business Set-Aside (FAR 19.5)",
+    "uiLink": "https://sam.gov/workspace/contract/opp/fcc9945b5e2f4ecf95b5967050f586a3/view"
+  },
+  "set_aside": null,
+  "solicitation_number": "H9240026RE001",
+  "source_url": "https://sam.gov/workspace/contract/opp/fcc9945b5e2f4ecf95b5967050f586a3/view",
+  "title": "SOF Global Services Delivery (SOFGSD)"
+}

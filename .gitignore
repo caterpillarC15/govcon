@@ -1,6 +1,29 @@
-node_modules
-.DS_Store
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Env/secrets
 .env
 .env.*
-*.log
+!.env.example
 
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Keep fixture PDFs as content
+!/fixtures/**/attachments/*.pdf

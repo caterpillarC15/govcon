@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "id": "sof-global-services-delivery",
+      "title": "SOF Global Services Delivery (SOFGSD)",
+      "buyer": "U.S. Special Operations Command",
+      "deadline": "2026-05-28T22:00:00-04:00",
+      "setAside": "Small Business",
+      "naics": "541611",
+      "audioUrl": "/demo/audio/sof-global-services-delivery.mp3",
+      "samUrl": "https://sam.gov/workspace/contract/opp/fcc9945b5e2f4ecf95b5967050f586a3/view"
+    },
+    {
+      "id": "sam-houston-trail-bridge-replacement",
+      "title": "Sam Houston Trail Bridge Replacement",
+      "buyer": "USDA Forest Service",
+      "deadline": "2026-05-29T14:00:00-05:00",
+      "setAside": "Small Business",
+      "naics": "237310",
+      "audioUrl": "/demo/audio/sam-houston-trail-bridge-replacement.mp3",
+      "samUrl": "https://sam.gov/workspace/contract/opp/2408996782a6472e82945cb318d38c0a/view"
+    },
+    {
+      "id": "motorized-trail-equipment-rental",
+      "title": "Motorized Trail Equipment Rental",
+      "buyer": "USDA Forest Service",
+      "deadline": "2026-05-21T17:00:00-04:00",
+      "setAside": "Small Business",
+      "naics": "532412",
+      "audioUrl": "/demo/audio/motorized-trail-equipment-rental.mp3",
+      "samUrl": "https://sam.gov/workspace/contract/opp/fad64bb822844cb4ad9842ebf794ba8b/view"
+    }
+  ]
+}
